@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:matrix/matrix.dart';
 
+import 'package:fluffychat/config/setting_keys.dart';
 import 'package:fluffychat/config/themes.dart';
 import 'package:fluffychat/pages/archive/archive.dart';
 import 'package:fluffychat/pages/bootstrap/bootstrap_dialog.dart';
@@ -22,6 +23,15 @@ import 'package:fluffychat/pages/invitation_selection/invitation_selection.dart'
 import 'package:fluffychat/pages/login/login.dart';
 import 'package:fluffychat/pages/new_group/new_group.dart';
 import 'package:fluffychat/pages/new_private_chat/new_private_chat.dart';
+import 'package:fluffychat/pages/onboarding/account_exists/account_exists_page.dart';
+import 'package:fluffychat/pages/onboarding/benefits/benefits_page.dart';
+import 'package:fluffychat/pages/onboarding/email_new/email_new_page.dart';
+import 'package:fluffychat/pages/onboarding/email_new_verify/email_new_verify_page.dart';
+import 'package:fluffychat/pages/onboarding/email_reactivate/email_reactivate_page.dart';
+import 'package:fluffychat/pages/onboarding/phone/phone_page.dart';
+import 'package:fluffychat/pages/onboarding/phone_verify/phone_verify_page.dart';
+import 'package:fluffychat/pages/onboarding/terms/terms_page.dart';
+import 'package:fluffychat/pages/onboarding/welcome/welcome_page.dart';
 import 'package:fluffychat/pages/settings/settings.dart';
 import 'package:fluffychat/pages/settings_3pid/settings_3pid.dart';
 import 'package:fluffychat/pages/settings_chat/settings_chat.dart';
@@ -60,10 +70,14 @@ abstract class AppRoutes {
   static final List<RouteBase> routes = [
     GoRoute(
       path: '/',
-      redirect: (context, state) =>
-          Matrix.of(context).widget.clients.any((client) => client.isLogged())
-          ? '/rooms'
-          : '/home',
+      redirect: (context, state) {
+        final isLoggedIn =
+            Matrix.of(context).widget.clients.any((c) => c.isLogged());
+        if (isLoggedIn) return '/rooms';
+        return AppSettings.hasSeenOnboarding.value
+            ? '/onboarding/phone'
+            : '/onboarding/benefits';
+      },
     ),
     GoRoute(
       path: '/home',
@@ -93,6 +107,60 @@ abstract class AppRoutes {
           redirect: loggedInRedirect,
         ),
       ],
+    ),
+    GoRoute(
+      path: '/onboarding/benefits',
+      redirect: loggedInRedirect,
+      pageBuilder: (context, state) =>
+          defaultPageBuilder(context, state, const BenefitsPage()),
+    ),
+    GoRoute(
+      path: '/onboarding/terms',
+      redirect: loggedInRedirect,
+      pageBuilder: (context, state) =>
+          defaultPageBuilder(context, state, const TermsPage()),
+    ),
+    GoRoute(
+      path: '/onboarding/phone',
+      redirect: loggedInRedirect,
+      pageBuilder: (context, state) =>
+          defaultPageBuilder(context, state, const PhonePage()),
+    ),
+    GoRoute(
+      path: '/onboarding/phone-verify',
+      redirect: loggedInRedirect,
+      pageBuilder: (context, state) =>
+          defaultPageBuilder(context, state, const PhoneVerifyPage()),
+    ),
+    GoRoute(
+      path: '/onboarding/account-exists',
+      redirect: loggedInRedirect,
+      pageBuilder: (context, state) =>
+          defaultPageBuilder(context, state, const AccountExistsPage()),
+    ),
+    GoRoute(
+      path: '/onboarding/email-reactivate',
+      redirect: loggedInRedirect,
+      pageBuilder: (context, state) =>
+          defaultPageBuilder(context, state, const EmailReactivatePage()),
+    ),
+    GoRoute(
+      path: '/onboarding/email-new',
+      redirect: loggedInRedirect,
+      pageBuilder: (context, state) =>
+          defaultPageBuilder(context, state, const EmailNewPage()),
+    ),
+    GoRoute(
+      path: '/onboarding/email-new/verify',
+      redirect: loggedInRedirect,
+      pageBuilder: (context, state) =>
+          defaultPageBuilder(context, state, const EmailNewVerifyPage()),
+    ),
+    GoRoute(
+      path: '/onboarding/welcome',
+      redirect: loggedInRedirect,
+      pageBuilder: (context, state) =>
+          defaultPageBuilder(context, state, const WelcomePage()),
     ),
     GoRoute(
       path: '/logs',

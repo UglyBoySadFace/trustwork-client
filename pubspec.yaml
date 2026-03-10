@@ -10,6 +10,8 @@ environment:
   sdk: ">=3.10.0 <4.0.0"
 
 dependencies:
+  trustwork_api:
+    path: ./trustwork_api
   animations: ^2.1.1
   app_links: ^6.4.1
   archive: ^4.0.7
@@ -98,6 +100,7 @@ dev_dependencies:
   translations_cleaner: ^0.1.0
 
 import_sorter:
+  no_comments: true
   ignored_files: # Optional, defaults to []
     - \/lib\/l10n
 
