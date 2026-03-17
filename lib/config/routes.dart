@@ -1,10 +1,14 @@
+// Dart imports:
 import 'dart:async';
 
+// Flutter imports:
 import 'package:flutter/material.dart';
 
+// Package imports:
 import 'package:go_router/go_router.dart';
 import 'package:matrix/matrix.dart';
 
+// Project imports:
 import 'package:fluffychat/config/setting_keys.dart';
 import 'package:fluffychat/config/themes.dart';
 import 'package:fluffychat/pages/archive/archive.dart';
@@ -28,6 +32,7 @@ import 'package:fluffychat/pages/onboarding/benefits/benefits_page.dart';
 import 'package:fluffychat/pages/onboarding/email_new/email_new_page.dart';
 import 'package:fluffychat/pages/onboarding/email_new_verify/email_new_verify_page.dart';
 import 'package:fluffychat/pages/onboarding/email_reactivate/email_reactivate_page.dart';
+import 'package:fluffychat/pages/onboarding/email_reactivate/email_reactivate_verify_page.dart';
 import 'package:fluffychat/pages/onboarding/phone/phone_page.dart';
 import 'package:fluffychat/pages/onboarding/phone_verify/phone_verify_page.dart';
 import 'package:fluffychat/pages/onboarding/terms/terms_page.dart';
@@ -143,6 +148,12 @@ abstract class AppRoutes {
       redirect: loggedInRedirect,
       pageBuilder: (context, state) =>
           defaultPageBuilder(context, state, const EmailReactivatePage()),
+    ),
+    GoRoute(
+      path: '/onboarding/email-reactivate/verify',
+      redirect: loggedInRedirect,
+      pageBuilder: (context, state) =>
+          defaultPageBuilder(context, state, const EmailReactivateVerifyPage()),
     ),
     GoRoute(
       path: '/onboarding/email-new',

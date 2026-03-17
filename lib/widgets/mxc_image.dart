@@ -1,11 +1,15 @@
+// Dart imports:
 import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
 
+// Flutter imports:
 import 'package:flutter/material.dart';
 
+// Package imports:
 import 'package:matrix/matrix.dart';
 
+// Project imports:
 import 'package:fluffychat/config/themes.dart';
 import 'package:fluffychat/utils/client_download_content_extension.dart';
 import 'package:fluffychat/utils/matrix_sdk_extensions/matrix_file_extension.dart';

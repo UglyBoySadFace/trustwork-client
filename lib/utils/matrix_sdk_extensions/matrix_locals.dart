@@ -1,5 +1,7 @@
+// Package imports:
 import 'package:matrix/matrix.dart';
 
+// Project imports:
 import 'package:fluffychat/l10n/l10n.dart';
 
 /// This is a temporary helper class until there is a proper solution to this with the new system

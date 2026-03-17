@@ -1,3 +1,4 @@
+// Package imports:
 import 'package:matrix/matrix.dart';
 
 extension OtherPartyCanReceiveExtension on Room {

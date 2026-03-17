@@ -1,7 +1,9 @@
+// Package imports:
 import 'package:cross_file/cross_file.dart';
 import 'package:matrix/matrix.dart';
 import 'package:video_compress/video_compress.dart';
 
+// Project imports:
 import 'package:fluffychat/utils/platform_infos.dart';
 
 extension ResizeImage on XFile {

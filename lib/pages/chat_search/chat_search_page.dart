@@ -1,7 +1,10 @@
+// Flutter imports:
 import 'package:flutter/material.dart';
 
+// Package imports:
 import 'package:matrix/matrix.dart';
 
+// Project imports:
 import 'package:fluffychat/pages/chat_search/chat_search_view.dart';
 import 'package:fluffychat/widgets/matrix.dart';
 

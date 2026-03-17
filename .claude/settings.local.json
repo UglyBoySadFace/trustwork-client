@@ -1,7 +1,12 @@
 {
   "permissions": {
     "allow": [
-      "Bash(flutter analyze:*)"
+      "Bash(flutter analyze:*)",
+      "Bash(find /c/Users/filip -name \"client.dart\" -path \"*/matrix-*\" 2>/dev/null | head -5)",
+      "mcp__ide__getDiagnostics",
+      "Bash(cd /c/Users/filip/StudioProjects/trustwork-client/trustwork-flutter/packages/api_client && dart pub get 2>&1)",
+      "Bash(dart run:*)",
+      "Bash(flutter pub:*)"
     ]
   }
 }

@@ -1,11 +1,15 @@
+// Dart imports:
 import 'dart:developer';
 
+// Flutter imports:
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+// Package imports:
 import 'package:async/async.dart' as async;
 import 'package:matrix/matrix.dart';
 
+// Project imports:
 import 'package:fluffychat/utils/size_string.dart';
 import 'package:fluffychat/widgets/future_loading_dialog.dart';
 import 'matrix_file_extension.dart';

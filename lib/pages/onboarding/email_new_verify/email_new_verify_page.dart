@@ -1,5 +1,7 @@
+// Flutter imports:
 import 'package:flutter/material.dart';
 
+// Project imports:
 import 'package:fluffychat/pages/onboarding/email_new_verify/view_model/email_new_verify_view_model.dart';
 import 'package:fluffychat/pages/onboarding/onboarding_flow_coordinator.dart';
 import 'package:fluffychat/pages/onboarding/shared/otp_input.dart';
@@ -40,14 +42,30 @@ class EmailNewVerifyPage extends StatelessWidget {
                 OtpInput(
                   onCompleted: (code) => viewModel.onCodeChanged(code),
                 ),
+                if (state.error != null) ...[
+                  const SizedBox(height: 16),
+                  Text(
+                    state.error!,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.error,
+                        ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
                 const SizedBox(height: 32),
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: state.code.length == 6
+                    onPressed: state.code.length == 6 && !state.isLoading
                         ? () => viewModel.onVerify(context, state.code)
                         : null,
-                    child: const Text('Verify'),
+                    child: state.isLoading
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Text('Verify'),
                   ),
                 ),
                 const SizedBox(height: 16),

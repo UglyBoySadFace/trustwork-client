@@ -10,7 +10,7 @@ environment:
   sdk: ">=3.10.0 <4.0.0"
 
 dependencies:
-  trustwork_api:
+  api_client:
     path: ./trustwork-flutter/packages/api_client
   animations: ^2.1.1
   app_links: ^6.4.1
@@ -23,6 +23,7 @@ dependencies:
   cross_file: ^0.3.5
   cupertino_icons: any
   desktop_drop: ^0.7.0
+  dio: ^5.7.0
   desktop_notifications: ^0.6.3
   device_info_plus: ^12.3.0
   dynamic_color: ^1.8.1

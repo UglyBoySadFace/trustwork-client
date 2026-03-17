@@ -1,10 +1,13 @@
+// Dart imports:
 import 'dart:convert';
 import 'dart:io';
 
+// Package imports:
 import 'package:http/http.dart' as http;
 import 'package:http/io_client.dart';
 import 'package:http/retry.dart' as retry;
 
+// Project imports:
 import 'package:fluffychat/config/isrg_x1.dart';
 import 'package:fluffychat/utils/platform_infos.dart';
 

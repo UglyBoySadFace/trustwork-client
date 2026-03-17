@@ -1,6 +1,8 @@
+// Flutter imports:
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
+// Project imports:
 import 'package:fluffychat/config/app_config.dart';
 
 class AdaptiveDialogAction extends StatelessWidget {

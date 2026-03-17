@@ -1,15 +1,40 @@
+// Flutter imports:
 import 'package:flutter/material.dart';
 
+// Package imports:
 import 'package:go_router/go_router.dart';
 
+// Project imports:
+import 'package:fluffychat/config/app_config.dart';
 import 'package:fluffychat/pages/onboarding/onboarding_flow_coordinator.dart';
 import 'package:fluffychat/widgets/layouts/login_scaffold.dart';
+import 'package:fluffychat/widgets/matrix.dart';
 
 class WelcomePage extends StatelessWidget {
   const WelcomePage({super.key});
 
+  Future<void> _onContinue(BuildContext context) async {
+    final coordinator = OnboardingFlowCoordinator.instance;
+    final matrix = coordinator.authResponse?.matrix;
+
+    if (matrix != null) {
+      final loginClient = await Matrix.of(context).getLoginClient();
+      await loginClient.init(
+        newToken: matrix.matrixAccessToken,
+        newUserID: matrix.matrixUserId,
+        newHomeserver: Uri.parse(AppConfig.matrixHomeserver),
+        waitForFirstSync: false,
+      );
+      // Navigation is handled automatically by the onLoginStateChanged
+      // listener set up inside getLoginClient() → routes to /backup
+    } else {
+      coordinator.reset();
+      if (context.mounted) context.go('/rooms');
+    }
+  }
+
   @override
-  Widget build(BuildContext context) {\
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return LoginScaffold(
       appBar: AppBar(
@@ -44,10 +69,7 @@ class WelcomePage extends StatelessWidget {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () {
-                  OnboardingFlowCoordinator.instance.reset();
-                  context.go('/rooms');
-                },
+                onPressed: () => _onContinue(context),
                 child: const Text('Yes, trust is worth it'),
               ),
             ),

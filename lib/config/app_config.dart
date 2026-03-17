@@ -1,3 +1,4 @@
+// Dart imports:
 import 'dart:ui';
 
 abstract class AppConfig {
@@ -59,6 +60,9 @@ abstract class AppConfig {
     host: 'fluffy.chat',
     path: '/en/privacy',
   );
+
+  static const String trustworkApiBaseUrl = 'http://178.104.38.49:8000';
+  static const String matrixHomeserver = 'https://matrix.trustwork.onmatrix.chat';
 
   static const String mainIsolatePortName = 'main_isolate';
   static const String pushIsolatePortName = 'push_isolate';

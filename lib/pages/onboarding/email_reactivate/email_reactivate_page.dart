@@ -1,7 +1,8 @@
+// Flutter imports:
 import 'package:flutter/material.dart';
 
+// Project imports:
 import 'package:fluffychat/pages/onboarding/email_reactivate/view_model/email_reactivate_view_model.dart';
-import 'package:fluffychat/pages/onboarding/shared/otp_input.dart';
 import 'package:fluffychat/widgets/layouts/login_scaffold.dart';
 import 'package:fluffychat/widgets/view_model_builder.dart';
 
@@ -19,45 +20,44 @@ class EmailReactivatePage extends StatelessWidget {
           body: Padding(
             padding: const EdgeInsets.all(24.0),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 16),
                 Text(
-                  'We sent a code to',
-                  style: Theme.of(context).textTheme.titleMedium,
-                  textAlign: TextAlign.center,
+                  'Enter your email address',
+                  style: Theme.of(context).textTheme.titleLarge,
                 ),
-                Text(
-                  'placeholder@email.com',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                  textAlign: TextAlign.center,
+                const SizedBox(height: 8),
+                const Text(
+                  "Enter the email linked to your Trustwork account. We'll send you a verification code.",
                 ),
-                const SizedBox(height: 32),
-                OtpInput(
-                  onCompleted: (code) => viewModel.onCodeChanged(code),
+                const SizedBox(height: 24),
+                TextField(
+                  controller: viewModel.emailController,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: InputDecoration(
+                    hintText: 'your@email.com',
+                    prefixIcon: const Icon(Icons.email_outlined),
+                    border: const OutlineInputBorder(),
+                    errorText: state.error,
+                  ),
                 ),
-                const SizedBox(height: 32),
+                const SizedBox(height: 24),
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: state.code.length == 6
-                        ? () => viewModel.onVerify(context, state.code)
+                    onPressed: state.isValid && !state.isLoading
+                        ? () => viewModel.onContinue(context)
                         : null,
-                    child: const Text('Verify'),
+                    child: state.isLoading
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Text('Continue'),
                   ),
                 ),
-                const SizedBox(height: 16),
-                state.resendCooldown > 0
-                    ? Text(
-                        'Resend code in ${state.resendCooldown}s',
-                        style: Theme.of(context).textTheme.bodySmall,
-                      )
-                    : TextButton(
-                        onPressed: viewModel.onResend,
-                        child: const Text('Resend code'),
-                      ),
               ],
             ),
           ),

@@ -1,19 +1,33 @@
+// Dart imports:
 import 'dart:async';
 
+// Flutter imports:
 import 'package:flutter/material.dart';
 
 class OtpState {
   final String code;
   final int resendCooldown;
+  final bool isLoading;
+  final String? error;
 
   const OtpState({
     this.code = '',
     this.resendCooldown = 30,
+    this.isLoading = false,
+    this.error,
   });
 
-  OtpState copyWith({String? code, int? resendCooldown}) => OtpState(
+  OtpState copyWith({
+    String? code,
+    int? resendCooldown,
+    bool? isLoading,
+    String? error,
+    bool clearError = false,
+  }) => OtpState(
     code: code ?? this.code,
     resendCooldown: resendCooldown ?? this.resendCooldown,
+    isLoading: isLoading ?? this.isLoading,
+    error: clearError ? null : error ?? this.error,
   );
 }
 
@@ -38,7 +52,7 @@ abstract class OtpViewModel extends ValueNotifier<OtpState> {
   }
 
   void onCodeChanged(String code) {
-    value = value.copyWith(code: code);
+    value = value.copyWith(code: code, clearError: true);
   }
 
   void onResend() {
@@ -46,7 +60,7 @@ abstract class OtpViewModel extends ValueNotifier<OtpState> {
     _startCooldown();
   }
 
-  void onVerify(BuildContext context, String code);
+  Future<void> onVerify(BuildContext context, String code);
 
   @override
   void dispose() {
