@@ -61,7 +61,7 @@ abstract class AppConfig {
     path: '/en/privacy',
   );
 
-  static const String trustworkApiBaseUrl = 'http://178.104.38.49:8000';
+  static const String trustworkApiBaseUrl = 'https://api.dubjafil.space';
   static const String matrixHomeserver = 'https://matrix.trustwork.onmatrix.chat';
   static const String trustworkScheme = 'trustwork';
 
