@@ -108,6 +108,12 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="im.fluffychat" android:host="login"/>
             </intent-filter>
+            <intent-filter android:label="flutter_web_auth_bankid">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="trustwork" android:host="auth-success"/>
+            </intent-filter>
         </activity>
 
         <service android:name=".FcmPushService"

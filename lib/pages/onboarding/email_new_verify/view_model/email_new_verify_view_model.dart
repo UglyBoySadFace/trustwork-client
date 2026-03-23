@@ -2,7 +2,6 @@
 import 'package:flutter/material.dart';
 
 // Package imports:
-import 'package:api_client/api_client.dart';
 import 'package:dio/dio.dart';
 import 'package:go_router/go_router.dart';
 
@@ -19,17 +18,15 @@ class EmailNewVerifyViewModel extends OtpViewModel {
     final phone = coordinator.phoneNumber;
     value = value.copyWith(isLoading: true, clearError: true);
     try {
-      final response = await TrustworkApiService.instance.emailAuth
-          .emailVerifyAuthEmailVerifyPost(
-        emailVerifyRequest: EmailVerifyRequest(
-          (b) => b
-            ..email = email
-            ..code = code
-            ..phone = phone,
-        ),
+      final (:authResponse, :loginToken, :deviceId) =
+          await TrustworkApiService.instance.emailVerify(
+        email: email,
+        code: code,
+        phone: phone,
       );
-      final authResponse = response.data!;
       coordinator.authResponse = authResponse;
+      coordinator.matrixLoginToken = loginToken;
+      coordinator.matrixDeviceId = deviceId;
       await TrustworkApiService.instance.saveTokens(
         authResponse.accessToken,
         authResponse.refreshToken,
@@ -39,10 +36,14 @@ class EmailNewVerifyViewModel extends OtpViewModel {
         context.go('/onboarding/welcome');
       }
     } on DioException catch (e) {
-      value = value.copyWith(
-        isLoading: false,
-        error: TrustworkApiService.friendlyError(e),
-      );
+      final String error;
+      if (e.response?.statusCode == 409) {
+        error =
+            'This phone number is already registered. Please go back and sign in instead.';
+      } else {
+        error = TrustworkApiService.friendlyError(e);
+      }
+      value = value.copyWith(isLoading: false, error: error);
     } catch (_) {
       value = value.copyWith(
         isLoading: false,

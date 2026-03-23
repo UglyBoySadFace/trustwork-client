@@ -63,6 +63,7 @@ abstract class AppConfig {
 
   static const String trustworkApiBaseUrl = 'http://178.104.38.49:8000';
   static const String matrixHomeserver = 'https://matrix.trustwork.onmatrix.chat';
+  static const String trustworkScheme = 'trustwork';
 
   static const String mainIsolatePortName = 'main_isolate';
   static const String pushIsolatePortName = 'push_isolate';

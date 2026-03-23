@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 
 // Package imports:
 import 'package:api_client/api_client.dart';
+import 'package:built_value/serializer.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
@@ -52,6 +53,87 @@ class TrustworkApiService {
       _storage.delete(key: _keyAccessToken),
       _storage.delete(key: _keyRefreshToken),
     ]);
+  }
+
+  AuthApi get auth => _apiClient.getAuthApi();
+
+  /// Calls POST /auth/email/verify. Extracts the AuthResponse plus the Matrix
+  /// access token (login_token) and device ID (matrix_device_id).
+  Future<({AuthResponse authResponse, String? loginToken, String? deviceId})>
+  emailVerify({
+    required String email,
+    required String code,
+    String? phone,
+  }) async {
+    final response = await _dio.post<Map<String, dynamic>>(
+      '/auth/email/verify',
+      data: <String, dynamic>{
+        'email': email,
+        'code': code,
+        if (phone != null) 'phone': phone,
+      },
+    );
+    final data = response.data!;
+    final authResponse = standardSerializers.deserialize(
+      data,
+      specifiedType: const FullType(AuthResponse),
+    ) as AuthResponse;
+    final loginToken = data['login_token'] as String?;
+    final deviceId = data['matrix_device_id'] as String?;
+    return (authResponse: authResponse, loginToken: loginToken, deviceId: deviceId);
+  }
+
+  /// Calls POST /auth/email/login. Extracts the AuthResponse plus the Matrix
+  /// access token (login_token) and device ID (matrix_device_id).
+  Future<({AuthResponse authResponse, String? loginToken, String? deviceId})>
+  emailLogin({
+    required String email,
+    required String code,
+  }) async {
+    final response = await _dio.post<Map<String, dynamic>>(
+      '/auth/email/login',
+      data: <String, dynamic>{'email': email, 'code': code},
+    );
+    final data = response.data!;
+    final authResponse = standardSerializers.deserialize(
+      data,
+      specifiedType: const FullType(AuthResponse),
+    ) as AuthResponse;
+    final loginToken = data['login_token'] as String?;
+    final deviceId = data['matrix_device_id'] as String?;
+    return (authResponse: authResponse, loginToken: loginToken, deviceId: deviceId);
+  }
+
+  /// Calls GET /auth/bankid/start with the stored access token.
+  /// Returns the authorization_url to open in the browser.
+  Future<({String authorizationUrl, String state})> bankIdStart() async {
+    final accessToken = await getAccessToken();
+    final response = await _dio.get<Map<String, dynamic>>(
+      '/auth/bankid/start',
+      options: Options(
+        headers: <String, String>{'Authorization': 'Bearer $accessToken'},
+      ),
+    );
+    final data = response.data!;
+    return (
+      authorizationUrl: data['authorization_url'] as String,
+      state: data['state'] as String,
+    );
+  }
+
+  /// Calls GET /auth/bankid/callback?code=...&state=... and returns AuthResponse.
+  Future<AuthResponse> bankIdCallback({
+    required String code,
+    required String state,
+  }) async {
+    final response = await _dio.get<Object>(
+      '/auth/bankid/callback',
+      queryParameters: <String, String>{'code': code, 'state': state},
+    );
+    return standardSerializers.deserialize(
+          response.data,
+          specifiedType: const FullType(AuthResponse),
+        ) as AuthResponse;
   }
 
   /// Extracts a user-friendly message from a DioException and logs the full

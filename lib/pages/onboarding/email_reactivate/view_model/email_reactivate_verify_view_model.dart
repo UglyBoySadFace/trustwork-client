@@ -2,7 +2,6 @@
 import 'package:flutter/material.dart';
 
 // Package imports:
-import 'package:api_client/api_client.dart';
 import 'package:dio/dio.dart';
 import 'package:go_router/go_router.dart';
 
@@ -18,16 +17,14 @@ class EmailReactivateVerifyViewModel extends OtpViewModel {
     final email = coordinator.newEmail ?? '';
     value = value.copyWith(isLoading: true, clearError: true);
     try {
-      final response = await TrustworkApiService.instance.emailAuth
-          .emailLoginAuthEmailLoginPost(
-        emailVerifyRequest: EmailVerifyRequest(
-          (b) => b
-            ..email = email
-            ..code = code,
-        ),
+      final (:authResponse, :loginToken, :deviceId) =
+          await TrustworkApiService.instance.emailLogin(
+        email: email,
+        code: code,
       );
-      final authResponse = response.data!;
       coordinator.authResponse = authResponse;
+      coordinator.matrixLoginToken = loginToken;
+      coordinator.matrixDeviceId = deviceId;
       await TrustworkApiService.instance.saveTokens(
         authResponse.accessToken,
         authResponse.refreshToken,

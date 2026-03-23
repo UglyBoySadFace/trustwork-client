@@ -6,7 +6,9 @@
       "mcp__ide__getDiagnostics",
       "Bash(cd /c/Users/filip/StudioProjects/trustwork-client/trustwork-flutter/packages/api_client && dart pub get 2>&1)",
       "Bash(dart run:*)",
-      "Bash(flutter pub:*)"
+      "Bash(flutter pub:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ]
   }
 }

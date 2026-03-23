@@ -9,11 +9,15 @@ class OnboardingFlowCoordinator {
   bool? isRegistered;
   String? newEmail;
   AuthResponse? authResponse;
+  String? matrixLoginToken;
+  String? matrixDeviceId;
 
   void reset() {
     phoneNumber = null;
     isRegistered = null;
     newEmail = null;
     authResponse = null;
+    matrixLoginToken = null;
+    matrixDeviceId = null;
   }
 }
