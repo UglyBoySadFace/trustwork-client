@@ -12,6 +12,7 @@ Method | HTTP request | Description
 [**bankidCallbackAuthBankidCallbackGet**](AuthApi.md#bankidcallbackauthbankidcallbackget) | **GET** /auth/bankid/callback | Bankid Callback
 [**bankidStartAuthBankidStartGet**](AuthApi.md#bankidstartauthbankidstartget) | **GET** /auth/bankid/start | Bankid Start
 [**bankidTestAuthBankidTestGet**](AuthApi.md#bankidtestauthbankidtestget) | **GET** /auth/bankid/test | Bankid Test
+[**matrixCredentialsAuthMatrixCredentialsGet**](AuthApi.md#matrixcredentialsauthmatrixcredentialsget) | **GET** /auth/matrix-credentials | Matrix Credentials
 
 
 # **bankidCallbackAuthBankidCallbackGet**
@@ -135,6 +136,47 @@ This endpoint does not need any parameter.
 ### Authorization
 
 No authorization required
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **matrixCredentialsAuthMatrixCredentialsGet**
+> MatrixPasswordResponse matrixCredentialsAuthMatrixCredentialsGet()
+
+Matrix Credentials
+
+Return the user's Matrix password for UIA (e.g. device deletion, key backup reset).
+
+### Example
+```dart
+import 'package:api_client/api.dart';
+// TODO Configure OAuth2 access token for authorization: OAuth2PasswordBearer
+//defaultApiClient.getAuthentication<OAuth>('OAuth2PasswordBearer').accessToken = 'YOUR_ACCESS_TOKEN';
+
+final api = ApiClient().getAuthApi();
+
+try {
+    final response = api.matrixCredentialsAuthMatrixCredentialsGet();
+    print(response);
+} on DioException catch (e) {
+    print('Exception when calling AuthApi->matrixCredentialsAuthMatrixCredentialsGet: $e\n');
+}
+```
+
+### Parameters
+This endpoint does not need any parameter.
+
+### Return type
+
+[**MatrixPasswordResponse**](MatrixPasswordResponse.md)
+
+### Authorization
+
+[OAuth2PasswordBearer](../README.md#OAuth2PasswordBearer)
 
 ### HTTP request headers
 

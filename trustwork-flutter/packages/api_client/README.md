@@ -71,6 +71,8 @@ Class | Method | HTTP request | Description
 [*AuthApi*](doc/AuthApi.md) | [**bankidCallbackAuthBankidCallbackGet**](doc/AuthApi.md#bankidcallbackauthbankidcallbackget) | **GET** /auth/bankid/callback | Bankid Callback
 [*AuthApi*](doc/AuthApi.md) | [**bankidStartAuthBankidStartGet**](doc/AuthApi.md#bankidstartauthbankidstartget) | **GET** /auth/bankid/start | Bankid Start
 [*AuthApi*](doc/AuthApi.md) | [**bankidTestAuthBankidTestGet**](doc/AuthApi.md#bankidtestauthbankidtestget) | **GET** /auth/bankid/test | Bankid Test
+[*AuthApi*](doc/AuthApi.md) | [**matrixCredentialsAuthMatrixCredentialsGet**](doc/AuthApi.md#matrixcredentialsauthmatrixcredentialsget) | **GET** /auth/matrix-credentials | Matrix Credentials
+[*ContactsApi*](doc/ContactsApi.md) | [**scanContactsContactsScanPost**](doc/ContactsApi.md#scancontactscontactsscanpost) | **POST** /contacts/scan | Scan Contacts
 [*EmailAuthApi*](doc/EmailAuthApi.md) | [**emailLoginAuthEmailLoginPost**](doc/EmailAuthApi.md#emailloginauthemailloginpost) | **POST** /auth/email/login | Email Login
 [*EmailAuthApi*](doc/EmailAuthApi.md) | [**emailStartAuthEmailStartPost**](doc/EmailAuthApi.md#emailstartauthemailstartpost) | **POST** /auth/email/start | Email Start
 [*EmailAuthApi*](doc/EmailAuthApi.md) | [**emailVerifyAuthEmailVerifyPost**](doc/EmailAuthApi.md#emailverifyauthemailverifypost) | **POST** /auth/email/verify | Email Verify
@@ -83,12 +85,16 @@ Class | Method | HTTP request | Description
 ## Documentation For Models
 
  - [AuthResponse](doc/AuthResponse.md)
+ - [ContactsScanRequest](doc/ContactsScanRequest.md)
+ - [ContactsScanResponse](doc/ContactsScanResponse.md)
  - [EmailStartRequest](doc/EmailStartRequest.md)
  - [EmailStartResponse](doc/EmailStartResponse.md)
  - [EmailVerifyRequest](doc/EmailVerifyRequest.md)
  - [HTTPValidationError](doc/HTTPValidationError.md)
  - [LocationInner](doc/LocationInner.md)
+ - [MatchedContact](doc/MatchedContact.md)
  - [MatrixCredentials](doc/MatrixCredentials.md)
+ - [MatrixPasswordResponse](doc/MatrixPasswordResponse.md)
  - [PhoneCheckResponse](doc/PhoneCheckResponse.md)
  - [RefreshRequest](doc/RefreshRequest.md)
  - [TokenResponse](doc/TokenResponse.md)

@@ -10,6 +10,7 @@ import 'package:api_client/src/auth/basic_auth.dart';
 import 'package:api_client/src/auth/bearer_auth.dart';
 import 'package:api_client/src/auth/oauth.dart';
 import 'package:api_client/src/api/auth_api.dart';
+import 'package:api_client/src/api/contacts_api.dart';
 import 'package:api_client/src/api/email_auth_api.dart';
 import 'package:api_client/src/api/health_api.dart';
 import 'package:api_client/src/api/phone_auth_api.dart';
@@ -73,6 +74,12 @@ class ApiClient {
   /// by doing that all interceptors will not be executed
   AuthApi getAuthApi() {
     return AuthApi(dio, serializers);
+  }
+
+  /// Get ContactsApi instance, base route and serializer can be overridden by a given but be careful,
+  /// by doing that all interceptors will not be executed
+  ContactsApi getContactsApi() {
+    return ContactsApi(dio, serializers);
   }
 
   /// Get EmailAuthApi instance, base route and serializer can be overridden by a given but be careful,

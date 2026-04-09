@@ -17,6 +17,8 @@ part 'auth_response.g.dart';
 /// * [refreshToken] 
 /// * [tokenType] 
 /// * [expiresIn] 
+/// * [loginToken] 
+/// * [matrixDeviceId] 
 /// * [matrix] 
 /// * [user] 
 @BuiltValue()
@@ -32,6 +34,12 @@ abstract class AuthResponse implements Built<AuthResponse, AuthResponseBuilder> 
 
   @BuiltValueField(wireName: r'expires_in')
   int get expiresIn;
+
+  @BuiltValueField(wireName: r'login_token')
+  String? get loginToken;
+
+  @BuiltValueField(wireName: r'matrix_device_id')
+  String? get matrixDeviceId;
 
   @BuiltValueField(wireName: r'matrix')
   MatrixCredentials? get matrix;
@@ -85,6 +93,20 @@ class _$AuthResponseSerializer implements PrimitiveSerializer<AuthResponse> {
       object.expiresIn,
       specifiedType: const FullType(int),
     );
+    if (object.loginToken != null) {
+      yield r'login_token';
+      yield serializers.serialize(
+        object.loginToken,
+        specifiedType: const FullType.nullable(String),
+      );
+    }
+    if (object.matrixDeviceId != null) {
+      yield r'matrix_device_id';
+      yield serializers.serialize(
+        object.matrixDeviceId,
+        specifiedType: const FullType.nullable(String),
+      );
+    }
     if (object.matrix != null) {
       yield r'matrix';
       yield serializers.serialize(
@@ -147,6 +169,22 @@ class _$AuthResponseSerializer implements PrimitiveSerializer<AuthResponse> {
             specifiedType: const FullType(int),
           ) as int;
           result.expiresIn = valueDes;
+          break;
+        case r'login_token':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType.nullable(String),
+          ) as String?;
+          if (valueDes == null) continue;
+          result.loginToken = valueDes;
+          break;
+        case r'matrix_device_id':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType.nullable(String),
+          ) as String?;
+          if (valueDes == null) continue;
+          result.matrixDeviceId = valueDes;
           break;
         case r'matrix':
           final valueDes = serializers.deserialize(

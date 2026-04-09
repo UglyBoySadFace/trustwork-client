@@ -15,12 +15,16 @@ import 'package:api_client/src/date_serializer.dart';
 import 'package:api_client/src/model/date.dart';
 
 import 'package:api_client/src/model/auth_response.dart';
+import 'package:api_client/src/model/contacts_scan_request.dart';
+import 'package:api_client/src/model/contacts_scan_response.dart';
 import 'package:api_client/src/model/email_start_request.dart';
 import 'package:api_client/src/model/email_start_response.dart';
 import 'package:api_client/src/model/email_verify_request.dart';
 import 'package:api_client/src/model/http_validation_error.dart';
 import 'package:api_client/src/model/location_inner.dart';
+import 'package:api_client/src/model/matched_contact.dart';
 import 'package:api_client/src/model/matrix_credentials.dart';
+import 'package:api_client/src/model/matrix_password_response.dart';
 import 'package:api_client/src/model/phone_check_response.dart';
 import 'package:api_client/src/model/refresh_request.dart';
 import 'package:api_client/src/model/token_response.dart';
@@ -31,12 +35,16 @@ part 'serializers.g.dart';
 
 @SerializersFor([
   AuthResponse,
+  ContactsScanRequest,
+  ContactsScanResponse,
   EmailStartRequest,
   EmailStartResponse,
   EmailVerifyRequest,
   HTTPValidationError,
   LocationInner,
+  MatchedContact,
   MatrixCredentials,
+  MatrixPasswordResponse,
   PhoneCheckResponse,
   RefreshRequest,
   TokenResponse,

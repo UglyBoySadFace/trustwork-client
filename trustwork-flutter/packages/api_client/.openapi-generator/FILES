@@ -3,6 +3,9 @@ README.md
 analysis_options.yaml
 doc/AuthApi.md
 doc/AuthResponse.md
+doc/ContactsApi.md
+doc/ContactsScanRequest.md
+doc/ContactsScanResponse.md
 doc/EmailAuthApi.md
 doc/EmailStartRequest.md
 doc/EmailStartResponse.md
@@ -10,7 +13,9 @@ doc/EmailVerifyRequest.md
 doc/HTTPValidationError.md
 doc/HealthApi.md
 doc/LocationInner.md
+doc/MatchedContact.md
 doc/MatrixCredentials.md
+doc/MatrixPasswordResponse.md
 doc/PhoneAuthApi.md
 doc/PhoneCheckResponse.md
 doc/RefreshRequest.md
@@ -21,6 +26,7 @@ doc/ValidationError.md
 lib/api_client.dart
 lib/src/api.dart
 lib/src/api/auth_api.dart
+lib/src/api/contacts_api.dart
 lib/src/api/email_auth_api.dart
 lib/src/api/health_api.dart
 lib/src/api/phone_auth_api.dart
@@ -33,13 +39,17 @@ lib/src/auth/bearer_auth.dart
 lib/src/auth/oauth.dart
 lib/src/date_serializer.dart
 lib/src/model/auth_response.dart
+lib/src/model/contacts_scan_request.dart
+lib/src/model/contacts_scan_response.dart
 lib/src/model/date.dart
 lib/src/model/email_start_request.dart
 lib/src/model/email_start_response.dart
 lib/src/model/email_verify_request.dart
 lib/src/model/http_validation_error.dart
 lib/src/model/location_inner.dart
+lib/src/model/matched_contact.dart
 lib/src/model/matrix_credentials.dart
+lib/src/model/matrix_password_response.dart
 lib/src/model/phone_check_response.dart
 lib/src/model/refresh_request.dart
 lib/src/model/token_response.dart
@@ -47,3 +57,8 @@ lib/src/model/user_profile.dart
 lib/src/model/validation_error.dart
 lib/src/serializers.dart
 pubspec.yaml
+test/contacts_api_test.dart
+test/contacts_scan_request_test.dart
+test/contacts_scan_response_test.dart
+test/matched_contact_test.dart
+test/matrix_password_response_test.dart

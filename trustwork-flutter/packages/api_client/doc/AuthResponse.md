@@ -12,6 +12,8 @@ Name | Type | Description | Notes
 **refreshToken** | **String** |  | 
 **tokenType** | **String** |  | [optional] [default to 'bearer']
 **expiresIn** | **int** |  | 
+**loginToken** | **String** |  | [optional] 
+**matrixDeviceId** | **String** |  | [optional] 
 **matrix** | [**MatrixCredentials**](MatrixCredentials.md) |  | [optional] 
 **user** | [**UserProfile**](UserProfile.md) |  | 
 
