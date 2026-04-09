@@ -159,6 +159,21 @@ class VoipPlugin with WidgetsBindingObserver implements WebRTCDelegate {
         FlutterForegroundTask.setOnLockScreenVisibility(true);
         FlutterForegroundTask.wakeUpScreen();
         FlutterForegroundTask.launchApp();
+        FlutterForegroundTask.init(
+          androidNotificationOptions: AndroidNotificationOptions(
+            channelId: 'call_notification_channel',
+            channelName: 'Active Call',
+            channelDescription: 'Keeps the call active in the background',
+          ),
+          iosNotificationOptions: const IOSNotificationOptions(),
+          foregroundTaskOptions: ForegroundTaskOptions(
+            eventAction: ForegroundTaskEventAction.nothing(),
+          ),
+        );
+        await FlutterForegroundTask.startService(
+          notificationTitle: 'Call in progress',
+          notificationText: 'Trustwork call active',
+        );
       } catch (e) {
         Logs().e('VOIP foreground failed $e');
       }

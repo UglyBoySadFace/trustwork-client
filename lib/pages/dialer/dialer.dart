@@ -209,21 +209,17 @@ class MyCallingPage extends State<Calling> {
     });
     _state = call.state;
 
-    if (call.type == CallType.kVideo) {
-      try {
-        // Enable wakelock (keep screen on)
-        unawaited(WakelockPlus.enable());
-      } catch (_) {}
-    }
+    try {
+      // Enable wakelock for all call types to prevent CPU sleep dropping audio
+      unawaited(WakelockPlus.enable());
+    } catch (_) {}
   }
 
   void cleanUp() {
     Timer(const Duration(seconds: 2), () => widget.onClear?.call());
-    if (call.type == CallType.kVideo) {
-      try {
-        unawaited(WakelockPlus.disable());
-      } catch (_) {}
-    }
+    try {
+      unawaited(WakelockPlus.disable());
+    } catch (_) {}
   }
 
   @override
