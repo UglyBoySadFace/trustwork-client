@@ -8,6 +8,8 @@ import 'package:flutter/material.dart';
 
 // Package imports:
 import 'package:collection/collection.dart';
+import 'package:flutter_callkit_incoming/entities/entities.dart' as fci;
+import 'package:flutter_callkit_incoming/flutter_callkit_incoming.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_shortcuts_new/flutter_shortcuts_new.dart';
 import 'package:matrix/matrix.dart';
@@ -131,6 +133,12 @@ Future<void> _tryPushHelper(
 
   if (event.type == EventTypes.CallHangup) {
     client.backgroundSync = false;
+    if (PlatformInfos.isMobile) {
+      final callId = event.content['call_id'] as String?;
+      if (callId != null) {
+        await FlutterCallkitIncoming.endCall(callId);
+      }
+    }
   }
 
   if (event.type.startsWith('m.call') && event.type != EventTypes.CallInvite) {
@@ -142,6 +150,34 @@ Future<void> _tryPushHelper(
           event.type != EventTypes.CallInvite) ||
       event.type == 'org.matrix.call.sdp_stream_metadata_changed') {
     Logs().v('Push message was for a call, but not call invite.');
+    return;
+  }
+
+  if (event.type == EventTypes.CallInvite && PlatformInfos.isMobile) {
+    final callId =
+        (event.content['call_id'] as String?) ?? event.eventId;
+    final callerName =
+        event.senderFromMemoryOrFallback.calcDisplayname();
+    await FlutterCallkitIncoming.showCallkitIncoming(
+      fci.CallKitParams(
+        id: callId,
+        nameCaller: callerName,
+        appName: 'Trustwork',
+        type: 0,
+        duration: 30000,
+        android: const fci.AndroidParams(
+          isCustomNotification: true,
+          isShowLogo: false,
+          ringtonePath: 'system_ringtone_default',
+          backgroundColor: '#0a1931',
+        ),
+        ios: const fci.IOSParams(
+          handleType: 'generic',
+          supportsVideo: true,
+          ringtonePath: 'system_ringtone_default',
+        ),
+      ),
+    );
     return;
   }
 

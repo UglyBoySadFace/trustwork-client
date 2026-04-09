@@ -33,6 +33,7 @@ dependencies:
   file_selector: ^1.1.0
   flutter:
     sdk: flutter
+  flutter_callkit_incoming: ^3.0.0
   flutter_foreground_task: ^9.2.0
   flutter_linkify: ^6.0.0
   flutter_local_notifications: ^20.1.0

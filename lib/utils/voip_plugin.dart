@@ -6,6 +6,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 // Package imports:
+import 'package:flutter_callkit_incoming/entities/entities.dart' as fci;
+import 'package:flutter_callkit_incoming/flutter_callkit_incoming.dart' as callkit;
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart' as webrtc_impl;
 import 'package:matrix/matrix.dart';
@@ -21,14 +23,36 @@ import '../widgets/matrix.dart';
 class VoipPlugin with WidgetsBindingObserver implements WebRTCDelegate {
   final MatrixState matrix;
   Client get client => matrix.client;
+
+  static String? _callkitAcceptedId;
+
   VoipPlugin(this.matrix) {
     voip = VoIP(client, this);
     if (!kIsWeb) {
       final wb = WidgetsBinding.instance;
       wb.addObserver(this);
       didChangeAppLifecycleState(wb.lifecycleState);
+      if (PlatformInfos.isMobile) _initCallkit();
     }
   }
+
+  void _initCallkit() {
+    callkit.FlutterCallkitIncoming.onEvent.listen((fci.CallEvent? event) {
+      switch (event?.event) {
+        case fci.Event.actionCallAccept:
+          _callkitAcceptedId = event?.body['id'] as String?;
+          break;
+        case fci.Event.actionCallDecline:
+        case fci.Event.actionCallTimeout:
+        case fci.Event.actionCallEnded:
+          _callkitAcceptedId = null;
+          break;
+        default:
+          break;
+      }
+    });
+  }
+
   bool background = false;
   bool speakerOn = false;
   late VoIP voip;
@@ -43,13 +67,11 @@ class VoipPlugin with WidgetsBindingObserver implements WebRTCDelegate {
   }
 
   void addCallingOverlay(String callId, CallSession call) {
-    final context = kIsWeb
-        ? ChatList.contextForVoip!
-        : this.context; // web is weird
+    final context = ChatList.contextForVoip ?? this.context;
 
     if (overlayEntry != null) {
       Logs().e('[VOIP] addCallingOverlay: The call session already exists?');
-      overlayEntry!.remove();
+      _removeOverlay();
     }
     // Overlay.of(context) is broken on web
     // falling back on a dialog
@@ -71,14 +93,17 @@ class VoipPlugin with WidgetsBindingObserver implements WebRTCDelegate {
           client: client,
           callId: callId,
           call: call,
-          onClear: () {
-            overlayEntry?.remove();
-            overlayEntry = null;
-          },
+          onClear: _removeOverlay,
         ),
       );
       Overlay.of(context).insert(overlayEntry!);
     }
+  }
+
+  void _removeOverlay() {
+    final entry = overlayEntry;
+    overlayEntry = null;
+    entry?.remove();
   }
 
   @override
@@ -115,6 +140,14 @@ class VoipPlugin with WidgetsBindingObserver implements WebRTCDelegate {
 
   @override
   Future<void> handleNewCall(CallSession call) async {
+    // If the user already accepted from the callkit lock-screen UI, auto-answer.
+    if (_callkitAcceptedId == call.callId) {
+      _callkitAcceptedId = null;
+      addCallingOverlay(call.callId, call);
+      await call.answer();
+      return;
+    }
+
     if (PlatformInfos.isAndroid) {
       try {
         final wasForeground = await FlutterForegroundTask.isAppOnForeground;
@@ -139,8 +172,7 @@ class VoipPlugin with WidgetsBindingObserver implements WebRTCDelegate {
   @override
   Future<void> handleCallEnded(CallSession session) async {
     if (overlayEntry != null) {
-      overlayEntry!.remove();
-      overlayEntry = null;
+      _removeOverlay();
       if (PlatformInfos.isAndroid) {
         FlutterForegroundTask.setOnLockScreenVisibility(false);
         FlutterForegroundTask.stopService();
@@ -171,12 +203,8 @@ class VoipPlugin with WidgetsBindingObserver implements WebRTCDelegate {
   }
 
   @override
-  // TODO: implement keyProvider
-  EncryptionKeyProvider? get keyProvider => throw UnimplementedError();
+  EncryptionKeyProvider? get keyProvider => null;
 
   @override
-  Future<void> registerListeners(CallSession session) {
-    // TODO: implement registerListeners
-    throw UnimplementedError();
-  }
+  Future<void> registerListeners(CallSession session) async {}
 }

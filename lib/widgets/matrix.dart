@@ -348,11 +348,7 @@ class MatrixState extends State<Matrix> with WidgetsBindingObserver {
     createVoipPlugin();
   }
 
-  void createVoipPlugin() async {
-    if (AppSettings.experimentalVoip.value) {
-      voipPlugin = null;
-      return;
-    }
+  void createVoipPlugin() {
     voipPlugin = VoipPlugin(this);
   }
 

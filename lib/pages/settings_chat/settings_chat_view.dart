@@ -10,7 +10,6 @@ import 'package:fluffychat/config/themes.dart';
 import 'package:fluffychat/l10n/l10n.dart';
 import 'package:fluffychat/utils/platform_infos.dart';
 import 'package:fluffychat/widgets/layouts/max_width_body.dart';
-import 'package:fluffychat/widgets/matrix.dart';
 import 'package:fluffychat/widgets/settings_switch_list_tile.dart';
 import 'settings_chat.dart';
 
@@ -78,24 +77,6 @@ class SettingsChatView extends StatelessWidget {
                   padding: EdgeInsets.all(16.0),
                   child: Icon(Icons.chevron_right_outlined),
                 ),
-              ),
-              Divider(color: theme.dividerColor),
-              ListTile(
-                title: Text(
-                  L10n.of(context).calls,
-                  style: TextStyle(
-                    color: theme.colorScheme.secondary,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-              SettingsSwitchListTile.adaptive(
-                title: L10n.of(context).experimentalVideoCalls,
-                onChanged: (b) {
-                  Matrix.of(context).createVoipPlugin();
-                  return;
-                },
-                setting: AppSettings.experimentalVoip,
               ),
             ],
           ),
