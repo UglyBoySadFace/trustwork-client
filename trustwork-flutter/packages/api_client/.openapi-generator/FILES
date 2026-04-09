@@ -15,7 +15,6 @@ doc/HealthApi.md
 doc/LocationInner.md
 doc/MatchedContact.md
 doc/MatrixCredentials.md
-doc/MatrixPasswordResponse.md
 doc/PhoneAuthApi.md
 doc/PhoneCheckResponse.md
 doc/RefreshRequest.md
@@ -49,7 +48,6 @@ lib/src/model/http_validation_error.dart
 lib/src/model/location_inner.dart
 lib/src/model/matched_contact.dart
 lib/src/model/matrix_credentials.dart
-lib/src/model/matrix_password_response.dart
 lib/src/model/phone_check_response.dart
 lib/src/model/refresh_request.dart
 lib/src/model/token_response.dart
@@ -57,8 +55,3 @@ lib/src/model/user_profile.dart
 lib/src/model/validation_error.dart
 lib/src/serializers.dart
 pubspec.yaml
-test/contacts_api_test.dart
-test/contacts_scan_request_test.dart
-test/contacts_scan_response_test.dart
-test/matched_contact_test.dart
-test/matrix_password_response_test.dart

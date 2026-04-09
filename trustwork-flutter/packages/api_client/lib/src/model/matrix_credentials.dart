@@ -13,6 +13,7 @@ part 'matrix_credentials.g.dart';
 /// Properties:
 /// * [matrixUserId] 
 /// * [matrixAccessToken] 
+/// * [matrixPassword] 
 @BuiltValue()
 abstract class MatrixCredentials implements Built<MatrixCredentials, MatrixCredentialsBuilder> {
   @BuiltValueField(wireName: r'matrix_user_id')
@@ -20,6 +21,9 @@ abstract class MatrixCredentials implements Built<MatrixCredentials, MatrixCrede
 
   @BuiltValueField(wireName: r'matrix_access_token')
   String get matrixAccessToken;
+
+  @BuiltValueField(wireName: r'matrix_password')
+  String get matrixPassword;
 
   MatrixCredentials._();
 
@@ -52,6 +56,11 @@ class _$MatrixCredentialsSerializer implements PrimitiveSerializer<MatrixCredent
     yield r'matrix_access_token';
     yield serializers.serialize(
       object.matrixAccessToken,
+      specifiedType: const FullType(String),
+    );
+    yield r'matrix_password';
+    yield serializers.serialize(
+      object.matrixPassword,
       specifiedType: const FullType(String),
     );
   }
@@ -90,6 +99,13 @@ class _$MatrixCredentialsSerializer implements PrimitiveSerializer<MatrixCredent
             specifiedType: const FullType(String),
           ) as String;
           result.matrixAccessToken = valueDes;
+          break;
+        case r'matrix_password':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType(String),
+          ) as String;
+          result.matrixPassword = valueDes;
           break;
         default:
           unhandled.add(key);

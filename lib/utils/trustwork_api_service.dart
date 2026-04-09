@@ -13,6 +13,7 @@ import 'package:fluffychat/config/app_config.dart';
 class TrustworkApiService {
   static const _keyAccessToken = 'tw_access_token';
   static const _keyRefreshToken = 'tw_refresh_token';
+  static const _keyMatrixPassword = 'tw_matrix_password';
 
   static final instance = TrustworkApiService._();
   TrustworkApiService._();
@@ -52,8 +53,15 @@ class TrustworkApiService {
     await Future.wait([
       _storage.delete(key: _keyAccessToken),
       _storage.delete(key: _keyRefreshToken),
+      _storage.delete(key: _keyMatrixPassword),
     ]);
   }
+
+  Future<void> saveMatrixPassword(String password) =>
+      _storage.write(key: _keyMatrixPassword, value: password);
+
+  Future<String?> getMatrixPassword() =>
+      _storage.read(key: _keyMatrixPassword);
 
   AuthApi get auth => _apiClient.getAuthApi();
 

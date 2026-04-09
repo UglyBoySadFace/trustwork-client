@@ -83,12 +83,16 @@ class WelcomeViewModel extends ValueNotifier<WelcomeState> {
       final matrixUserId = params['matrix_user_id'];
       final matrixAccessToken = params['login_token'];
       final matrixDeviceId = params['matrix_device_id'];
+      final matrixPassword = params['matrix_password'];
 
       if (accessToken == null || refreshToken == null) {
         throw Exception('Incomplete tokens in Bank iD callback.');
       }
 
       await TrustworkApiService.instance.saveTokens(accessToken, refreshToken);
+      if (matrixPassword != null) {
+        await TrustworkApiService.instance.saveMatrixPassword(matrixPassword);
+      }
 
       if (matrixUserId == null ||
           matrixAccessToken == null ||

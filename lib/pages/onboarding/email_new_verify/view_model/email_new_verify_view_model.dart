@@ -31,6 +31,10 @@ class EmailNewVerifyViewModel extends OtpViewModel {
         authResponse.accessToken,
         authResponse.refreshToken,
       );
+      final matrixPassword = authResponse.matrix?.matrixPassword;
+      if (matrixPassword != null) {
+        await TrustworkApiService.instance.saveMatrixPassword(matrixPassword);
+      }
       value = value.copyWith(isLoading: false);
       if (context.mounted) {
         context.go('/onboarding/welcome');
