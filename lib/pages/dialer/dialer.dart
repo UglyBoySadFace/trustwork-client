@@ -174,16 +174,25 @@ class MyCallingPage extends State<Calling> {
   double? _localVideoWidth;
   EdgeInsetsGeometry? _localVideoMargin;
   CallState? _state;
+  bool _speakerOn = false;
+
+  AudioPlayer? _callSoundPlayer;
 
   void _playCallSound() async {
     const path = 'assets/sounds/call.ogg';
     if (kIsWeb || PlatformInfos.isMobile || PlatformInfos.isMacOS) {
-      final player = AudioPlayer();
+      final player = _callSoundPlayer = AudioPlayer();
       await player.setAsset(path);
+      await player.setLoopMode(LoopMode.one);
       player.play();
     } else {
       Logs().w('Playing sound not implemented for this platform!');
     }
+  }
+
+  void _stopCallSound() {
+    _callSoundPlayer?.stop();
+    _callSoundPlayer = null;
   }
 
   @override
@@ -216,6 +225,7 @@ class MyCallingPage extends State<Calling> {
   }
 
   void cleanUp() {
+    _stopCallSound();
     Timer(const Duration(seconds: 2), () => widget.onClear?.call());
     try {
       unawaited(WakelockPlus.disable());
@@ -250,6 +260,10 @@ class MyCallingPage extends State<Calling> {
       HapticFeedback.heavyImpact();
     }
 
+    if (state == CallState.kConnected) {
+      _stopCallSound();
+    }
+
     if (mounted) {
       setState(() {
         _state = state;
@@ -259,12 +273,14 @@ class MyCallingPage extends State<Calling> {
   }
 
   void _answerCall() {
+    _stopCallSound();
     setState(() {
       call.answer();
     });
   }
 
   void _hangUp() {
+    _stopCallSound();
     setState(() {
       if (call.isRinging) {
         call.reject();
@@ -331,13 +347,12 @@ class MyCallingPage extends State<Calling> {
     setState(() {});
   }
 
-  /*
   void _switchSpeaker() {
     setState(() {
-      session.setSpeakerOn();
+      _speakerOn = !_speakerOn;
+      Helper.setSpeakerphoneOn(_speakerOn);
     });
   }
-  */
 
   List<Widget> _buildActionButtons(bool isFloating) {
     if (isFloating) {
@@ -350,15 +365,13 @@ class MyCallingPage extends State<Calling> {
       backgroundColor: Colors.black45,
       child: const Icon(Icons.switch_camera),
     );
-    /*
-    var switchSpeakerButton = FloatingActionButton(
+    final switchSpeakerButton = FloatingActionButton(
       heroTag: 'switchSpeaker',
-      child: Icon(_speakerOn ? Icons.volume_up : Icons.volume_off),
       onPressed: _switchSpeaker,
-      foregroundColor: Colors.black54,
-      backgroundColor: Theme.of(widget.context).backgroundColor,
+      foregroundColor: _speakerOn ? Colors.black26 : Colors.white,
+      backgroundColor: _speakerOn ? Colors.white : Colors.black45,
+      child: Icon(_speakerOn ? Icons.volume_up : Icons.volume_off),
     );
-    */
     final hangupButton = FloatingActionButton(
       heroTag: 'hangup',
       onPressed: _hangUp,
@@ -413,17 +426,14 @@ class MyCallingPage extends State<Calling> {
       case CallState.kCreateAnswer:
       case CallState.kConnecting:
         return call.isOutgoing
-            ? <Widget>[hangupButton]
+            ? <Widget>[muteMicButton, switchSpeakerButton, hangupButton]
             : <Widget>[answerButton, hangupButton];
       case CallState.kConnected:
         return <Widget>[
           muteMicButton,
-          //switchSpeakerButton,
+          switchSpeakerButton,
           if (!voiceonly && !kIsWeb) switchCameraButton,
           if (!voiceonly) muteCameraButton,
-          if (PlatformInfos.isMobile || PlatformInfos.isWeb)
-            screenSharingButton,
-          holdButton,
           hangupButton,
         ];
       case CallState.kEnded:

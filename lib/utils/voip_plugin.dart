@@ -40,9 +40,33 @@ class VoipPlugin with WidgetsBindingObserver implements WebRTCDelegate {
     callkit.FlutterCallkitIncoming.onEvent.listen((fci.CallEvent? event) {
       switch (event?.event) {
         case fci.Event.actionCallAccept:
-          _callkitAcceptedId = event?.body['id'] as String?;
+          final callId = event?.body['id'] as String?;
+          // If handleNewCall already ran and the call is waiting, answer it now.
+          if (callId != null) {
+            final existing = voip.calls.entries
+                .where((e) => e.key.callId == callId)
+                .firstOrNull
+                ?.value;
+            if (existing != null) {
+              addCallingOverlay(callId, existing);
+              existing.answer();
+              return;
+            }
+          }
+          // Otherwise store the ID so handleNewCall can auto-answer when it fires.
+          _callkitAcceptedId = callId;
           break;
         case fci.Event.actionCallDecline:
+          final callId = event?.body['id'] as String?;
+          _callkitAcceptedId = null;
+          if (callId != null) {
+            final existing = voip.calls.entries
+                .where((e) => e.key.callId == callId)
+                .firstOrNull
+                ?.value;
+            existing?.reject();
+          }
+          break;
         case fci.Event.actionCallTimeout:
         case fci.Event.actionCallEnded:
           _callkitAcceptedId = null;
@@ -186,6 +210,9 @@ class VoipPlugin with WidgetsBindingObserver implements WebRTCDelegate {
 
   @override
   Future<void> handleCallEnded(CallSession session) async {
+    if (PlatformInfos.isMobile) {
+      await callkit.FlutterCallkitIncoming.endCall(session.callId);
+    }
     if (overlayEntry != null) {
       _removeOverlay();
       if (PlatformInfos.isAndroid) {
@@ -214,7 +241,9 @@ class VoipPlugin with WidgetsBindingObserver implements WebRTCDelegate {
 
   @override
   Future<void> handleMissedCall(CallSession session) async {
-    // TODO: implement handleMissedCall
+    if (PlatformInfos.isMobile) {
+      await callkit.FlutterCallkitIncoming.endCall(session.callId);
+    }
   }
 
   @override

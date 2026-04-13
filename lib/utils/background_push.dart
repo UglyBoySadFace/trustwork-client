@@ -267,7 +267,9 @@ class BackgroundPush {
             pushkey: token!,
             appId: thisAppId,
             appDisplayName: clientName,
-            deviceDisplayName: client.deviceName!,
+            deviceDisplayName:
+                client.deviceName ??
+                '$clientName (${client.deviceID ?? 'unknown'})',
             lang: 'en',
             data: PusherData(
               url: Uri.parse(gatewayUrl!),
@@ -278,6 +280,7 @@ class BackgroundPush {
           ),
           append: false,
         );
+        Logs().i('[Push] Pusher set successfully for ${client.userID}');
       } catch (e, s) {
         Logs().e('[Push] Unable to set pushers', e, s);
       }
