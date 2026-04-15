@@ -48,7 +48,10 @@ class VoipPlugin with WidgetsBindingObserver implements WebRTCDelegate {
                 .firstOrNull
                 ?.value;
             if (existing != null) {
-              addCallingOverlay(callId, existing);
+              // Only add overlay if it isn't already showing (race condition guard).
+              if (overlayEntry == null) {
+                addCallingOverlay(callId, existing);
+              }
               existing.answer();
               return;
             }

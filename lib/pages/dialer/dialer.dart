@@ -26,7 +26,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 // Package imports:
-import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart' hide VideoRenderer;
 import 'package:just_audio/just_audio.dart';
 import 'package:matrix/matrix.dart';
@@ -36,6 +35,7 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:fluffychat/l10n/l10n.dart';
 import 'package:fluffychat/utils/matrix_sdk_extensions/matrix_locals.dart';
 import 'package:fluffychat/utils/platform_infos.dart';
+import 'package:fluffychat/utils/voip/user_media_manager.dart';
 import 'package:fluffychat/utils/voip/video_renderer.dart';
 import 'package:fluffychat/widgets/avatar.dart';
 import 'pip/pip_view.dart';
@@ -199,7 +199,8 @@ class MyCallingPage extends State<Calling> {
   void initState() {
     super.initState();
     initialize();
-    _playCallSound();
+    // Only play outgoing dialing sound for calls we initiated.
+    if (call.isOutgoing) _playCallSound();
   }
 
   void initialize() {
@@ -274,6 +275,7 @@ class MyCallingPage extends State<Calling> {
 
   void _answerCall() {
     _stopCallSound();
+    UserMediaManager().stopRingingTone();
     setState(() {
       call.answer();
     });
@@ -281,6 +283,7 @@ class MyCallingPage extends State<Calling> {
 
   void _hangUp() {
     _stopCallSound();
+    UserMediaManager().stopRingingTone();
     setState(() {
       if (call.isRinging) {
         call.reject();
@@ -293,42 +296,6 @@ class MyCallingPage extends State<Calling> {
   void _muteMic() {
     setState(() {
       call.setMicrophoneMuted(!call.isMicrophoneMuted);
-    });
-  }
-
-  void _screenSharing() {
-    if (PlatformInfos.isAndroid) {
-      if (!call.screensharingEnabled) {
-        FlutterForegroundTask.init(
-          androidNotificationOptions: AndroidNotificationOptions(
-            channelId: 'notification_channel_id',
-            channelName: 'Foreground Notification',
-            channelDescription: L10n.of(
-              widget.context,
-            ).foregroundServiceRunning,
-          ),
-          iosNotificationOptions: const IOSNotificationOptions(),
-          foregroundTaskOptions: ForegroundTaskOptions(
-            eventAction: ForegroundTaskEventAction.nothing(),
-          ),
-        );
-        FlutterForegroundTask.startService(
-          notificationTitle: L10n.of(widget.context).screenSharingTitle,
-          notificationText: L10n.of(widget.context).screenSharingDetail,
-        );
-      } else {
-        FlutterForegroundTask.stopService();
-      }
-    }
-
-    setState(() {
-      call.setScreensharingEnabled(!call.screensharingEnabled);
-    });
-  }
-
-  void _remoteOnHold() {
-    setState(() {
-      call.setRemoteOnHold(!call.remoteOnHold);
     });
   }
 
@@ -396,22 +363,6 @@ class MyCallingPage extends State<Calling> {
       child: Icon(isMicrophoneMuted ? Icons.mic_off : Icons.mic),
     );
 
-    final screenSharingButton = FloatingActionButton(
-      heroTag: 'screenSharing',
-      onPressed: _screenSharing,
-      foregroundColor: isScreensharingEnabled ? Colors.black26 : Colors.white,
-      backgroundColor: isScreensharingEnabled ? Colors.white : Colors.black45,
-      child: const Icon(Icons.desktop_mac),
-    );
-
-    final holdButton = FloatingActionButton(
-      heroTag: 'hold',
-      onPressed: _remoteOnHold,
-      foregroundColor: isRemoteOnHold ? Colors.black26 : Colors.white,
-      backgroundColor: isRemoteOnHold ? Colors.white : Colors.black45,
-      child: const Icon(Icons.pause),
-    );
-
     final muteCameraButton = FloatingActionButton(
       heroTag: 'muteCam',
       onPressed: _muteCamera,
@@ -422,12 +373,14 @@ class MyCallingPage extends State<Calling> {
 
     switch (_state) {
       case CallState.kRinging:
-      case CallState.kInviteSent:
-      case CallState.kCreateAnswer:
-      case CallState.kConnecting:
         return call.isOutgoing
             ? <Widget>[muteMicButton, switchSpeakerButton, hangupButton]
             : <Widget>[answerButton, hangupButton];
+      case CallState.kInviteSent:
+      case CallState.kCreateAnswer:
+      case CallState.kConnecting:
+        // answer() was already called — don't show the answer button again.
+        return <Widget>[hangupButton];
       case CallState.kConnected:
         return <Widget>[
           muteMicButton,
