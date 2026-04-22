@@ -16,6 +16,7 @@ import 'package:fluffychat/pages/new_private_chat/qr_scanner_modal.dart';
 import 'package:fluffychat/utils/adaptive_bottom_sheet.dart';
 import 'package:fluffychat/utils/fluffy_share.dart';
 import 'package:fluffychat/utils/platform_infos.dart';
+import 'package:fluffychat/utils/restricted_user_search.dart';
 import 'package:fluffychat/utils/url_launcher.dart';
 import 'package:fluffychat/widgets/matrix.dart';
 import '../../widgets/adaptive_dialogs/user_dialog.dart';
@@ -55,20 +56,8 @@ class NewPrivateChatController extends State<NewPrivateChat> {
     });
   }
 
-  Future<List<Profile>> _searchUser(String searchTerm) async {
-    final result = await Matrix.of(
-      context,
-    ).client.searchUserDirectory(searchTerm);
-    final profiles = result.results;
-
-    if (searchTerm.isValidMatrixId &&
-        searchTerm.sigil == '@' &&
-        !profiles.any((profile) => profile.userId == searchTerm)) {
-      profiles.add(Profile(userId: searchTerm));
-    }
-
-    return profiles;
-  }
+  Future<List<Profile>> _searchUser(String searchTerm) =>
+      restrictedUserSearch(Matrix.of(context).client, searchTerm);
 
   void inviteAction() => FluffyShare.shareInviteLink(context);
 

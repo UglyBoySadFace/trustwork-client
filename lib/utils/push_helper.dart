@@ -164,9 +164,9 @@ Future<void> _tryPushHelper(
         nameCaller: callerName,
         appName: 'Trustwork',
         type: 0,
-        duration: 30000,
+        duration: 60000,
         android: const fci.AndroidParams(
-          isCustomNotification: true,
+          isCustomNotification: false,
           isShowLogo: false,
           ringtonePath: 'system_ringtone_default',
           backgroundColor: '#0a1931',

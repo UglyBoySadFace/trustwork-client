@@ -10,6 +10,7 @@ import 'package:matrix/matrix.dart';
 // Project imports:
 import 'package:fluffychat/l10n/l10n.dart';
 import 'package:fluffychat/pages/invitation_selection/invitation_selection_view.dart';
+import 'package:fluffychat/utils/restricted_user_search.dart';
 import 'package:fluffychat/widgets/future_loading_dialog.dart';
 import 'package:fluffychat/widgets/matrix.dart';
 import '../../utils/localized_exception_extension.dart';
@@ -82,34 +83,26 @@ class InvitationSelectionController extends State<InvitationSelection> {
     coolDown?.cancel();
     if (text.isEmpty) {
       setState(() => foundProfiles = []);
+      return;
     }
     currentSearchTerm = text;
-    if (currentSearchTerm.isEmpty) return;
     if (loading) return;
     setState(() => loading = true);
-    final matrix = Matrix.of(context);
-    SearchUserDirectoryResponse response;
     try {
-      response = await matrix.client.searchUserDirectory(text, limit: 10);
+      final results = await restrictedUserSearch(
+        Matrix.of(context).client,
+        text,
+      );
+      if (mounted) setState(() => foundProfiles = results);
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text((e).toLocalizedString(context))));
-      return;
-    } finally {
-      setState(() => loading = false);
-    }
-    setState(() {
-      foundProfiles = List<Profile>.from(response.results);
-      if (text.isValidMatrixId &&
-          foundProfiles.indexWhere((profile) => text == profile.userId) == -1) {
-        setState(
-          () => foundProfiles = [
-            Profile.fromJson({'user_id': text}),
-          ],
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toLocalizedString(context))),
         );
       }
-    });
+    } finally {
+      if (mounted) setState(() => loading = false);
+    }
   }
 
   @override

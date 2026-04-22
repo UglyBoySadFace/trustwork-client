@@ -1,4 +1,5 @@
 // Dart imports:
+import 'dart:async';
 import 'dart:core';
 
 // Flutter imports:
@@ -25,6 +26,7 @@ class VoipPlugin with WidgetsBindingObserver implements WebRTCDelegate {
   Client get client => matrix.client;
 
   static String? _callkitAcceptedId;
+  StreamSubscription<fci.CallEvent?>? _callkitSubscription;
 
   VoipPlugin(this.matrix) {
     voip = VoIP(client, this);
@@ -37,7 +39,13 @@ class VoipPlugin with WidgetsBindingObserver implements WebRTCDelegate {
   }
 
   void _initCallkit() {
-    callkit.FlutterCallkitIncoming.onEvent.listen((fci.CallEvent? event) {
+    // Check if app was launched by the user accepting a call while it was killed.
+    // EventChannel events are not buffered, so the actionCallAccept event fires
+    // before our listener is registered. activeCalls() catches this case.
+    _restoreCallkitAcceptedId();
+
+    _callkitSubscription?.cancel();
+    _callkitSubscription = callkit.FlutterCallkitIncoming.onEvent.listen((fci.CallEvent? event) {
       switch (event?.event) {
         case fci.Event.actionCallAccept:
           final callId = event?.body['id'] as String?;
@@ -91,6 +99,29 @@ class VoipPlugin with WidgetsBindingObserver implements WebRTCDelegate {
     background =
         (state == AppLifecycleState.detached ||
         state == AppLifecycleState.paused);
+  }
+
+  Future<void> _restoreCallkitAcceptedId() async {
+    try {
+      final activeCalls = await callkit.FlutterCallkitIncoming.activeCalls();
+      if (activeCalls is List) {
+        for (final c in activeCalls) {
+          if (c is Map) {
+            final id = c['id'] as String?;
+            final status = c['status'] as int?;
+            // status 1 = PROCESSING (user accepted, app is launching)
+            // status 2 = ACTIVE (already connected)
+            if (id != null && (status == 1 || status == 2)) {
+              Logs().i('[VOIP] Restoring callkit accepted ID from activeCalls: $id');
+              _callkitAcceptedId = id;
+              break;
+            }
+          }
+        }
+      }
+    } catch (e) {
+      Logs().e('[VOIP] _restoreCallkitAcceptedId failed: $e');
+    }
   }
 
   void addCallingOverlay(String callId, CallSession call) {
@@ -175,39 +206,41 @@ class VoipPlugin with WidgetsBindingObserver implements WebRTCDelegate {
       return;
     }
 
-    if (PlatformInfos.isAndroid) {
-      try {
-        final wasForeground = await FlutterForegroundTask.isAppOnForeground;
+    // Show the call screen immediately — don't wait for foreground service setup.
+    addCallingOverlay(call.callId, call);
 
-        await matrix.store.setString(
-          'wasForeground',
-          wasForeground == true ? 'true' : 'false',
-        );
-        FlutterForegroundTask.setOnLockScreenVisibility(true);
-        FlutterForegroundTask.wakeUpScreen();
-        FlutterForegroundTask.launchApp();
-        FlutterForegroundTask.init(
-          androidNotificationOptions: AndroidNotificationOptions(
-            channelId: 'call_notification_channel',
-            channelName: 'Active Call',
-            channelDescription: 'Keeps the call active in the background',
-          ),
-          iosNotificationOptions: const IOSNotificationOptions(),
-          foregroundTaskOptions: ForegroundTaskOptions(
-            eventAction: ForegroundTaskEventAction.nothing(),
-          ),
-        );
-        await FlutterForegroundTask.startService(
-          notificationTitle: 'Call in progress',
-          notificationText: 'Trustwork call active',
-        );
-      } catch (e) {
-        Logs().e('VOIP foreground failed $e');
-      }
-      // use fallback flutter call pages for outgoing and video calls.
-      addCallingOverlay(call.callId, call);
-    } else {
-      addCallingOverlay(call.callId, call);
+    if (PlatformInfos.isAndroid) {
+      unawaited(_startForegroundService());
+    }
+  }
+
+  Future<void> _startForegroundService() async {
+    try {
+      final wasForeground = await FlutterForegroundTask.isAppOnForeground;
+      await matrix.store.setString(
+        'wasForeground',
+        wasForeground == true ? 'true' : 'false',
+      );
+      FlutterForegroundTask.setOnLockScreenVisibility(true);
+      FlutterForegroundTask.wakeUpScreen();
+      FlutterForegroundTask.launchApp();
+      FlutterForegroundTask.init(
+        androidNotificationOptions: AndroidNotificationOptions(
+          channelId: 'call_notification_channel',
+          channelName: 'Active Call',
+          channelDescription: 'Keeps the call active in the background',
+        ),
+        iosNotificationOptions: const IOSNotificationOptions(),
+        foregroundTaskOptions: ForegroundTaskOptions(
+          eventAction: ForegroundTaskEventAction.nothing(),
+        ),
+      );
+      await FlutterForegroundTask.startService(
+        notificationTitle: 'Call in progress',
+        notificationText: 'Trustwork call active',
+      );
+    } catch (e) {
+      Logs().e('VOIP foreground failed $e');
     }
   }
 
@@ -254,4 +287,9 @@ class VoipPlugin with WidgetsBindingObserver implements WebRTCDelegate {
 
   @override
   Future<void> registerListeners(CallSession session) async {}
+
+  void dispose() {
+    _callkitSubscription?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
+  }
 }

@@ -22,6 +22,7 @@ import 'package:url_launcher/url_launcher_string.dart';
 // Project imports:
 import 'package:fluffychat/l10n/l10n.dart';
 import 'package:fluffychat/utils/client_manager.dart';
+import 'package:fluffychat/utils/full_screen_intent_helper.dart';
 import 'package:fluffychat/utils/init_with_restore.dart';
 import 'package:fluffychat/utils/matrix_sdk_extensions/matrix_file_extension.dart';
 import 'package:fluffychat/utils/platform_infos.dart';
@@ -346,9 +347,23 @@ class MatrixState extends State<Matrix> with WidgetsBindingObserver {
     }
 
     createVoipPlugin();
+
+    if (PlatformInfos.isAndroid) {
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        final ctx =
+            FluffyChatApp
+                .router
+                .routerDelegate
+                .navigatorKey
+                .currentContext ??
+            context;
+        await checkAndPromptFullScreenIntent(ctx);
+      });
+    }
   }
 
   void createVoipPlugin() {
+    voipPlugin?.dispose();
     voipPlugin = VoipPlugin(this);
   }
 
