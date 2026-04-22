@@ -27,6 +27,7 @@ export 'package:api_client/src/model/http_validation_error.dart';
 export 'package:api_client/src/model/location_inner.dart';
 export 'package:api_client/src/model/matched_contact.dart';
 export 'package:api_client/src/model/matrix_credentials.dart';
+export 'package:api_client/src/model/matrix_password_response.dart';
 export 'package:api_client/src/model/phone_check_response.dart';
 export 'package:api_client/src/model/refresh_request.dart';
 export 'package:api_client/src/model/token_response.dart';

@@ -60,8 +60,29 @@ class TrustworkApiService {
   Future<void> saveMatrixPassword(String password) =>
       _storage.write(key: _keyMatrixPassword, value: password);
 
-  Future<String?> getMatrixPassword() =>
-      _storage.read(key: _keyMatrixPassword);
+  Future<String?> getMatrixPassword() async {
+    final stored = await _storage.read(key: _keyMatrixPassword);
+    if (stored != null) return stored;
+    return _fetchAndCacheMatrixPassword();
+  }
+
+  Future<String?> _fetchAndCacheMatrixPassword() async {
+    try {
+      final accessToken = await getAccessToken();
+      if (accessToken == null) return null;
+      final response = await _dio.get<Map<String, dynamic>>(
+        '/me/matrix-password',
+        options: Options(
+          headers: <String, String>{'Authorization': 'Bearer $accessToken'},
+        ),
+      );
+      final password = response.data?['matrix_password'] as String?;
+      if (password != null) await saveMatrixPassword(password);
+      return password;
+    } catch (_) {
+      return null;
+    }
+  }
 
   AuthApi get auth => _apiClient.getAuthApi();
 

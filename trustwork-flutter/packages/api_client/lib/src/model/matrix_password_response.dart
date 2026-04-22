@@ -11,13 +11,9 @@ part 'matrix_password_response.g.dart';
 /// MatrixPasswordResponse
 ///
 /// Properties:
-/// * [matrixUserId] 
 /// * [matrixPassword] 
 @BuiltValue()
 abstract class MatrixPasswordResponse implements Built<MatrixPasswordResponse, MatrixPasswordResponseBuilder> {
-  @BuiltValueField(wireName: r'matrix_user_id')
-  String get matrixUserId;
-
   @BuiltValueField(wireName: r'matrix_password')
   String get matrixPassword;
 
@@ -44,11 +40,6 @@ class _$MatrixPasswordResponseSerializer implements PrimitiveSerializer<MatrixPa
     MatrixPasswordResponse object, {
     FullType specifiedType = FullType.unspecified,
   }) sync* {
-    yield r'matrix_user_id';
-    yield serializers.serialize(
-      object.matrixUserId,
-      specifiedType: const FullType(String),
-    );
     yield r'matrix_password';
     yield serializers.serialize(
       object.matrixPassword,
@@ -77,13 +68,6 @@ class _$MatrixPasswordResponseSerializer implements PrimitiveSerializer<MatrixPa
       final key = serializedList[i] as String;
       final value = serializedList[i + 1];
       switch (key) {
-        case r'matrix_user_id':
-          final valueDes = serializers.deserialize(
-            value,
-            specifiedType: const FullType(String),
-          ) as String;
-          result.matrixUserId = valueDes;
-          break;
         case r'matrix_password':
           final valueDes = serializers.deserialize(
             value,

@@ -77,6 +77,7 @@ Class | Method | HTTP request | Description
 [*EmailAuthApi*](doc/EmailAuthApi.md) | [**emailVerifyAuthEmailVerifyPost**](doc/EmailAuthApi.md#emailverifyauthemailverifypost) | **POST** /auth/email/verify | Email Verify
 [*HealthApi*](doc/HealthApi.md) | [**healthCheckHealthGet**](doc/HealthApi.md#healthcheckhealthget) | **GET** /health | Health Check
 [*PhoneAuthApi*](doc/PhoneAuthApi.md) | [**phoneCheckAuthPhoneCheckGet**](doc/PhoneAuthApi.md#phonecheckauthphonecheckget) | **GET** /auth/phone/check | Phone Check
+[*TokenApi*](doc/TokenApi.md) | [**getMatrixPasswordMeMatrixPasswordGet**](doc/TokenApi.md#getmatrixpasswordmematrixpasswordget) | **GET** /me/matrix-password | Get Matrix Password
 [*TokenApi*](doc/TokenApi.md) | [**getMeMeGet**](doc/TokenApi.md#getmemeget) | **GET** /me | Get Me
 [*TokenApi*](doc/TokenApi.md) | [**refreshTokenAuthRefreshPost**](doc/TokenApi.md#refreshtokenauthrefreshpost) | **POST** /auth/refresh | Refresh Token
 
@@ -93,6 +94,7 @@ Class | Method | HTTP request | Description
  - [LocationInner](doc/LocationInner.md)
  - [MatchedContact](doc/MatchedContact.md)
  - [MatrixCredentials](doc/MatrixCredentials.md)
+ - [MatrixPasswordResponse](doc/MatrixPasswordResponse.md)
  - [PhoneCheckResponse](doc/PhoneCheckResponse.md)
  - [RefreshRequest](doc/RefreshRequest.md)
  - [TokenResponse](doc/TokenResponse.md)

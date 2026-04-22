@@ -12,7 +12,6 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:fluffychat/l10n/l10n.dart';
 import 'package:fluffychat/utils/trustwork_api_service.dart';
 import 'package:fluffychat/widgets/adaptive_dialogs/show_ok_cancel_alert_dialog.dart';
-import 'package:fluffychat/widgets/adaptive_dialogs/show_text_input_dialog.dart';
 import 'package:fluffychat/widgets/fluffy_chat_app.dart';
 import 'package:fluffychat/widgets/matrix.dart';
 
@@ -34,17 +33,7 @@ extension UiaRequestManager on MatrixState {
         case AuthenticationTypes.password:
           final input =
               cachedPassword ??
-              await TrustworkApiService.instance.getMatrixPassword() ??
-              (await showTextInputDialog(
-                context: navigatorContext,
-                title: l10n.pleaseEnterYourPassword,
-                okLabel: l10n.ok,
-                cancelLabel: l10n.cancel,
-                minLines: 1,
-                maxLines: 1,
-                obscureText: true,
-                hintText: '******',
-              ));
+              await TrustworkApiService.instance.getMatrixPassword();
           if (input == null || input.isEmpty) {
             return uiaRequest.cancel();
           }
