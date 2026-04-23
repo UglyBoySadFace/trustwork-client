@@ -25,7 +25,7 @@ class VoipPlugin with WidgetsBindingObserver implements WebRTCDelegate {
   final MatrixState matrix;
   Client get client => matrix.client;
 
-  static String? _callkitAcceptedId;
+  String? _callkitAcceptedId;
   StreamSubscription<fci.CallEvent?>? _callkitSubscription;
 
   VoipPlugin(this.matrix) {
@@ -108,10 +108,9 @@ class VoipPlugin with WidgetsBindingObserver implements WebRTCDelegate {
         for (final c in activeCalls) {
           if (c is Map) {
             final id = c['id'] as String?;
-            final status = c['status'] as int?;
-            // status 1 = PROCESSING (user accepted, app is launching)
-            // status 2 = ACTIVE (already connected)
-            if (id != null && (status == 1 || status == 2)) {
+            // flutter_callkit_incoming v3 stores isAccepted:bool, not status:int.
+            final isAccepted = c['isAccepted'] as bool? ?? false;
+            if (id != null && isAccepted) {
               Logs().i('[VOIP] Restoring callkit accepted ID from activeCalls: $id');
               _callkitAcceptedId = id;
               break;
@@ -121,6 +120,19 @@ class VoipPlugin with WidgetsBindingObserver implements WebRTCDelegate {
       }
     } catch (e) {
       Logs().e('[VOIP] _restoreCallkitAcceptedId failed: $e');
+    }
+
+    // The initial background sync (run before VoIP is created) may have
+    // already processed the m.call.invite event and advanced the sync token
+    // past it. If so, the incremental sync will never re-deliver it and
+    // handleNewCall would never fire. Replay the cached call events now so
+    // VoIP can process any invite that was missed before it subscribed.
+    if (_callkitAcceptedId != null) {
+      final pending = client.onCallEvents.value;
+      if (pending != null && pending.isNotEmpty) {
+        Logs().i('[VOIP] Replaying ${pending.length} cached call event(s) for auto-answer');
+        client.onCallEvents.add(pending);
+      }
     }
   }
 
@@ -202,6 +214,9 @@ class VoipPlugin with WidgetsBindingObserver implements WebRTCDelegate {
     if (_callkitAcceptedId == call.callId) {
       _callkitAcceptedId = null;
       addCallingOverlay(call.callId, call);
+      if (PlatformInfos.isAndroid) {
+        unawaited(_startForegroundService());
+      }
       await call.answer();
       return;
     }
@@ -224,17 +239,6 @@ class VoipPlugin with WidgetsBindingObserver implements WebRTCDelegate {
       FlutterForegroundTask.setOnLockScreenVisibility(true);
       FlutterForegroundTask.wakeUpScreen();
       FlutterForegroundTask.launchApp();
-      FlutterForegroundTask.init(
-        androidNotificationOptions: AndroidNotificationOptions(
-          channelId: 'call_notification_channel',
-          channelName: 'Active Call',
-          channelDescription: 'Keeps the call active in the background',
-        ),
-        iosNotificationOptions: const IOSNotificationOptions(),
-        foregroundTaskOptions: ForegroundTaskOptions(
-          eventAction: ForegroundTaskEventAction.nothing(),
-        ),
-      );
       await FlutterForegroundTask.startService(
         notificationTitle: 'Call in progress',
         notificationText: 'Trustwork call active',

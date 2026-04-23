@@ -12,6 +12,7 @@ import 'package:collection/collection.dart';
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
+import 'package:emoji_picker_flutter/locales/default_emoji_set_locale.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
@@ -120,6 +121,25 @@ class ChatController extends State<ChatPageWithRoom>
   Timer? typingTimeout;
   bool currentlyTyping = false;
   bool dragging = false;
+
+  List<Emoji>? _cachedSuggestionEmojis;
+  Locale? _cachedSuggestionLocale;
+
+  List<Emoji> getSuggestionEmojis(BuildContext context) {
+    final locale = AppSettings.emojiSuggestionLocale.value.isNotEmpty
+        ? Locale(AppSettings.emojiSuggestionLocale.value)
+        : Localizations.localeOf(context);
+    if (_cachedSuggestionLocale == locale && _cachedSuggestionEmojis != null) {
+      return _cachedSuggestionEmojis!;
+    }
+    _cachedSuggestionLocale = locale;
+    final result = getDefaultEmojiLocale(locale).fold(
+      <Emoji>[],
+      (emojis, category) => emojis..addAll(category.emoji),
+    );
+    _cachedSuggestionEmojis = result;
+    return result;
+  }
 
   void onDragEntered(_) => setState(() => dragging = true);
 

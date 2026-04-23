@@ -92,6 +92,44 @@ Future<void> _tryPushHelper(
     return;
   }
 
+  // Fast path for call invites when app was killed (client == null): the push
+  // payload already contains the event type and call_id, so we don't need to
+  // fetch the event from the server (which can fail when there is no sync
+  // state). When the client IS initialized we fall through so that the normal
+  // path can set client.backgroundSync = true and then show callkit with the
+  // full event data (display name etc.) at the block further below.
+  if (notification.type == 'm.call.invite' &&
+      PlatformInfos.isMobile &&
+      client == null) {
+    final callId =
+        (notification.content?['call_id'] as String?) ??
+        notification.eventId ??
+        'unknown_call';
+    final callerName =
+        notification.senderDisplayName ?? notification.sender ?? 'Unknown';
+    await FlutterCallkitIncoming.showCallkitIncoming(
+      fci.CallKitParams(
+        id: callId,
+        nameCaller: callerName,
+        appName: 'Trustwork',
+        type: 0,
+        duration: 60000,
+        android: const fci.AndroidParams(
+          isCustomNotification: false,
+          isShowLogo: false,
+          ringtonePath: 'system_ringtone_default',
+          backgroundColor: '#0a1931',
+        ),
+        ios: const fci.IOSParams(
+          handleType: 'generic',
+          supportsVideo: true,
+          ringtonePath: 'system_ringtone_default',
+        ),
+      ),
+    );
+    return;
+  }
+
   client ??= (await ClientManager.getClients(
     initialize: false,
     store: await AppSettings.init(),

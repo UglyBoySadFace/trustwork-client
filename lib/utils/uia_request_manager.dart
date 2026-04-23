@@ -35,7 +35,14 @@ extension UiaRequestManager on MatrixState {
               cachedPassword ??
               await TrustworkApiService.instance.getMatrixPassword();
           if (input == null || input.isEmpty) {
-            return uiaRequest.cancel();
+            Logs().e(
+              '[UIA] Matrix password unavailable – Trustwork API may be unreachable',
+            );
+            return uiaRequest.cancel(
+              UiaException(
+                'Could not retrieve credentials. Please check your connection and try again.',
+              ),
+            );
           }
           return uiaRequest.completeStage(
             AuthenticationPassword(
@@ -78,6 +85,31 @@ extension UiaRequestManager on MatrixState {
             ),
           );
         default:
+          // The homeserver requested a stage we don't recognise. Before
+          // falling back to the in-app browser (which won't work on Trustwork
+          // accounts), attempt password auth – Synapse accepts it for most
+          // UIA flows even when another stage type was advertised first.
+          Logs().w('[UIA] Unknown stage "$stage" – attempting password fallback');
+          final passwordFallback =
+              cachedPassword ??
+              await TrustworkApiService.instance.getMatrixPassword();
+          if (passwordFallback != null && passwordFallback.isNotEmpty) {
+            try {
+              return await uiaRequest.completeStage(
+                AuthenticationPassword(
+                  session: uiaRequest.session,
+                  password: passwordFallback,
+                  identifier:
+                      AuthenticationUserIdentifier(user: client.userID!),
+                ),
+              );
+            } catch (e) {
+              Logs().w(
+                '[UIA] Password fallback for stage "$stage" rejected: $e – trying web fallback',
+              );
+            }
+          }
+
           final stageUrl = uiaRequest.params
               .tryGetMap<String, Object?>(stage)
               ?.tryGet<String>('url');

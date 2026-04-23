@@ -7,6 +7,15 @@ import io.flutter.embedding.engine.dart.DartExecutor.DartEntrypoint
 import android.content.Context
 
 class FcmPushService : FcmSharedIsolateService() {
+
+    override fun onCreate() {
+        super.onCreate()
+        // Ensure the callkit incoming channel has vibration disabled before any
+        // notification is shown. MainActivity.onCreate() does the same for the
+        // foreground case, but it is never called when the app is killed.
+        MainActivity.resetCallkitChannelIfNeeded(applicationContext)
+    }
+
     override fun getEngine(): FlutterEngine {
         return provideEngine(getApplicationContext())
     }

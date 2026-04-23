@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 
 // Package imports:
 import 'package:collection/collection.dart';
+import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_vodozemac/flutter_vodozemac.dart' as vod;
 import 'package:matrix/matrix.dart';
@@ -24,6 +25,33 @@ import 'widgets/fluffy_chat_app.dart';
 ReceivePort? mainIsolateReceivePort;
 
 void main() async {
+  // Must be first: initialises ServicesBinding which platform channels depend on.
+  WidgetsFlutterBinding.ensureInitialized();
+
+  if (PlatformInfos.isAndroid) {
+    FlutterForegroundTask.init(
+      androidNotificationOptions: AndroidNotificationOptions(
+        channelId: 'call_notification_channel',
+        channelName: 'Active Call',
+        channelDescription: 'Keeps the call active in the background',
+      ),
+      iosNotificationOptions: const IOSNotificationOptions(),
+      foregroundTaskOptions: ForegroundTaskOptions(
+        eventAction: ForegroundTaskEventAction.nothing(),
+      ),
+    );
+  }
+
+  // Register the FCM MethodChannel handler synchronously before the first
+  // await. FcmSharedIsolateService.onMessageReceived() posts the incoming
+  // message to the Dart event loop; if no handler is registered at that point
+  // the Flutter channel silently drops the message. By pre-initialising here
+  // the handler is in place before ClientManager.getClients() (which can take
+  // several seconds) runs, so killed-app call notifications are no longer lost.
+  if (PlatformInfos.isAndroid) {
+    BackgroundPush.preinitFcm();
+  }
+
   if (PlatformInfos.isAndroid) {
     final port = mainIsolateReceivePort = ReceivePort();
     IsolateNameServer.removePortNameMapping(AppConfig.mainIsolatePortName);
@@ -33,11 +61,6 @@ void main() async {
     );
     await waitForPushIsolateDone();
   }
-
-  // Our background push shared isolate accesses flutter-internal things very early in the startup proccess
-  // To make sure that the parts of flutter needed are started up already, we need to ensure that the
-  // widget bindings are initialized already.
-  WidgetsFlutterBinding.ensureInitialized();
 
   final store = await AppSettings.init();
   Logs().i('Welcome to ${AppSettings.applicationName.value} <3');

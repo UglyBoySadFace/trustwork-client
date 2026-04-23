@@ -50,6 +50,17 @@ import 'platform_infos.dart';
 
 class BackgroundPush {
   static BackgroundPush? _instance;
+
+  // Singleton FCM isolate created early in main() before any awaits so its
+  // MethodChannel handler is registered before the Dart event loop processes
+  // incoming FCM messages. Without this, messages arrive while the handler is
+  // not yet set up and are silently dropped by the platform channel.
+  static FcmSharedIsolate? _earlyFcm;
+
+  static void preinitFcm() {
+    _earlyFcm ??= FcmSharedIsolate();
+  }
+
   final FlutterLocalNotificationsPlugin _flutterLocalNotificationsPlugin =
       FlutterLocalNotificationsPlugin();
   Client client;
@@ -69,7 +80,7 @@ class BackgroundPush {
   final pendingTests = <String, Completer<void>>{};
   bool firebaseEnabled = false;
 
-  final firebase = FcmSharedIsolate();
+  FcmSharedIsolate get firebase => _earlyFcm ??= FcmSharedIsolate();
 
   DateTime? lastReceivedPush;
 

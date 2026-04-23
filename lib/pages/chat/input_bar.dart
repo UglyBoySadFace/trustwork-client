@@ -414,6 +414,7 @@ class InputBar extends StatelessWidget {
         keyboardType: keyboardType!,
         textInputAction: textInputAction,
         autofocus: autofocus!,
+        autofillHints: const [],
         inputFormatters: [
           LengthLimitingTextInputFormatter((maxPDUSize / 3).floor()),
         ],

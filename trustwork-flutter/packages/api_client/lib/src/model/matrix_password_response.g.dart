@@ -8,17 +8,13 @@ part of 'matrix_password_response.dart';
 
 class _$MatrixPasswordResponse extends MatrixPasswordResponse {
   @override
-  final String matrixUserId;
-  @override
   final String matrixPassword;
 
   factory _$MatrixPasswordResponse(
           [void Function(MatrixPasswordResponseBuilder)? updates]) =>
       (MatrixPasswordResponseBuilder()..update(updates))._build();
 
-  _$MatrixPasswordResponse._(
-      {required this.matrixUserId, required this.matrixPassword})
-      : super._();
+  _$MatrixPasswordResponse._({required this.matrixPassword}) : super._();
   @override
   MatrixPasswordResponse rebuild(
           void Function(MatrixPasswordResponseBuilder) updates) =>
@@ -32,14 +28,12 @@ class _$MatrixPasswordResponse extends MatrixPasswordResponse {
   bool operator ==(Object other) {
     if (identical(other, this)) return true;
     return other is MatrixPasswordResponse &&
-        matrixUserId == other.matrixUserId &&
         matrixPassword == other.matrixPassword;
   }
 
   @override
   int get hashCode {
     var _$hash = 0;
-    _$hash = $jc(_$hash, matrixUserId.hashCode);
     _$hash = $jc(_$hash, matrixPassword.hashCode);
     _$hash = $jf(_$hash);
     return _$hash;
@@ -48,7 +42,6 @@ class _$MatrixPasswordResponse extends MatrixPasswordResponse {
   @override
   String toString() {
     return (newBuiltValueToStringHelper(r'MatrixPasswordResponse')
-          ..add('matrixUserId', matrixUserId)
           ..add('matrixPassword', matrixPassword))
         .toString();
   }
@@ -57,10 +50,6 @@ class _$MatrixPasswordResponse extends MatrixPasswordResponse {
 class MatrixPasswordResponseBuilder
     implements Builder<MatrixPasswordResponse, MatrixPasswordResponseBuilder> {
   _$MatrixPasswordResponse? _$v;
-
-  String? _matrixUserId;
-  String? get matrixUserId => _$this._matrixUserId;
-  set matrixUserId(String? matrixUserId) => _$this._matrixUserId = matrixUserId;
 
   String? _matrixPassword;
   String? get matrixPassword => _$this._matrixPassword;
@@ -74,7 +63,6 @@ class MatrixPasswordResponseBuilder
   MatrixPasswordResponseBuilder get _$this {
     final $v = _$v;
     if ($v != null) {
-      _matrixUserId = $v.matrixUserId;
       _matrixPassword = $v.matrixPassword;
       _$v = null;
     }
@@ -97,8 +85,6 @@ class MatrixPasswordResponseBuilder
   _$MatrixPasswordResponse _build() {
     final _$result = _$v ??
         _$MatrixPasswordResponse._(
-          matrixUserId: BuiltValueNullFieldError.checkNotNull(
-              matrixUserId, r'MatrixPasswordResponse', 'matrixUserId'),
           matrixPassword: BuiltValueNullFieldError.checkNotNull(
               matrixPassword, r'MatrixPasswordResponse', 'matrixPassword'),
         );

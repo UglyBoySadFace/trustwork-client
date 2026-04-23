@@ -9,7 +9,8 @@
       "Bash(flutter pub:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(xargs grep:*)"
+      "Bash(xargs grep:*)",
+      "Bash(find C:/Users/filip/AppData/Local/Pub/Cache/hosted/pub.dev/matrix-* -name \"push_notification.dart\")"
     ]
   }
 }
