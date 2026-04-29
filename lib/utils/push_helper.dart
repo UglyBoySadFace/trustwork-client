@@ -34,6 +34,22 @@ Future<void> pushHelper(
   required FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin,
   bool useNotificationActions = true,
 }) async {
+  // Always show callkit for call invites from the push payload directly. This
+  // avoids racing the homeserver fetch in _tryPushHelper, which can either
+  // throw (→ generic "messages waiting" fallback) or return null (→ silently
+  // dropped invite). The payload already carries call_id and sender display
+  // name, which is everything callkit needs.
+  if (notification.type == 'm.call.invite' && PlatformInfos.isMobile) {
+    try {
+      await _showCallkitIncomingFromPush(notification);
+    } catch (e, s) {
+      Logs().e('Failed to show callkit from push payload', e, s);
+    }
+    // For an invite there is nothing else to do: we don't want to fetch the
+    // event, show a "messages waiting" notification, or run cleanup logic.
+    return;
+  }
+
   try {
     await _tryPushHelper(
       notification,
@@ -71,6 +87,38 @@ Future<void> pushHelper(
   }
 }
 
+Future<void> _showCallkitIncomingFromPush(PushNotification notification) async {
+  final callId =
+      (notification.content?['call_id'] as String?) ??
+      notification.eventId ??
+      'unknown_call';
+  final callerName =
+      notification.senderDisplayName ?? notification.sender ?? 'Unknown';
+  await FlutterCallkitIncoming.showCallkitIncoming(
+    fci.CallKitParams(
+      id: callId,
+      nameCaller: callerName,
+      appName: 'Trustwork',
+      type: 0,
+      duration: 60000,
+      android: const fci.AndroidParams(
+        isCustomNotification: false,
+        isShowLogo: false,
+        // Bundled at res/raw/ringtone_default.ogg. Avoids the SecurityException
+        // path that fires when the user has set a private file as their
+        // system default ringtone (the package can't read it).
+        ringtonePath: 'ringtone_default',
+        backgroundColor: '#0a1931',
+      ),
+      ios: const fci.IOSParams(
+        handleType: 'generic',
+        supportsVideo: true,
+        ringtonePath: 'system_ringtone_default',
+      ),
+    ),
+  );
+}
+
 Future<void> _tryPushHelper(
   PushNotification notification, {
   Client? client,
@@ -89,44 +137,6 @@ Future<void> _tryPushHelper(
       activeRoomId == notification.roomId &&
       WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed) {
     Logs().v('Room is in foreground. Stop push helper here.');
-    return;
-  }
-
-  // Fast path for call invites when app was killed (client == null): the push
-  // payload already contains the event type and call_id, so we don't need to
-  // fetch the event from the server (which can fail when there is no sync
-  // state). When the client IS initialized we fall through so that the normal
-  // path can set client.backgroundSync = true and then show callkit with the
-  // full event data (display name etc.) at the block further below.
-  if (notification.type == 'm.call.invite' &&
-      PlatformInfos.isMobile &&
-      client == null) {
-    final callId =
-        (notification.content?['call_id'] as String?) ??
-        notification.eventId ??
-        'unknown_call';
-    final callerName =
-        notification.senderDisplayName ?? notification.sender ?? 'Unknown';
-    await FlutterCallkitIncoming.showCallkitIncoming(
-      fci.CallKitParams(
-        id: callId,
-        nameCaller: callerName,
-        appName: 'Trustwork',
-        type: 0,
-        duration: 60000,
-        android: const fci.AndroidParams(
-          isCustomNotification: false,
-          isShowLogo: false,
-          ringtonePath: 'system_ringtone_default',
-          backgroundColor: '#0a1931',
-        ),
-        ios: const fci.IOSParams(
-          handleType: 'generic',
-          supportsVideo: true,
-          ringtonePath: 'system_ringtone_default',
-        ),
-      ),
-    );
     return;
   }
 
@@ -179,23 +189,12 @@ Future<void> _tryPushHelper(
     }
   }
 
-  if (event.type.startsWith('m.call') && event.type != EventTypes.CallInvite) {
-    Logs().v('Push message is a m.call but not invite. Do not display.');
-    return;
-  }
-
-  if ((event.type.startsWith('m.call') &&
-          event.type != EventTypes.CallInvite) ||
-      event.type == 'org.matrix.call.sdp_stream_metadata_changed') {
-    Logs().v('Push message was for a call, but not call invite.');
-    return;
-  }
-
+  // Call invite reaches here when the FCM payload didn't carry the `type`
+  // field (e.g. `event_id_only` push format), so the top-level fast-path in
+  // pushHelper couldn't fire. Show callkit now using the fetched event.
   if (event.type == EventTypes.CallInvite && PlatformInfos.isMobile) {
-    final callId =
-        (event.content['call_id'] as String?) ?? event.eventId;
-    final callerName =
-        event.senderFromMemoryOrFallback.calcDisplayname();
+    final callId = (event.content['call_id'] as String?) ?? event.eventId;
+    final callerName = event.senderFromMemoryOrFallback.calcDisplayname();
     await FlutterCallkitIncoming.showCallkitIncoming(
       fci.CallKitParams(
         id: callId,
@@ -206,7 +205,7 @@ Future<void> _tryPushHelper(
         android: const fci.AndroidParams(
           isCustomNotification: false,
           isShowLogo: false,
-          ringtonePath: 'system_ringtone_default',
+          ringtonePath: 'ringtone_default',
           backgroundColor: '#0a1931',
         ),
         ios: const fci.IOSParams(
@@ -216,6 +215,14 @@ Future<void> _tryPushHelper(
         ),
       ),
     );
+    return;
+  }
+
+  // Any other m.call.* event (hangup already handled above, or
+  // sdp_stream_metadata_changed) — nothing to display.
+  if (event.type.startsWith('m.call') ||
+      event.type == 'org.matrix.call.sdp_stream_metadata_changed') {
+    Logs().v('Push message was for a call, but not call invite.');
     return;
   }
 

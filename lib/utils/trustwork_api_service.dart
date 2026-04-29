@@ -67,19 +67,54 @@ class TrustworkApiService {
   }
 
   Future<String?> _fetchAndCacheMatrixPassword() async {
+    Future<Response<Map<String, dynamic>>> request(String accessToken) =>
+        _dio.get<Map<String, dynamic>>(
+          '/me/matrix-password',
+          options: Options(
+            headers: <String, String>{'Authorization': 'Bearer $accessToken'},
+          ),
+        );
+
     try {
-      final accessToken = await getAccessToken();
+      var accessToken = await getAccessToken();
       if (accessToken == null) return null;
-      final response = await _dio.get<Map<String, dynamic>>(
-        '/me/matrix-password',
-        options: Options(
-          headers: <String, String>{'Authorization': 'Bearer $accessToken'},
-        ),
-      );
+      Response<Map<String, dynamic>> response;
+      try {
+        response = await request(accessToken);
+      } on DioException catch (e) {
+        if (e.response?.statusCode != 401) rethrow;
+        final refreshed = await _refreshAccessToken();
+        if (refreshed == null) return null;
+        accessToken = refreshed;
+        response = await request(accessToken);
+      }
       final password = response.data?['matrix_password'] as String?;
       if (password != null) await saveMatrixPassword(password);
       return password;
     } catch (_) {
+      return null;
+    }
+  }
+
+  Future<String?> _refreshAccessToken() async {
+    try {
+      final refreshToken = await getRefreshToken();
+      if (refreshToken == null) return null;
+      final response = await token.refreshTokenAuthRefreshPost(
+        refreshRequest: RefreshRequest((b) => b..refreshToken = refreshToken),
+      );
+      final tokens = response.data;
+      if (tokens == null) return null;
+      await saveTokens(tokens.accessToken, tokens.refreshToken);
+      debugPrint('[TW-API] Access token refreshed');
+      return tokens.accessToken;
+    } on DioException catch (e) {
+      debugPrint(
+        '[TW-API] Refresh failed (${e.response?.statusCode}): ${e.message}',
+      );
+      return null;
+    } catch (e) {
+      debugPrint('[TW-API] Refresh failed: $e');
       return null;
     }
   }

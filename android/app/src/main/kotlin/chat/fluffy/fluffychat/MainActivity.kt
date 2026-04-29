@@ -1,6 +1,5 @@
 package chat.fluffy.fluffychat
 
-import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
@@ -23,7 +22,6 @@ class MainActivity : FlutterActivity() {
 
     override fun onCreate(savedInstanceState: android.os.Bundle?) {
         super.onCreate(savedInstanceState)
-        resetCallkitChannelIfNeeded(this)
     }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
@@ -74,32 +72,6 @@ class MainActivity : FlutterActivity() {
             val eng = engine ?: FlutterEngine(context, emptyArray(), true, false)
             engine = eng
             return eng
-        }
-
-        // Ensures the callkit incoming channel has vibration disabled so the
-        // CallkitSoundPlayerManager's repeating vibration is not overridden by
-        // the one-shot channel vibration triggered when the notification is posted.
-        fun resetCallkitChannelIfNeeded(context: Context) {
-            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
-            val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            val channelId = "callkit_incoming_channel_id"
-            val existing = nm.getNotificationChannel(channelId)
-            // Don't recreate if the user deliberately blocked the channel.
-            if (existing != null && existing.importance == NotificationManager.IMPORTANCE_NONE) return
-            // Recreate whenever vibration is enabled (wrong state) or channel is missing.
-            if (existing == null || existing.shouldVibrate()) {
-                nm.deleteNotificationChannel(channelId)
-                val channel = NotificationChannel(
-                    channelId,
-                    "Incoming Call",
-                    NotificationManager.IMPORTANCE_HIGH,
-                ).apply {
-                    setSound(null, null)
-                    enableVibration(false)
-                    lockscreenVisibility = android.app.Notification.VISIBILITY_PUBLIC
-                }
-                nm.createNotificationChannel(channel)
-            }
         }
     }
 }

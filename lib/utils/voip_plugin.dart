@@ -211,6 +211,9 @@ class VoipPlugin with WidgetsBindingObserver implements WebRTCDelegate {
   @override
   Future<void> handleNewCall(CallSession call) async {
     // If the user already accepted from the callkit lock-screen UI, auto-answer.
+    // The foreground service can be started here because the user has just
+    // interacted with the callkit notification — Android treats that as an
+    // eligible state for starting a microphone-type FGS.
     if (_callkitAcceptedId == call.callId) {
       _callkitAcceptedId = null;
       addCallingOverlay(call.callId, call);
@@ -222,8 +225,17 @@ class VoipPlugin with WidgetsBindingObserver implements WebRTCDelegate {
     }
 
     // Show the call screen immediately — don't wait for foreground service setup.
+    // We deliberately do NOT start the foreground service here: on Android 14+
+    // (targetSDK 34+) starting a microphone-type FGS while the call is still
+    // ringing throws SecurityException and triggers a 5-second restart loop.
+    // The service is started by the dialer when the user actually answers.
     addCallingOverlay(call.callId, call);
+  }
 
+  /// Called by the dialer when the user answers a call from the in-app overlay.
+  /// Starts the microphone-type foreground service so mic capture survives
+  /// the app going to background after accept.
+  Future<void> onCallAnswered() async {
     if (PlatformInfos.isAndroid) {
       unawaited(_startForegroundService());
     }

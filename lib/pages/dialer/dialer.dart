@@ -38,6 +38,7 @@ import 'package:fluffychat/utils/platform_infos.dart';
 import 'package:fluffychat/utils/voip/user_media_manager.dart';
 import 'package:fluffychat/utils/voip/video_renderer.dart';
 import 'package:fluffychat/widgets/avatar.dart';
+import 'package:fluffychat/widgets/matrix.dart';
 import 'pip/pip_view.dart';
 
 class _CallStats {
@@ -474,6 +475,14 @@ class MyCallingPage extends State<Calling> {
   void _answerCall() {
     _stopCallSound();
     UserMediaManager().stopRingingTone();
+    // Notify the VoIP plugin so it can start the microphone-type foreground
+    // service. Doing this here (on user interaction) avoids the Android 14+
+    // FOREGROUND_SERVICE_MICROPHONE SecurityException that fires when the
+    // service is started while the call is still ringing in the background.
+    final voipPlugin = Matrix.of(context).voipPlugin;
+    if (voipPlugin != null) {
+      unawaited(voipPlugin.onCallAnswered());
+    }
     setState(() {
       call.answer();
     });
