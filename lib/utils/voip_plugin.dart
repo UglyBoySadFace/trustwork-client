@@ -1,12 +1,9 @@
-// Dart imports:
 import 'dart:async';
 import 'dart:core';
 
-// Flutter imports:
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
-// Package imports:
 import 'package:flutter_callkit_incoming/entities/entities.dart' as fci;
 import 'package:flutter_callkit_incoming/flutter_callkit_incoming.dart' as callkit;
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
@@ -14,10 +11,10 @@ import 'package:flutter_webrtc/flutter_webrtc.dart' as webrtc_impl;
 import 'package:matrix/matrix.dart';
 import 'package:webrtc_interface/webrtc_interface.dart' hide Navigator;
 
-// Project imports:
 import 'package:fluffychat/pages/chat_list/chat_list.dart';
 import 'package:fluffychat/pages/dialer/dialer.dart';
 import 'package:fluffychat/utils/platform_infos.dart';
+import 'package:fluffychat/utils/ringer_vibration.dart';
 import '../../utils/voip/user_media_manager.dart';
 import '../widgets/matrix.dart';
 
@@ -48,6 +45,7 @@ class VoipPlugin with WidgetsBindingObserver implements WebRTCDelegate {
     _callkitSubscription = callkit.FlutterCallkitIncoming.onEvent.listen((fci.CallEvent? event) {
       switch (event?.event) {
         case fci.Event.actionCallAccept:
+          unawaited(RingerVibration.stop());
           final callId = event?.body['id'] as String?;
           // If handleNewCall already ran and the call is waiting, answer it now.
           if (callId != null) {
@@ -68,6 +66,7 @@ class VoipPlugin with WidgetsBindingObserver implements WebRTCDelegate {
           _callkitAcceptedId = callId;
           break;
         case fci.Event.actionCallDecline:
+          unawaited(RingerVibration.stop());
           final callId = event?.body['id'] as String?;
           _callkitAcceptedId = null;
           if (callId != null) {
@@ -80,6 +79,7 @@ class VoipPlugin with WidgetsBindingObserver implements WebRTCDelegate {
           break;
         case fci.Event.actionCallTimeout:
         case fci.Event.actionCallEnded:
+          unawaited(RingerVibration.stop());
           _callkitAcceptedId = null;
           break;
         default:
@@ -230,6 +230,9 @@ class VoipPlugin with WidgetsBindingObserver implements WebRTCDelegate {
     // ringing throws SecurityException and triggers a 5-second restart loop.
     // The service is started by the dialer when the user actually answers.
     addCallingOverlay(call.callId, call);
+    if (call.isRinging && !call.isOutgoing) {
+      unawaited(RingerVibration.start());
+    }
   }
 
   /// Called by the dialer when the user answers a call from the in-app overlay.
@@ -263,6 +266,7 @@ class VoipPlugin with WidgetsBindingObserver implements WebRTCDelegate {
   @override
   Future<void> handleCallEnded(CallSession session) async {
     if (PlatformInfos.isMobile) {
+      unawaited(RingerVibration.stop());
       await callkit.FlutterCallkitIncoming.endCall(session.callId);
     }
     if (overlayEntry != null) {
@@ -294,6 +298,7 @@ class VoipPlugin with WidgetsBindingObserver implements WebRTCDelegate {
   @override
   Future<void> handleMissedCall(CallSession session) async {
     if (PlatformInfos.isMobile) {
+      unawaited(RingerVibration.stop());
       await callkit.FlutterCallkitIncoming.endCall(session.callId);
     }
   }

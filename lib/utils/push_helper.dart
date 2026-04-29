@@ -1,12 +1,10 @@
-// Dart imports:
+import 'dart:async';
 import 'dart:convert';
 import 'dart:ui';
 
-// Flutter imports:
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
-// Package imports:
 import 'package:collection/collection.dart';
 import 'package:flutter_callkit_incoming/entities/entities.dart' as fci;
 import 'package:flutter_callkit_incoming/flutter_callkit_incoming.dart';
@@ -14,7 +12,6 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_shortcuts_new/flutter_shortcuts_new.dart';
 import 'package:matrix/matrix.dart';
 
-// Project imports:
 import 'package:fluffychat/config/app_config.dart';
 import 'package:fluffychat/config/setting_keys.dart';
 import 'package:fluffychat/l10n/l10n.dart';
@@ -23,6 +20,7 @@ import 'package:fluffychat/utils/client_manager.dart';
 import 'package:fluffychat/utils/matrix_sdk_extensions/matrix_locals.dart';
 import 'package:fluffychat/utils/notification_background_handler.dart';
 import 'package:fluffychat/utils/platform_infos.dart';
+import 'package:fluffychat/utils/ringer_vibration.dart';
 
 const notificationAvatarDimension = 128;
 
@@ -117,6 +115,7 @@ Future<void> _showCallkitIncomingFromPush(PushNotification notification) async {
       ),
     ),
   );
+  unawaited(RingerVibration.start());
 }
 
 Future<void> _tryPushHelper(
@@ -186,6 +185,7 @@ Future<void> _tryPushHelper(
       if (callId != null) {
         await FlutterCallkitIncoming.endCall(callId);
       }
+      unawaited(RingerVibration.stop());
     }
   }
 
@@ -215,6 +215,7 @@ Future<void> _tryPushHelper(
         ),
       ),
     );
+    unawaited(RingerVibration.start());
     return;
   }
 

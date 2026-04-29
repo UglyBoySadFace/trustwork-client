@@ -16,25 +16,22 @@
  *   along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-// Dart imports:
 import 'dart:async';
 import 'dart:math';
 
-// Flutter imports:
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-// Package imports:
 import 'package:flutter_webrtc/flutter_webrtc.dart' hide VideoRenderer;
 import 'package:just_audio/just_audio.dart';
 import 'package:matrix/matrix.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
-// Project imports:
 import 'package:fluffychat/l10n/l10n.dart';
 import 'package:fluffychat/utils/matrix_sdk_extensions/matrix_locals.dart';
 import 'package:fluffychat/utils/platform_infos.dart';
+import 'package:fluffychat/utils/ringer_vibration.dart';
 import 'package:fluffychat/utils/voip/user_media_manager.dart';
 import 'package:fluffychat/utils/voip/video_renderer.dart';
 import 'package:fluffychat/widgets/avatar.dart';
@@ -475,6 +472,7 @@ class MyCallingPage extends State<Calling> {
   void _answerCall() {
     _stopCallSound();
     UserMediaManager().stopRingingTone();
+    unawaited(RingerVibration.stop());
     // Notify the VoIP plugin so it can start the microphone-type foreground
     // service. Doing this here (on user interaction) avoids the Android 14+
     // FOREGROUND_SERVICE_MICROPHONE SecurityException that fires when the
@@ -491,6 +489,7 @@ class MyCallingPage extends State<Calling> {
   void _hangUp() {
     _stopCallSound();
     UserMediaManager().stopRingingTone();
+    unawaited(RingerVibration.stop());
     setState(() {
       if (call.isRinging) {
         call.reject();
