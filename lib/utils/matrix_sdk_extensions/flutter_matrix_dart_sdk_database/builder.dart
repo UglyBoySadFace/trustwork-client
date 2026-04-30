@@ -1,17 +1,13 @@
-// Dart imports:
 import 'dart:io';
 
-// Flutter imports:
 import 'package:flutter/foundation.dart';
 
-// Package imports:
 import 'package:matrix/matrix.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:universal_html/html.dart' as html;
 
-// Project imports:
 import 'package:fluffychat/l10n/l10n.dart';
 import 'package:fluffychat/utils/client_manager.dart';
 import 'package:fluffychat/utils/platform_infos.dart';

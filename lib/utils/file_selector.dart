@@ -1,11 +1,8 @@
-// Flutter imports:
 import 'package:flutter/widgets.dart';
 
-// Package imports:
 import 'package:file_picker/file_picker.dart';
 import 'package:file_selector/file_selector.dart';
 
-// Project imports:
 import 'package:fluffychat/widgets/app_lock.dart';
 import 'package:fluffychat/widgets/future_loading_dialog.dart';
 

@@ -1,12 +1,9 @@
-// Flutter imports:
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
-// Package imports:
 import 'package:collection/collection.dart';
 import 'package:scroll_to_index/scroll_to_index.dart';
 
-// Project imports:
 import 'package:fluffychat/config/themes.dart';
 import 'package:fluffychat/l10n/l10n.dart';
 import 'package:fluffychat/pages/chat/chat.dart';

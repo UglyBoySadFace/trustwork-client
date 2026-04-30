@@ -1,11 +1,8 @@
-// Dart imports:
 import 'dart:ui';
 
-// Flutter imports:
 import 'package:flutter/foundation.dart';
 import 'package:flutter/painting.dart';
 
-// Package imports:
 import 'package:matrix/matrix.dart';
 import 'package:native_imaging/native_imaging.dart' as native;
 

@@ -1,16 +1,12 @@
-// Dart imports:
 import 'dart:async';
 
-// Flutter imports:
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
-// Package imports:
 import 'package:file_picker/file_picker.dart';
 import 'package:http/http.dart' hide Client;
 import 'package:matrix/matrix.dart';
 
-// Project imports:
 import 'package:fluffychat/l10n/l10n.dart';
 import 'package:fluffychat/utils/client_manager.dart';
 import 'package:fluffychat/utils/file_selector.dart';

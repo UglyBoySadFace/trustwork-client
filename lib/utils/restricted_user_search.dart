@@ -1,4 +1,3 @@
-// Package imports:
 import 'package:matrix/matrix.dart';
 
 /// Searches for users with restricted discovery:

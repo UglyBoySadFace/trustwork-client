@@ -1,9 +1,7 @@
-// Dart imports:
 import 'dart:math' show min;
 import 'dart:typed_data';
 import 'dart:ui';
 
-// Package imports:
 import 'package:matrix/matrix.dart';
 
 extension ClientDownloadContentExtension on Client {

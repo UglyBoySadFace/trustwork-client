@@ -1,16 +1,12 @@
-// Dart imports:
 import 'dart:convert';
 import 'dart:math';
 
-// Flutter imports:
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
-// Package imports:
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:matrix/matrix.dart';
 
-// Project imports:
 import 'package:fluffychat/config/setting_keys.dart';
 import 'package:fluffychat/l10n/l10n.dart';
 import 'package:fluffychat/utils/client_manager.dart';

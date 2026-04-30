@@ -1,7 +1,5 @@
-// Flutter imports:
 import 'package:flutter/material.dart';
 
-// Project imports:
 import 'package:fluffychat/config/themes.dart';
 
 class TwoColumnLayout extends StatelessWidget {

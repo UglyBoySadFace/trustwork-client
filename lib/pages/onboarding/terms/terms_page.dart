@@ -1,12 +1,9 @@
-// Flutter imports:
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
-// Package imports:
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
-// Project imports:
 import 'package:fluffychat/widgets/layouts/login_scaffold.dart';
 
 class TermsPage extends StatelessWidget {

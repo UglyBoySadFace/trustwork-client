@@ -1,13 +1,10 @@
-// Flutter imports:
 import 'package:flutter/material.dart';
 
-// Package imports:
 import 'package:collection/collection.dart' show IterableExtension;
 import 'package:matrix/encryption.dart';
 import 'package:matrix/matrix.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
-// Project imports:
 import 'package:fluffychat/l10n/l10n.dart';
 import 'package:fluffychat/pages/device_settings/device_settings_view.dart';
 import 'package:fluffychat/pages/key_verification/key_verification_dialog.dart';

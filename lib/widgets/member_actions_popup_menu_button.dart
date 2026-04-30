@@ -1,10 +1,7 @@
-// Flutter imports:
 import 'package:flutter/material.dart';
 
-// Package imports:
 import 'package:matrix/matrix.dart';
 
-// Project imports:
 import 'package:fluffychat/l10n/l10n.dart';
 import 'package:fluffychat/widgets/permission_slider_dialog.dart';
 import 'adaptive_dialogs/show_ok_cancel_alert_dialog.dart';

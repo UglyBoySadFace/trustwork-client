@@ -1,7 +1,5 @@
-// Flutter imports:
 import 'package:flutter/material.dart';
 
-// Project imports:
 import 'package:fluffychat/pages/onboarding/email_new_verify/view_model/email_new_verify_view_model.dart';
 import 'package:fluffychat/pages/onboarding/onboarding_flow_coordinator.dart';
 import 'package:fluffychat/pages/onboarding/shared/otp_input.dart';

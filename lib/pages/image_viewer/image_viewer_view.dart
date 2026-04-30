@@ -1,10 +1,7 @@
-// Flutter imports:
 import 'package:flutter/material.dart';
 
-// Package imports:
 import 'package:matrix/matrix.dart';
 
-// Project imports:
 import 'package:fluffychat/l10n/l10n.dart';
 import 'package:fluffychat/pages/image_viewer/video_player.dart';
 import 'package:fluffychat/utils/platform_infos.dart';

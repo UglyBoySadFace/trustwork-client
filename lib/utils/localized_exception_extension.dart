@@ -1,17 +1,13 @@
-// Dart imports:
 import 'dart:io';
 import 'dart:math';
 
-// Flutter imports:
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-// Package imports:
 import 'package:http/http.dart';
 import 'package:matrix/encryption.dart';
 import 'package:matrix/matrix.dart';
 
-// Project imports:
 import 'package:fluffychat/l10n/l10n.dart';
 import 'package:fluffychat/utils/other_party_can_receive.dart';
 import 'uia_request_manager.dart';

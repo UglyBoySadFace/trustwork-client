@@ -1,7 +1,5 @@
-// Flutter imports:
 import 'package:flutter/material.dart';
 
-// Project imports:
 import 'package:fluffychat/pages/sign_in/view_model/model/public_homeserver_data.dart';
 
 class SignInState {

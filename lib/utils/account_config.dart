@@ -1,4 +1,3 @@
-// Package imports:
 import 'package:matrix/matrix.dart';
 
 extension ApplicationAccountConfigExtension on Client {

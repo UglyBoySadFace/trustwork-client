@@ -1,14 +1,10 @@
-// Dart imports:
 import 'dart:async';
 import 'dart:io';
 
-// Flutter imports:
 import 'package:flutter/material.dart';
 
-// Package imports:
 import 'package:qr_code_scanner_plus/qr_code_scanner_plus.dart';
 
-// Project imports:
 import 'package:fluffychat/l10n/l10n.dart';
 
 class QrScannerModal extends StatefulWidget {

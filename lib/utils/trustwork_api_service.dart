@@ -1,13 +1,10 @@
-// Flutter imports:
 import 'package:flutter/foundation.dart';
 
-// Package imports:
 import 'package:api_client/api_client.dart';
 import 'package:built_value/serializer.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
-// Project imports:
 import 'package:fluffychat/config/app_config.dart';
 
 class TrustworkApiService {

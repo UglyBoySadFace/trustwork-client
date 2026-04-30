@@ -1,13 +1,9 @@
-// Dart imports:
 import 'dart:async';
 
-// Flutter imports:
 import 'package:flutter/material.dart';
 
-// Package imports:
 import 'package:matrix/matrix.dart';
 
-// Project imports:
 import 'package:fluffychat/l10n/l10n.dart';
 import 'package:fluffychat/pages/invitation_selection/invitation_selection_view.dart';
 import 'package:fluffychat/utils/restricted_user_search.dart';

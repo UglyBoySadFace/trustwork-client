@@ -1,11 +1,8 @@
-// Dart imports:
 import 'dart:io';
 
-// Flutter imports:
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-// Package imports:
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:matrix/matrix.dart';
 

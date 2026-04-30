@@ -1,4 +1,3 @@
-// Package imports:
 import 'package:api_client/api_client.dart';
 
 class OnboardingFlowCoordinator {

@@ -1,12 +1,9 @@
-// Flutter imports:
 import 'package:flutter/material.dart';
 
-// Package imports:
 import 'package:api_client/api_client.dart';
 import 'package:dio/dio.dart';
 import 'package:go_router/go_router.dart';
 
-// Project imports:
 import 'package:fluffychat/pages/onboarding/onboarding_flow_coordinator.dart';
 import 'package:fluffychat/utils/trustwork_api_service.dart';
 

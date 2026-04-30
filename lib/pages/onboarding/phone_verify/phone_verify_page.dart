@@ -1,10 +1,7 @@
-// Flutter imports:
 import 'package:flutter/material.dart';
 
-// Package imports:
 import 'package:go_router/go_router.dart';
 
-// Project imports:
 import 'package:fluffychat/pages/onboarding/onboarding_flow_coordinator.dart';
 import 'package:fluffychat/pages/onboarding/phone_verify/view_model/phone_verify_view_model.dart';
 import 'package:fluffychat/pages/onboarding/shared/otp_input.dart';

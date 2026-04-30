@@ -1,14 +1,11 @@
-// Flutter imports:
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
-// Package imports:
 import 'package:image/image.dart';
 import 'package:matrix/matrix.dart';
 import 'package:pretty_qr_code/pretty_qr_code.dart';
 import 'package:qr_image/qr_image.dart';
 
-// Project imports:
 import 'package:fluffychat/config/app_config.dart';
 import 'package:fluffychat/l10n/l10n.dart';
 import 'package:fluffychat/utils/fluffy_share.dart';

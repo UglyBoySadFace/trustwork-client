@@ -1,12 +1,9 @@
-// Dart imports:
 import 'dart:async';
 import 'dart:convert';
 
-// Flutter imports:
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
-// Package imports:
 import 'package:collection/collection.dart';
 import 'package:desktop_notifications/desktop_notifications.dart';
 import 'package:image_picker/image_picker.dart';
@@ -19,7 +16,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:universal_html/html.dart' as html;
 import 'package:url_launcher/url_launcher_string.dart';
 
-// Project imports:
 import 'package:fluffychat/l10n/l10n.dart';
 import 'package:fluffychat/utils/client_manager.dart';
 import 'package:fluffychat/utils/full_screen_intent_helper.dart';

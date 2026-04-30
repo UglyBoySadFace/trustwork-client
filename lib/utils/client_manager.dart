@@ -1,10 +1,7 @@
-// Dart imports:
 import 'dart:io';
 
-// Flutter imports:
 import 'package:flutter/foundation.dart';
 
-// Package imports:
 import 'package:collection/collection.dart';
 import 'package:desktop_notifications/desktop_notifications.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -14,7 +11,6 @@ import 'package:matrix/matrix.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:universal_html/html.dart' as html;
 
-// Project imports:
 import 'package:fluffychat/config/setting_keys.dart';
 import 'package:fluffychat/l10n/l10n.dart';
 import 'package:fluffychat/utils/custom_http_client.dart';

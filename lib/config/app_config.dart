@@ -1,4 +1,3 @@
-// Dart imports:
 import 'dart:ui';
 
 abstract class AppConfig {

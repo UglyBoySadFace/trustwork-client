@@ -186,7 +186,29 @@ class VoipPlugin with WidgetsBindingObserver implements WebRTCDelegate {
   Future<RTCPeerConnection> createPeerConnection(
     Map<String, dynamic> configuration, [
     Map<String, dynamic> constraints = const {},
-  ]) => webrtc_impl.createPeerConnection(configuration, constraints);
+  ]) async {
+    Logs().i('[VOIP] createPeerConnection iceServers: ${configuration['iceServers']}');
+    // If the SDK didn't supply any TURN/STUN servers, fetch them ourselves
+    // from the homeserver so calls between different networks can traverse NAT.
+    final servers = configuration['iceServers'];
+    if (servers == null || (servers is List && servers.isEmpty)) {
+      try {
+        final turn = await client.getTurnServer();
+        final ice = <Map<String, dynamic>>[
+          {
+            'urls': turn.uris,
+            if (turn.username != null) 'username': turn.username,
+            if (turn.password != null) 'credential': turn.password,
+          },
+        ];
+        Logs().i('[VOIP] Injecting fallback iceServers from /voip/turnServer: $ice');
+        configuration = {...configuration, 'iceServers': ice};
+      } catch (e, s) {
+        Logs().w('[VOIP] getTurnServer failed', e, s);
+      }
+    }
+    return webrtc_impl.createPeerConnection(configuration, constraints);
+  }
 
   Future<bool> get hasCallingAccount async => false;
 

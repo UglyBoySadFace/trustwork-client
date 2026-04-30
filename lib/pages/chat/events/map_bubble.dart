@@ -1,11 +1,8 @@
-// Flutter imports:
 import 'package:flutter/material.dart';
 
-// Package imports:
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
-// Project imports:
 import '../../../config/app_config.dart';
 
 class MapBubble extends StatelessWidget {

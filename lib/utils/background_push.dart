@@ -17,18 +17,15 @@
  *   along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-// Dart imports:
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:isolate';
 import 'dart:ui';
 
-// Flutter imports:
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
-// Package imports:
 import 'package:fcm_shared_isolate/fcm_shared_isolate.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_new_badger/flutter_new_badger.dart';
@@ -37,7 +34,6 @@ import 'package:matrix/matrix.dart';
 import 'package:unifiedpush/unifiedpush.dart';
 import 'package:unifiedpush_ui/unifiedpush_ui.dart';
 
-// Project imports:
 import 'package:fluffychat/l10n/l10n.dart';
 import 'package:fluffychat/main.dart';
 import 'package:fluffychat/utils/notification_background_handler.dart';

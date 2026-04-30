@@ -1,11 +1,8 @@
-// Flutter imports:
 import 'package:flutter/material.dart';
 
-// Package imports:
 import 'package:dio/dio.dart';
 import 'package:flutter_web_auth_2/flutter_web_auth_2.dart';
 
-// Project imports:
 import 'package:fluffychat/config/app_config.dart';
 import 'package:fluffychat/pages/onboarding/onboarding_flow_coordinator.dart';
 import 'package:fluffychat/utils/platform_infos.dart';

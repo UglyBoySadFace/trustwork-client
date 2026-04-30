@@ -1,11 +1,8 @@
-// Dart imports:
 import 'dart:async';
 
-// Flutter imports:
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-// Package imports:
 import 'package:app_links/app_links.dart';
 import 'package:cross_file/cross_file.dart';
 import 'package:flutter_shortcuts_new/flutter_shortcuts_new.dart';
@@ -14,7 +11,6 @@ import 'package:matrix/matrix.dart' as sdk;
 import 'package:matrix/matrix.dart';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 
-// Project imports:
 import 'package:fluffychat/l10n/l10n.dart';
 import 'package:fluffychat/pages/chat_list/chat_list_view.dart';
 import 'package:fluffychat/utils/localized_exception_extension.dart';

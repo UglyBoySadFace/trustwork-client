@@ -1,15 +1,11 @@
-// Dart imports:
 import 'dart:async';
 
-// Flutter imports:
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-// Package imports:
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:matrix/matrix.dart';
 
-// Project imports:
 import 'package:fluffychat/l10n/l10n.dart';
 import 'package:fluffychat/pages/new_private_chat/new_private_chat_view.dart';
 import 'package:fluffychat/pages/new_private_chat/qr_scanner_modal.dart';

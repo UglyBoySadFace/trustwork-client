@@ -1,6 +1,5 @@
 // This file is auto-generated using scripts/generate_command_hints_glue.sh.
 
-// Project imports:
 import 'package:fluffychat/l10n/l10n.dart';
 
 String commandExample(String command) {

@@ -1,4 +1,3 @@
-// Flutter imports:
 import 'package:flutter/widgets.dart';
 
 const hightlightTextColor = Color(0xffabb2bf);

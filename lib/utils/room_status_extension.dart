@@ -1,10 +1,7 @@
-// Flutter imports:
 import 'package:flutter/widgets.dart';
 
-// Package imports:
 import 'package:matrix/matrix.dart';
 
-// Project imports:
 import 'package:fluffychat/l10n/l10n.dart';
 import '../config/app_config.dart';
 
