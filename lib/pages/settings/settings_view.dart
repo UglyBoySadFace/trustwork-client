@@ -189,6 +189,14 @@ class SettingsView extends StatelessWidget {
                   ? theme.colorScheme.surfaceContainerHigh
                   : null,
             ),
+            ListTile(
+              leading: const Icon(Icons.share_outlined),
+              title: Text(L10n.of(context).dataSharingPreferencesTitle),
+              onTap: () => context.go('/rooms/settings/data-sharing'),
+              tileColor: activeRoute.startsWith('/rooms/settings/data-sharing')
+                  ? theme.colorScheme.surfaceContainerHigh
+                  : null,
+            ),
             Divider(color: theme.dividerColor),
             ListTile(
               leading: const Icon(Icons.dns_outlined),
