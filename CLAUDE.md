@@ -81,6 +81,12 @@ Most pages use one of two patterns:
 
 Strings are in `.arb` files under `lib/l10n/`. English source: `lib/l10n/intl_en.arb`. After editing, run `flutter gen-l10n` (configured in `l10n.yaml`). Access strings via `L10n.of(context).someKey`.
 
+### Trustwork API Client
+
+The OpenAPI-generated Dart client lives at `trustwork-flutter/packages/api_client/`. The user owns regeneration: when the backend API changes, they update the spec and run codegen themselves, then commit the regenerated files. Treat the contents of `trustwork-flutter/packages/api_client/lib/` as the source of truth for available endpoints and models — do not edit `trustwork-flutter/openapi.json` or run `build_runner` against the package. If a type or endpoint you need is missing, ask the user to regenerate rather than hand-editing.
+
+Singleton wrapper: `lib/utils/trustwork_api_service.dart` exposes accessors and handles auth/refresh.
+
 ### Database / Encryption
 
 The Matrix SDK database uses SQLCipher (`sqlcipher_flutter_libs`) for encrypted local storage. Builder is at `lib/utils/matrix_sdk_extensions/flutter_matrix_dart_sdk_database/builder.dart`. Vodozemac (Rust-based Olm) is initialized in `main()` before the client is created.

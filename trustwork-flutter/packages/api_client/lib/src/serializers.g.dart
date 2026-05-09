@@ -10,6 +10,8 @@ Serializers _$serializers = (Serializers().toBuilder()
       ..add(AuthResponse.serializer)
       ..add(ContactsScanRequest.serializer)
       ..add(ContactsScanResponse.serializer)
+      ..add(DataSharingApproveRequest.serializer)
+      ..add(DataSharingApproveResponse.serializer)
       ..add(EmailStartRequest.serializer)
       ..add(EmailStartResponse.serializer)
       ..add(EmailVerifyRequest.serializer)
@@ -20,6 +22,9 @@ Serializers _$serializers = (Serializers().toBuilder()
       ..add(MatrixPasswordResponse.serializer)
       ..add(PhoneCheckResponse.serializer)
       ..add(RefreshRequest.serializer)
+      ..add(SharableField.serializer)
+      ..add(SharedData.serializer)
+      ..add(SharingPreferences.serializer)
       ..add(TokenResponse.serializer)
       ..add(UserProfile.serializer)
       ..add(ValidationError.serializer)
@@ -29,6 +34,12 @@ Serializers _$serializers = (Serializers().toBuilder()
       ..addBuilderFactory(
           const FullType(BuiltList, const [const FullType(MatchedContact)]),
           () => ListBuilder<MatchedContact>())
+      ..addBuilderFactory(
+          const FullType(BuiltList, const [const FullType(SharableField)]),
+          () => ListBuilder<SharableField>())
+      ..addBuilderFactory(
+          const FullType(BuiltList, const [const FullType(String)]),
+          () => ListBuilder<String>())
       ..addBuilderFactory(
           const FullType(BuiltList, const [const FullType(String)]),
           () => ListBuilder<String>())

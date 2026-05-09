@@ -35,6 +35,7 @@ class TrustworkApiService {
   PhoneAuthApi get phoneAuth => _apiClient.getPhoneAuthApi();
   EmailAuthApi get emailAuth => _apiClient.getEmailAuthApi();
   TokenApi get token => _apiClient.getTokenApi();
+  SharingApi get sharing => _apiClient.getSharingApi();
 
   Future<void> saveTokens(String accessToken, String refreshToken) async {
     await Future.wait([
@@ -64,32 +65,39 @@ class TrustworkApiService {
   }
 
   Future<String?> _fetchAndCacheMatrixPassword() async {
-    Future<Response<Map<String, dynamic>>> request(String accessToken) =>
-        _dio.get<Map<String, dynamic>>(
+    try {
+      final response = await authedRequest(
+        (token) => _dio.get<Map<String, dynamic>>(
           '/me/matrix-password',
           options: Options(
-            headers: <String, String>{'Authorization': 'Bearer $accessToken'},
+            headers: <String, String>{'Authorization': 'Bearer $token'},
           ),
-        );
-
-    try {
-      var accessToken = await getAccessToken();
-      if (accessToken == null) return null;
-      Response<Map<String, dynamic>> response;
-      try {
-        response = await request(accessToken);
-      } on DioException catch (e) {
-        if (e.response?.statusCode != 401) rethrow;
-        final refreshed = await _refreshAccessToken();
-        if (refreshed == null) return null;
-        accessToken = refreshed;
-        response = await request(accessToken);
-      }
+        ),
+      );
       final password = response.data?['matrix_password'] as String?;
       if (password != null) await saveMatrixPassword(password);
       return password;
     } catch (_) {
       return null;
+    }
+  }
+
+  /// Runs [call] with the current access token and retries once on 401 after
+  /// refreshing. Throws [StateError] if the user is not authenticated and
+  /// rethrows the original [DioException] if refresh fails or the retry still
+  /// fails.
+  Future<T> authedRequest<T>(Future<T> Function(String token) call) async {
+    final accessToken = await getAccessToken();
+    if (accessToken == null) {
+      throw StateError('Not authenticated');
+    }
+    try {
+      return await call(accessToken);
+    } on DioException catch (e) {
+      if (e.response?.statusCode != 401) rethrow;
+      final refreshed = await _refreshAccessToken();
+      if (refreshed == null) rethrow;
+      return await call(refreshed);
     }
   }
 

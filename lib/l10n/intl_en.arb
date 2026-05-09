@@ -3497,5 +3497,30 @@
   "signInGreeting": "You already have an account in Matrix? Welcome back! Select your homeserver and sign in.",
   "appIntro": "With FluffyChat you can chat with your friends. It's a secure decentralized [matrix] messenger! Learn more on https://matrix.org if you like or just sign up.",
   "theProcessWasCanceled": "The process was canceled.",
-  "join": "Join"
+  "join": "Join",
+  "shareableFieldCountry": "Country",
+  "shareableFieldState": "Region / state",
+  "shareableFieldStreet": "Street",
+  "shareableFieldStreetFull": "Full address",
+  "shareableFieldFullAge": "Age",
+  "shareableFieldDecadeOfAge": "Decade of age",
+  "shareableFieldIsAdult": "Adult",
+  "shareableFieldNationalities": "Nationalities",
+  "shareableFieldIsAdultYes": "Yes",
+  "shareableFieldIsAdultNo": "No",
+  "dataSharingDeclined": "The other party declined to share their info.",
+  "dataSharingNoData": "No data was shared.",
+  "dataSharingTokenExpired": "Sharing link expired. Ask them to share again.",
+  "dataSharingFetchFailed": "Couldn't fetch shared data.",
+  "dataSharingRequestTitle": "{name} wants to share verification details",
+  "@dataSharingRequestTitle": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "dataSharingApprove": "Approve",
+  "dataSharingDecline": "Decline",
+  "dataSharingShare": "Share",
+  "dataSharingPreferencesTitle": "Data sharing",
+  "dataSharingPreferencesSubtitle": "Choose which details are pre-approved when callers ask for them."
 }
