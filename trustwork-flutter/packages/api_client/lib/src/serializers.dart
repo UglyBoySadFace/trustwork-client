@@ -17,6 +17,8 @@ import 'package:api_client/src/model/date.dart';
 import 'package:api_client/src/model/auth_response.dart';
 import 'package:api_client/src/model/contacts_scan_request.dart';
 import 'package:api_client/src/model/contacts_scan_response.dart';
+import 'package:api_client/src/model/data_sharing_approve_request.dart';
+import 'package:api_client/src/model/data_sharing_approve_response.dart';
 import 'package:api_client/src/model/email_start_request.dart';
 import 'package:api_client/src/model/email_start_response.dart';
 import 'package:api_client/src/model/email_verify_request.dart';
@@ -27,6 +29,9 @@ import 'package:api_client/src/model/matrix_credentials.dart';
 import 'package:api_client/src/model/matrix_password_response.dart';
 import 'package:api_client/src/model/phone_check_response.dart';
 import 'package:api_client/src/model/refresh_request.dart';
+import 'package:api_client/src/model/sharable_field.dart';
+import 'package:api_client/src/model/shared_data.dart';
+import 'package:api_client/src/model/sharing_preferences.dart';
 import 'package:api_client/src/model/token_response.dart';
 import 'package:api_client/src/model/user_profile.dart';
 import 'package:api_client/src/model/validation_error.dart';
@@ -37,6 +42,8 @@ part 'serializers.g.dart';
   AuthResponse,
   ContactsScanRequest,
   ContactsScanResponse,
+  DataSharingApproveRequest,
+  DataSharingApproveResponse,
   EmailStartRequest,
   EmailStartResponse,
   EmailVerifyRequest,
@@ -47,6 +54,9 @@ part 'serializers.g.dart';
   MatrixPasswordResponse,
   PhoneCheckResponse,
   RefreshRequest,
+  SharableField,
+  SharedData,
+  SharingPreferences,
   TokenResponse,
   UserProfile,
   ValidationError,

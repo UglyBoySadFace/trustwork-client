@@ -70,13 +70,16 @@ Class | Method | HTTP request | Description
 ------------ | ------------- | ------------- | -------------
 [*AuthApi*](doc/AuthApi.md) | [**bankidCallbackAuthBankidCallbackGet**](doc/AuthApi.md#bankidcallbackauthbankidcallbackget) | **GET** /auth/bankid/callback | Bankid Callback
 [*AuthApi*](doc/AuthApi.md) | [**bankidStartAuthBankidStartGet**](doc/AuthApi.md#bankidstartauthbankidstartget) | **GET** /auth/bankid/start | Bankid Start
-[*AuthApi*](doc/AuthApi.md) | [**bankidTestAuthBankidTestGet**](doc/AuthApi.md#bankidtestauthbankidtestget) | **GET** /auth/bankid/test | Bankid Test
 [*ContactsApi*](doc/ContactsApi.md) | [**scanContactsContactsScanPost**](doc/ContactsApi.md#scancontactscontactsscanpost) | **POST** /contacts/scan | Scan Contacts
 [*EmailAuthApi*](doc/EmailAuthApi.md) | [**emailLoginAuthEmailLoginPost**](doc/EmailAuthApi.md#emailloginauthemailloginpost) | **POST** /auth/email/login | Email Login
 [*EmailAuthApi*](doc/EmailAuthApi.md) | [**emailStartAuthEmailStartPost**](doc/EmailAuthApi.md#emailstartauthemailstartpost) | **POST** /auth/email/start | Email Start
 [*EmailAuthApi*](doc/EmailAuthApi.md) | [**emailVerifyAuthEmailVerifyPost**](doc/EmailAuthApi.md#emailverifyauthemailverifypost) | **POST** /auth/email/verify | Email Verify
 [*HealthApi*](doc/HealthApi.md) | [**healthCheckHealthGet**](doc/HealthApi.md#healthcheckhealthget) | **GET** /health | Health Check
 [*PhoneAuthApi*](doc/PhoneAuthApi.md) | [**phoneCheckAuthPhoneCheckGet**](doc/PhoneAuthApi.md#phonecheckauthphonecheckget) | **GET** /auth/phone/check | Phone Check
+[*SharingApi*](doc/SharingApi.md) | [**approveDataRequestDataSharingApprovePost**](doc/SharingApi.md#approvedatarequestdatasharingapprovepost) | **POST** /data-sharing/approve | Approve Data Request
+[*SharingApi*](doc/SharingApi.md) | [**fetchSharedDataDataSharingFetchGet**](doc/SharingApi.md#fetchshareddatadatasharingfetchget) | **GET** /data-sharing/fetch | Fetch Shared Data
+[*SharingApi*](doc/SharingApi.md) | [**getSharingPreferencesMeSharingPreferencesGet**](doc/SharingApi.md#getsharingpreferencesmesharingpreferencesget) | **GET** /me/sharing-preferences | Get Sharing Preferences
+[*SharingApi*](doc/SharingApi.md) | [**updateSharingPreferencesMeSharingPreferencesPut**](doc/SharingApi.md#updatesharingpreferencesmesharingpreferencesput) | **PUT** /me/sharing-preferences | Update Sharing Preferences
 [*TokenApi*](doc/TokenApi.md) | [**getMatrixPasswordMeMatrixPasswordGet**](doc/TokenApi.md#getmatrixpasswordmematrixpasswordget) | **GET** /me/matrix-password | Get Matrix Password
 [*TokenApi*](doc/TokenApi.md) | [**getMeMeGet**](doc/TokenApi.md#getmemeget) | **GET** /me | Get Me
 [*TokenApi*](doc/TokenApi.md) | [**refreshTokenAuthRefreshPost**](doc/TokenApi.md#refreshtokenauthrefreshpost) | **POST** /auth/refresh | Refresh Token
@@ -87,6 +90,8 @@ Class | Method | HTTP request | Description
  - [AuthResponse](doc/AuthResponse.md)
  - [ContactsScanRequest](doc/ContactsScanRequest.md)
  - [ContactsScanResponse](doc/ContactsScanResponse.md)
+ - [DataSharingApproveRequest](doc/DataSharingApproveRequest.md)
+ - [DataSharingApproveResponse](doc/DataSharingApproveResponse.md)
  - [EmailStartRequest](doc/EmailStartRequest.md)
  - [EmailStartResponse](doc/EmailStartResponse.md)
  - [EmailVerifyRequest](doc/EmailVerifyRequest.md)
@@ -97,6 +102,9 @@ Class | Method | HTTP request | Description
  - [MatrixPasswordResponse](doc/MatrixPasswordResponse.md)
  - [PhoneCheckResponse](doc/PhoneCheckResponse.md)
  - [RefreshRequest](doc/RefreshRequest.md)
+ - [SharableField](doc/SharableField.md)
+ - [SharedData](doc/SharedData.md)
+ - [SharingPreferences](doc/SharingPreferences.md)
  - [TokenResponse](doc/TokenResponse.md)
  - [UserProfile](doc/UserProfile.md)
  - [ValidationError](doc/ValidationError.md)

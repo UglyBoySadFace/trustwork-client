@@ -14,6 +14,7 @@ import 'package:api_client/src/api/contacts_api.dart';
 import 'package:api_client/src/api/email_auth_api.dart';
 import 'package:api_client/src/api/health_api.dart';
 import 'package:api_client/src/api/phone_auth_api.dart';
+import 'package:api_client/src/api/sharing_api.dart';
 import 'package:api_client/src/api/token_api.dart';
 
 class ApiClient {
@@ -98,6 +99,12 @@ class ApiClient {
   /// by doing that all interceptors will not be executed
   PhoneAuthApi getPhoneAuthApi() {
     return PhoneAuthApi(dio, serializers);
+  }
+
+  /// Get SharingApi instance, base route and serializer can be overridden by a given but be careful,
+  /// by doing that all interceptors will not be executed
+  SharingApi getSharingApi() {
+    return SharingApi(dio, serializers);
   }
 
   /// Get TokenApi instance, base route and serializer can be overridden by a given but be careful,

@@ -11,7 +11,6 @@ Method | HTTP request | Description
 ------------- | ------------- | -------------
 [**bankidCallbackAuthBankidCallbackGet**](AuthApi.md#bankidcallbackauthbankidcallbackget) | **GET** /auth/bankid/callback | Bankid Callback
 [**bankidStartAuthBankidStartGet**](AuthApi.md#bankidstartauthbankidstartget) | **GET** /auth/bankid/start | Bankid Start
-[**bankidTestAuthBankidTestGet**](AuthApi.md#bankidtestauthbankidtestget) | **GET** /auth/bankid/test | Bankid Test
 
 
 # **bankidCallbackAuthBankidCallbackGet**
@@ -96,45 +95,6 @@ This endpoint does not need any parameter.
 ### Authorization
 
 [OAuth2PasswordBearer](../README.md#OAuth2PasswordBearer)
-
-### HTTP request headers
-
- - **Content-Type**: Not defined
- - **Accept**: application/json
-
-[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
-
-# **bankidTestAuthBankidTestGet**
-> JsonObject bankidTestAuthBankidTestGet()
-
-Bankid Test
-
-Dev/sandbox test — skips auth, redirects straight to Bank iD sandbox.
-
-### Example
-```dart
-import 'package:api_client/api.dart';
-
-final api = ApiClient().getAuthApi();
-
-try {
-    final response = api.bankidTestAuthBankidTestGet();
-    print(response);
-} on DioException catch (e) {
-    print('Exception when calling AuthApi->bankidTestAuthBankidTestGet: $e\n');
-}
-```
-
-### Parameters
-This endpoint does not need any parameter.
-
-### Return type
-
-[**JsonObject**](JsonObject.md)
-
-### Authorization
-
-No authorization required
 
 ### HTTP request headers
 
