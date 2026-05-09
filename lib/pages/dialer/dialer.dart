@@ -581,7 +581,7 @@ class MyCallingPage extends State<Calling> {
       case CallState.kRinging:
         return call.isOutgoing
             ? <Widget>[muteMicButton, switchSpeakerButton, hangupButton]
-            : <Widget>[answerButton, hangupButton];
+            : <Widget>[hangupButton, answerButton];
       case CallState.kInviteSent:
       case CallState.kCreateAnswer:
       case CallState.kConnecting:

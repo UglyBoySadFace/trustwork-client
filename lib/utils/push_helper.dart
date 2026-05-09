@@ -24,6 +24,15 @@ import 'package:fluffychat/utils/ringer_vibration.dart';
 
 const notificationAvatarDimension = 128;
 
+/// True when the app is currently visible to the user. When true we skip the
+/// callkit incoming UI — the in-app dialer overlay is enough, and showing
+/// both means the user sees two answer/decline UIs and the heads-up
+/// notification can linger after the in-app overlay accepts the call.
+bool _isAppInForeground() {
+  final state = WidgetsBinding.instance.lifecycleState;
+  return state == AppLifecycleState.resumed;
+}
+
 Future<void> pushHelper(
   PushNotification notification, {
   Client? client,
@@ -38,10 +47,14 @@ Future<void> pushHelper(
   // dropped invite). The payload already carries call_id and sender display
   // name, which is everything callkit needs.
   if (notification.type == 'm.call.invite' && PlatformInfos.isMobile) {
-    try {
-      await _showCallkitIncomingFromPush(notification);
-    } catch (e, s) {
-      Logs().e('Failed to show callkit from push payload', e, s);
+    if (_isAppInForeground()) {
+      Logs().i('Skipping callkit (push fast-path): app is in foreground, in-app dialer will handle it');
+    } else {
+      try {
+        await _showCallkitIncomingFromPush(notification);
+      } catch (e, s) {
+        Logs().e('Failed to show callkit from push payload', e, s);
+      }
     }
     // For an invite there is nothing else to do: we don't want to fetch the
     // event, show a "messages waiting" notification, or run cleanup logic.
@@ -193,6 +206,10 @@ Future<void> _tryPushHelper(
   // field (e.g. `event_id_only` push format), so the top-level fast-path in
   // pushHelper couldn't fire. Show callkit now using the fetched event.
   if (event.type == EventTypes.CallInvite && PlatformInfos.isMobile) {
+    if (_isAppInForeground()) {
+      Logs().i('Skipping callkit (event fallback): app is in foreground, in-app dialer will handle it');
+      return;
+    }
     final callId = (event.content['call_id'] as String?) ?? event.eventId;
     final callerName = event.senderFromMemoryOrFallback.calcDisplayname();
     await FlutterCallkitIncoming.showCallkitIncoming(
