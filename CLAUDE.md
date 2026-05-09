@@ -101,3 +101,24 @@ The Matrix SDK database uses SQLCipher (`sqlcipher_flutter_libs`) for encrypted 
 ## Linting
 
 Enforces `prefer_single_quotes`, `require_trailing_commas`, `sort_pub_dependencies`, `omit_local_variable_types`, and several `dart_code_linter` rules (see `analysis_options.yaml`). Run `flutter analyze` before committing. The `l10n` generated files are excluded from analysis.
+
+## Implementation Plans
+
+For any non-trivial feature (multi-PR, multi-file, or spec-driven), capture the plan as markdown under `plans/<feature-name>/` before writing code. The directory is gitignored — plans are local working notes, not shipped docs.
+
+**Layout per feature:**
+- `plans/<feature>/README.md` — index with a status table (#, plan, status, blocks, parallelizable with).
+- `plans/<feature>/NN-short-name.md` — one file per discrete plan, numbered for execution order.
+
+**Each plan file should contain:**
+- **Goal** — one sentence.
+- **Files touched** — concrete paths, including line numbers when modifying existing code.
+- **Steps** — actionable, in order. Include code sketches for new types/APIs.
+- **Open questions** — explicit unknowns to resolve before or during implementation.
+
+**When to create plans:**
+- User shares a spec or design doc and asks for an implementation approach.
+- A task spans more than ~3 files or needs to be broken into parallelizable workstreams.
+- Don't create plans for one-shot bug fixes or single-file changes.
+
+**Maintenance:** update the status column in the README as plans land. Delete or archive a plan's directory once the feature ships.

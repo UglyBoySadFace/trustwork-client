@@ -12,6 +12,9 @@
 .svn/
 prime
 
+# Local-only implementation plans (see CLAUDE.md "Implementation Plans")
+/plans/
+
 # libolm package
 web/Imaging.js
 web/Imaging.wasm
