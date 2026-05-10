@@ -29,6 +29,9 @@ import 'package:matrix/matrix.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
 import 'package:fluffychat/l10n/l10n.dart';
+import 'package:fluffychat/utils/data_sharing/data_sharing_service.dart';
+import 'package:fluffychat/utils/data_sharing/shareable_field.dart';
+import 'package:fluffychat/utils/data_sharing/sharing_preferences_cache.dart';
 import 'package:fluffychat/utils/matrix_sdk_extensions/matrix_locals.dart';
 import 'package:fluffychat/utils/platform_infos.dart';
 import 'package:fluffychat/utils/ringer_vibration.dart';
@@ -355,6 +358,12 @@ class MyCallingPage extends State<Calling> {
 
   AudioPlayer? _callSoundPlayer;
 
+  StreamSubscription<IncomingDataRequest>? _dataReqSub;
+  final List<IncomingDataRequest> _pendingPrompts = [];
+  IncomingDataRequest? _currentPrompt;
+  BuildContext? _sheetContext;
+  Map<ShareableField, bool> _cachedSharingPrefs = const {};
+
   void _playCallSound() async {
     const path = 'assets/sounds/call.ogg';
     if (kIsWeb || PlatformInfos.isMobile || PlatformInfos.isMacOS) {
@@ -376,8 +385,157 @@ class MyCallingPage extends State<Calling> {
   void initState() {
     super.initState();
     initialize();
-    // Only play outgoing dialing sound for calls we initiated.
-    if (call.isOutgoing) _playCallSound();
+    if (call.isOutgoing) {
+      // Only play outgoing dialing sound for calls we initiated.
+      _playCallSound();
+      _wireDataSharing();
+    }
+  }
+
+  void _wireDataSharing() {
+    final matrix = Matrix.of(widget.context);
+    final service = matrix.dataSharingServices[widget.client.clientName];
+    if (service == null) return;
+
+    _cachedSharingPrefs =
+        SharingPreferencesCache.read(matrix.store) ?? const {};
+    // Refresh in the background so the next prompt reflects any settings
+    // changes the user made on a different device. Best-effort — failures
+    // just leave the cache as-is.
+    unawaited(
+      SharingPreferencesCache.refresh(matrix.store).then(
+        (next) {
+          if (!mounted) return;
+          _cachedSharingPrefs = next;
+        },
+        onError: (Object e, StackTrace s) =>
+            Logs().d('[DataSharing] background prefs refresh failed', e, s),
+      ),
+    );
+
+    _dataReqSub = service.incomingRequests.listen(_onIncomingDataRequest);
+  }
+
+  void _onIncomingDataRequest(IncomingDataRequest req) {
+    if (!mounted) return;
+    if (!_inDataSharingWindow(_state)) return;
+    if (!call.room.getParticipants().any((m) => m.id == req.fromMatrixId)) {
+      return;
+    }
+    _pendingPrompts.add(req);
+    _maybeShowNextPrompt();
+  }
+
+  /// True while the call is still in its pre-answer phase. Once the caller
+  /// answers (kConnecting/kConnected) or the call ends, the data-sharing
+  /// window is closed. The caller side moves through kInviteSent rather than
+  /// kRinging, so both are accepted.
+  static bool _inDataSharingWindow(CallState? state) {
+    switch (state) {
+      case null:
+      case CallState.kFledgling:
+      case CallState.kWaitLocalMedia:
+      case CallState.kCreateOffer:
+      case CallState.kInviteSent:
+      case CallState.kRinging:
+        return true;
+      case CallState.kCreateAnswer:
+      case CallState.kConnecting:
+      case CallState.kConnected:
+      case CallState.kEnding:
+      case CallState.kEnded:
+        return false;
+    }
+  }
+
+  void _maybeShowNextPrompt() {
+    if (!mounted) return;
+    if (_currentPrompt != null) return;
+    if (_pendingPrompts.isEmpty) return;
+    final next = _pendingPrompts.removeAt(0);
+    _currentPrompt = next;
+    unawaited(_showApprovalSheet(next));
+  }
+
+  Future<void> _showApprovalSheet(IncomingDataRequest req) async {
+    final navigatorContext = context;
+    final defaults = <ShareableField, bool>{
+      for (final f in req.fields) f: _cachedSharingPrefs[f] ?? false,
+    };
+    final fromName = call.room
+        .unsafeGetUserFromMemoryOrFallback(req.fromMatrixId)
+        .calcDisplayname();
+
+    try {
+      await showModalBottomSheet<void>(
+        context: navigatorContext,
+        isDismissible: false,
+        enableDrag: false,
+        isScrollControlled: true,
+        useSafeArea: true,
+        builder: (sheetCtx) {
+          _sheetContext = sheetCtx;
+          return _DataSharingApprovalSheet(
+            requesterDisplayName: fromName,
+            fields: req.fields.toList()..sort((a, b) => a.index.compareTo(b.index)),
+            defaults: defaults,
+            onShare: (selected) => _handleApprove(req, selected),
+            onDecline: () => _handleDecline(req),
+          );
+        },
+      );
+    } finally {
+      if (identical(_currentPrompt, req)) {
+        _currentPrompt = null;
+        _sheetContext = null;
+      }
+      _maybeShowNextPrompt();
+    }
+  }
+
+  Future<String?> _handleApprove(
+    IncomingDataRequest req,
+    Set<ShareableField> selected,
+  ) async {
+    final service =
+        Matrix.of(widget.context).dataSharingServices[widget.client.clientName];
+    if (service == null) return L10n.of(widget.context).dataSharingShareFailed;
+    try {
+      await service.approve(request: req, approvedFields: selected);
+      _dismissCurrentSheet();
+      return null;
+    } catch (e, s) {
+      Logs().w('[DataSharing] approve failed', e, s);
+      if (!mounted) return null;
+      return L10n.of(widget.context).dataSharingShareFailed;
+    }
+  }
+
+  Future<void> _handleDecline(IncomingDataRequest req) async {
+    final service =
+        Matrix.of(widget.context).dataSharingServices[widget.client.clientName];
+    try {
+      await service?.decline(req);
+    } catch (e, s) {
+      Logs().w('[DataSharing] decline failed', e, s);
+    }
+    _dismissCurrentSheet();
+  }
+
+  void _dismissCurrentSheet() {
+    // Null _sheetContext synchronously so a re-entrant dismiss (e.g. call
+    // ends while an approve is mid-flight) doesn't try to pop a sibling
+    // route after our own sheet was already removed.
+    final ctx = _sheetContext;
+    _sheetContext = null;
+    if (ctx != null && Navigator.canPop(ctx)) {
+      Navigator.of(ctx).pop();
+    }
+  }
+
+  void _abortDataSharingPrompts() {
+    _pendingPrompts.clear();
+    _dismissCurrentSheet();
   }
 
   void initialize() {
@@ -430,6 +588,9 @@ class MyCallingPage extends State<Calling> {
   @override
   void dispose() {
     _stopStatsPolling();
+    _dataReqSub?.cancel();
+    _dataReqSub = null;
+    _abortDataSharingPrompts();
     super.dispose();
     call.cleanUp.call();
   }
@@ -459,6 +620,13 @@ class MyCallingPage extends State<Calling> {
     if (state == CallState.kConnected) {
       _stopCallSound();
       if (kDebugMode) _startStatsPolling();
+    }
+
+    // The data-sharing window is only open while the call is pre-answer.
+    // Once the caller answers, hangs up, or the call ends, drop any pending
+    // prompts and dismiss the sheet — the callee will time out.
+    if (!_inDataSharingWindow(state)) {
+      _abortDataSharingPrompts();
     }
 
     if (mounted) {
@@ -781,6 +949,164 @@ class MyCallingPage extends State<Calling> {
           ),
         );
       },
+    );
+  }
+}
+
+class _DataSharingApprovalSheet extends StatefulWidget {
+  const _DataSharingApprovalSheet({
+    required this.requesterDisplayName,
+    required this.fields,
+    required this.defaults,
+    required this.onShare,
+    required this.onDecline,
+  });
+
+  final String requesterDisplayName;
+  final List<ShareableField> fields;
+  final Map<ShareableField, bool> defaults;
+
+  /// Returns `null` on success (sheet closes); a non-null error message
+  /// keeps the sheet open and is rendered above the action buttons.
+  final Future<String?> Function(Set<ShareableField> selected) onShare;
+  final Future<void> Function() onDecline;
+
+  @override
+  State<_DataSharingApprovalSheet> createState() =>
+      _DataSharingApprovalSheetState();
+}
+
+class _DataSharingApprovalSheetState extends State<_DataSharingApprovalSheet> {
+  late final Map<ShareableField, bool> _selected = {
+    for (final f in widget.fields) f: widget.defaults[f] ?? false,
+  };
+  bool _busy = false;
+  String? _errorMessage;
+
+  Set<ShareableField> _selectedFields() => _selected.entries
+      .where((e) => e.value)
+      .map((e) => e.key)
+      .toSet();
+
+  Future<void> _share() async {
+    setState(() {
+      _busy = true;
+      _errorMessage = null;
+    });
+    final error = await widget.onShare(_selectedFields());
+    if (!mounted) return;
+    if (error != null) {
+      setState(() {
+        _busy = false;
+        _errorMessage = error;
+      });
+    }
+  }
+
+  Future<void> _decline() async {
+    setState(() => _busy = true);
+    await widget.onDecline();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = L10n.of(context);
+    return PopScope(
+      canPop: false,
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.viewInsetsOf(context).bottom,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 12),
+              Container(
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).dividerColor,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Text(
+                  l10n.dataSharingRequestTitle(widget.requesterDisplayName),
+                  style: Theme.of(context).textTheme.titleMedium,
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Text(
+                  l10n.dataSharingRequestSubtitle,
+                  style: Theme.of(context).textTheme.bodySmall,
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Flexible(
+                child: ListView(
+                  shrinkWrap: true,
+                  children: [
+                    for (final f in widget.fields)
+                      CheckboxListTile(
+                        value: _selected[f] ?? false,
+                        onChanged: _busy
+                            ? null
+                            : (v) => setState(() => _selected[f] = v ?? false),
+                        title: Text(f.label(l10n)),
+                        controlAffinity: ListTileControlAffinity.leading,
+                      ),
+                  ],
+                ),
+              ),
+              if (_errorMessage != null)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
+                  child: Text(
+                    _errorMessage!,
+                    style: TextStyle(color: Theme.of(context).colorScheme.error),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: _busy ? null : _decline,
+                        child: Text(l10n.dataSharingDecline),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: FilledButton(
+                        onPressed: _busy ? null : _share,
+                        child: _busy
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : Text(l10n.dataSharingShare),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

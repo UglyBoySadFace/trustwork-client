@@ -3522,5 +3522,7 @@
   "dataSharingDecline": "Decline",
   "dataSharingShare": "Share",
   "dataSharingPreferencesTitle": "Data sharing",
-  "dataSharingPreferencesSubtitle": "Choose which details are pre-approved when callers ask for them."
+  "dataSharingPreferencesSubtitle": "Choose which details are pre-approved when callers ask for them.",
+  "dataSharingShareFailed": "Couldn't share. Please try again.",
+  "dataSharingRequestSubtitle": "Pick which details to send. You can change your defaults in Settings."
 }
