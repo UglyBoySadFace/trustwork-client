@@ -18,6 +18,7 @@ import 'package:url_launcher/url_launcher_string.dart';
 
 import 'package:fluffychat/l10n/l10n.dart';
 import 'package:fluffychat/utils/client_manager.dart';
+import 'package:fluffychat/utils/data_sharing/data_sharing_service.dart';
 import 'package:fluffychat/utils/full_screen_intent_helper.dart';
 import 'package:fluffychat/utils/init_with_restore.dart';
 import 'package:fluffychat/utils/matrix_sdk_extensions/matrix_file_extension.dart';
@@ -182,6 +183,10 @@ class MatrixState extends State<Matrix> with WidgetsBindingObserver {
   final onNotification = <String, StreamSubscription>{};
   final onLoginStateChanged = <String, StreamSubscription<LoginState>>{};
   final onUiaRequest = <String, StreamSubscription<UiaRequest>>{};
+  final dataSharingServices = <String, DataSharingService>{};
+
+  DataSharingService? get dataSharingService =>
+      dataSharingServices[client.clientName];
 
   String? _cachedPassword;
   Timer? _cachedPasswordClearTimer;
@@ -284,6 +289,7 @@ class MatrixState extends State<Matrix> with WidgetsBindingObserver {
       }
     });
     onUiaRequest[name] ??= c.onUiaRequest.stream.listen(uiaRequestHandler);
+    dataSharingServices[name] ??= DataSharingService(c);
     if (PlatformInfos.isWeb || PlatformInfos.isLinux) {
       c.onSync.stream.first.then((s) {
         html.Notification.requestPermission();
@@ -303,6 +309,8 @@ class MatrixState extends State<Matrix> with WidgetsBindingObserver {
     onLoginStateChanged.remove(name);
     onNotification[name]?.cancel();
     onNotification.remove(name);
+    dataSharingServices[name]?.dispose();
+    dataSharingServices.remove(name);
   }
 
   void initMatrix() {
@@ -388,6 +396,10 @@ class MatrixState extends State<Matrix> with WidgetsBindingObserver {
     onKeyVerificationRequestSub.values.map((s) => s.cancel());
     onLoginStateChanged.values.map((s) => s.cancel());
     onNotification.values.map((s) => s.cancel());
+    for (final s in dataSharingServices.values) {
+      s.dispose();
+    }
+    dataSharingServices.clear();
     client.httpClient.close();
 
     linuxNotifications?.close();
