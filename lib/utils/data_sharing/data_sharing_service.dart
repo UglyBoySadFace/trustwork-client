@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:collection';
 
+import 'package:flutter/foundation.dart';
+
 import 'package:api_client/api_client.dart';
 import 'package:built_collection/built_collection.dart';
 import 'package:matrix/matrix.dart';
@@ -8,6 +10,14 @@ import 'package:uuid/uuid.dart';
 
 import 'package:fluffychat/utils/data_sharing/shareable_field.dart';
 import 'package:fluffychat/utils/trustwork_api_service.dart';
+
+typedef SendToDeviceFn = Future<void> Function(
+  String matrixId,
+  String eventType,
+  Map<String, dynamic> message,
+);
+
+typedef FetchSharedDataFn = Future<SharedData?> Function(String token);
 
 /// Owns both directions of the data-sharing to-device handshake. UI layers
 /// call into this service; this service does not know about widgets.
@@ -17,11 +27,39 @@ import 'package:fluffychat/utils/trustwork_api_service.dart';
 ///  - `m.data_response` — caller → callee. Carries a short-lived fetch token.
 ///  - `m.data_decline`  — caller → callee. No payload beyond the request id.
 class DataSharingService {
-  DataSharingService(this._client) {
-    _toDeviceSub = _client.onToDeviceEvent.stream.listen(_handle);
+  DataSharingService(Client client)
+      : _client = client,
+        _ownUserId = client.userID,
+        _toDeviceEvents = client.onToDeviceEvent.stream,
+        _sendOverride = null,
+        _fetchOverride = null {
+    _toDeviceSub = _toDeviceEvents.listen(_handle);
   }
 
-  final Client _client;
+  /// Test-only constructor. Lets a test pump events through [toDeviceEvents]
+  /// without building a real `Client`, and intercept network calls through
+  /// [sendOverride] and [fetchOverride].
+  @visibleForTesting
+  DataSharingService.forTesting({
+    required Stream<ToDeviceEvent> toDeviceEvents,
+    required String ownUserId,
+    SendToDeviceFn? sendOverride,
+    FetchSharedDataFn? fetchOverride,
+  })  : _client = null,
+        _ownUserId = ownUserId,
+        _toDeviceEvents = toDeviceEvents,
+        _sendOverride = sendOverride,
+        _fetchOverride = fetchOverride {
+    _toDeviceSub = _toDeviceEvents.listen(_handle);
+  }
+
+  static const String _logTag = '[DATA-SHARING]';
+
+  final Client? _client;
+  final String? _ownUserId;
+  final Stream<ToDeviceEvent> _toDeviceEvents;
+  final SendToDeviceFn? _sendOverride;
+  final FetchSharedDataFn? _fetchOverride;
   StreamSubscription<ToDeviceEvent>? _toDeviceSub;
 
   static const String eventTypeRequest = 'm.data_request';
@@ -55,18 +93,28 @@ class DataSharingService {
     final timer = Timer(timeout, () {
       final pending = _pending.remove(requestId);
       if (pending != null && !pending.completer.isCompleted) {
+        Logs().i(
+          '$_logTag request timed out request_id=$requestId matrix_id=$callerMatrixId',
+        );
         pending.completer.complete(DataSharingTimedOut());
       }
     });
-    _pending[requestId] = _PendingRequest(completer, timer);
+    _pending[requestId] = _PendingRequest(callerMatrixId, completer, timer);
 
+    Logs().i(
+      '$_logTag sending request request_id=$requestId matrix_id=$callerMatrixId fields=${fields.map((f) => f.wireId).toList()}',
+    );
     try {
       await _sendEncrypted(callerMatrixId, eventTypeRequest, {
         'request_id': requestId,
         'fields': fields.map((f) => f.wireId).toList(),
       });
     } catch (e, s) {
-      Logs().w('[DataSharing] failed to send request', e, s);
+      Logs().w(
+        '$_logTag failed to send request request_id=$requestId matrix_id=$callerMatrixId',
+        e,
+        s,
+      );
       timer.cancel();
       _pending.remove(requestId);
       if (!completer.isCompleted) {
@@ -84,6 +132,9 @@ class DataSharingService {
     required IncomingDataRequest request,
     required Set<ShareableField> approvedFields,
   }) async {
+    Logs().i(
+      '$_logTag approving request request_id=${request.requestId} matrix_id=${request.fromMatrixId} approved_fields=${approvedFields.map((f) => f.wireId).toList()}',
+    );
     String? token;
     try {
       final response = await TrustworkApiService.instance.authedRequest(
@@ -101,13 +152,19 @@ class DataSharingService {
       );
       token = response.data?.token;
     } catch (e, s) {
-      Logs().w('[DataSharing] approve API failed; sending decline', e, s);
+      Logs().w(
+        '$_logTag approve API failed; sending decline request_id=${request.requestId} matrix_id=${request.fromMatrixId}',
+        e,
+        s,
+      );
       await decline(request);
       rethrow;
     }
 
     if (token == null || token.isEmpty) {
-      Logs().w('[DataSharing] approve API returned no token; sending decline');
+      Logs().w(
+        '$_logTag approve API returned no token; sending decline request_id=${request.requestId} matrix_id=${request.fromMatrixId}',
+      );
       await decline(request);
       return;
     }
@@ -116,10 +173,16 @@ class DataSharingService {
       'request_id': request.requestId,
       'token': token,
     });
+    Logs().i(
+      '$_logTag response sent request_id=${request.requestId} matrix_id=${request.fromMatrixId}',
+    );
   }
 
   /// Caller-side: decline [request]. No middleware call.
   Future<void> decline(IncomingDataRequest request) async {
+    Logs().i(
+      '$_logTag declining request request_id=${request.requestId} matrix_id=${request.fromMatrixId}',
+    );
     await _sendEncrypted(request.fromMatrixId, eventTypeDecline, {
       'request_id': request.requestId,
     });
@@ -130,29 +193,68 @@ class DataSharingService {
     String eventType,
     Map<String, dynamic> message,
   ) async {
+    final override = _sendOverride;
+    if (override != null) {
+      await override(matrixId, eventType, message);
+      return;
+    }
+    final client = _client!;
     final deviceKeys =
-        _client.userDeviceKeys[matrixId]?.deviceKeys.values.toList() ??
+        client.userDeviceKeys[matrixId]?.deviceKeys.values.toList() ??
         <DeviceKeys>[];
     if (deviceKeys.isEmpty) {
       throw StateError('No known devices for $matrixId');
     }
-    await _client.sendToDeviceEncrypted(deviceKeys, eventType, message);
+    await client.sendToDeviceEncrypted(deviceKeys, eventType, message);
+  }
+
+  Future<SharedData?> _fetchSharedData(String token) async {
+    final override = _fetchOverride;
+    if (override != null) {
+      return override(token);
+    }
+    final response = await TrustworkApiService.instance.authedRequest(
+      (auth) => TrustworkApiService.instance.sharing
+          .fetchSharedDataDataSharingFetchGet(
+            token: token,
+            headers: <String, String>{'Authorization': 'Bearer $auth'},
+          ),
+    );
+    return response.data;
   }
 
   Future<void> _handle(ToDeviceEvent event) async {
+    // Decryption failures are surfaced as ToDeviceEventDecryptionError. The
+    // request_id is inside the encrypted payload we never recovered, so we
+    // can't correlate it back to a pending request — let the timeout do its
+    // job. Treat as a silent decline outcome rather than leaking the error.
+    if (event is ToDeviceEventDecryptionError) {
+      Logs().w(
+        '$_logTag dropping undecryptable to-device event matrix_id=${event.sender}',
+        event.exception,
+        event.stackTrace,
+      );
+      return;
+    }
+
     final type = event.type;
     if (type != eventTypeRequest &&
         type != eventTypeResponse &&
         type != eventTypeDecline) {
       return;
     }
-    if (event.sender == _client.userID) return;
+    if (event.sender == _ownUserId) return;
 
     final content = event.content;
     final requestId = content['request_id'];
     if (requestId is! String || requestId.isEmpty) return;
 
-    if (!_seenIds.add(requestId)) return;
+    if (!_seenIds.add(requestId)) {
+      Logs().d(
+        '$_logTag duplicate event ignored request_id=$requestId type=$type',
+      );
+      return;
+    }
     if (_seenIds.length > _maxSeenIds) {
       _seenIds.remove(_seenIds.first);
     }
@@ -167,6 +269,9 @@ class DataSharingService {
             .whereType<ShareableField>()
             .toSet();
         if (fields.isEmpty) return;
+        Logs().i(
+          '$_logTag incoming request request_id=$requestId matrix_id=${event.sender} fields=${fields.map((f) => f.wireId).toList()}',
+        );
         _incoming.add(
           IncomingDataRequest(
             requestId: requestId,
@@ -176,11 +281,29 @@ class DataSharingService {
         );
         break;
       case eventTypeResponse:
-        final pending = _pending.remove(requestId);
-        if (pending == null) return;
+        final pending = _pending[requestId];
+        if (pending == null) {
+          Logs().d(
+            '$_logTag response for unknown request_id=$requestId from matrix_id=${event.sender}',
+          );
+          return;
+        }
+        // Server stamps `sender`, so we trust it — but reject mismatches
+        // defensively. The response must come from the same matrix id we
+        // sent the request to.
+        if (event.sender != pending.callerMatrixId) {
+          Logs().w(
+            '$_logTag response sender mismatch request_id=$requestId expected=${pending.callerMatrixId} got=${event.sender}',
+          );
+          return;
+        }
+        _pending.remove(requestId);
         pending.timer.cancel();
         final token = content['token'];
         if (token is! String || token.isEmpty) {
+          Logs().w(
+            '$_logTag response missing token request_id=$requestId matrix_id=${event.sender}',
+          );
           _completeIfNeeded(
             pending.completer,
             DataSharingErrored(StateError('Missing token in response')),
@@ -188,31 +311,49 @@ class DataSharingService {
           return;
         }
         try {
-          final fetched = await TrustworkApiService.instance.authedRequest(
-            (auth) => TrustworkApiService.instance.sharing
-                .fetchSharedDataDataSharingFetchGet(
-                  token: token,
-                  headers: <String, String>{'Authorization': 'Bearer $auth'},
-                ),
-          );
-          final data = fetched.data;
+          final data = await _fetchSharedData(token);
           if (data == null) {
+            Logs().w(
+              '$_logTag fetch returned empty body request_id=$requestId matrix_id=${event.sender}',
+            );
             _completeIfNeeded(
               pending.completer,
               DataSharingErrored(StateError('Empty fetch response')),
             );
             return;
           }
+          Logs().i(
+            '$_logTag fetch succeeded request_id=$requestId matrix_id=${event.sender}',
+          );
           _completeIfNeeded(pending.completer, DataSharingApproved(data));
         } catch (e, s) {
-          Logs().w('[DataSharing] fetch failed', e, s);
+          Logs().w(
+            '$_logTag fetch failed request_id=$requestId matrix_id=${event.sender}',
+            e,
+            s,
+          );
           _completeIfNeeded(pending.completer, DataSharingErrored(e));
         }
         break;
       case eventTypeDecline:
-        final pending = _pending.remove(requestId);
-        if (pending == null) return;
+        final pending = _pending[requestId];
+        if (pending == null) {
+          Logs().d(
+            '$_logTag decline for unknown request_id=$requestId from matrix_id=${event.sender}',
+          );
+          return;
+        }
+        if (event.sender != pending.callerMatrixId) {
+          Logs().w(
+            '$_logTag decline sender mismatch request_id=$requestId expected=${pending.callerMatrixId} got=${event.sender}',
+          );
+          return;
+        }
+        _pending.remove(requestId);
         pending.timer.cancel();
+        Logs().i(
+          '$_logTag declined request_id=$requestId matrix_id=${event.sender}',
+        );
         _completeIfNeeded(pending.completer, DataSharingDeclined());
         break;
     }
@@ -241,7 +382,8 @@ class DataSharingService {
 }
 
 class _PendingRequest {
-  _PendingRequest(this.completer, this.timer);
+  _PendingRequest(this.callerMatrixId, this.completer, this.timer);
+  final String callerMatrixId;
   final Completer<DataSharingOutcome> completer;
   final Timer timer;
 }

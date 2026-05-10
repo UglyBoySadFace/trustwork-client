@@ -21,13 +21,12 @@ class TrustworkApiService {
       connectTimeout: const Duration(milliseconds: 5000),
       receiveTimeout: const Duration(milliseconds: 10000),
     ),
-  )..interceptors.add(
-      LogInterceptor(
-        requestBody: true,
-        responseBody: true,
-        logPrint: (o) => debugPrint('[TW-API] $o'),
-      ),
-    );
+  )..interceptors.add(_RedactingLogInterceptor());
+
+  /// Test-only access to the underlying [Dio] instance (e.g. for swapping
+  /// `httpClientAdapter` with a mock).
+  @visibleForTesting
+  Dio get dio => _dio;
 
   late final _apiClient = ApiClient(dio: _dio);
   final _storage = const FlutterSecureStorage();
@@ -208,8 +207,15 @@ class TrustworkApiService {
   /// Extracts a user-friendly message from a DioException and logs the full
   /// details so the complete response body is visible in Logcat.
   static String friendlyError(DioException e) {
+    final isRedacted = _RedactingLogInterceptor._isRedacted(
+      e.requestOptions.uri,
+    );
     debugPrint('[TW-API] ERROR ${e.response?.statusCode}: ${e.message}');
-    debugPrint('[TW-API] Response body: ${e.response?.data}');
+    if (isRedacted) {
+      debugPrint('[TW-API] Response body: <redacted>');
+    } else {
+      debugPrint('[TW-API] Response body: ${e.response?.data}');
+    }
     final data = e.response?.data;
     if (data is Map<String, dynamic>) {
       final detail = data['detail'];
@@ -220,5 +226,73 @@ class TrustworkApiService {
       }
     }
     return e.message ?? 'Something went wrong. Please try again.';
+  }
+}
+
+/// Drop-in for [LogInterceptor] that redacts request/response bodies for
+/// `/data-sharing/*` paths. The approve endpoint mints a short-lived fetch
+/// token and the fetch endpoint returns verified personal data — neither
+/// should land in logcat verbatim. URL, method, and status code are still
+/// logged so failures stay diagnosable.
+class _RedactingLogInterceptor extends Interceptor {
+  static const _prefix = '[TW-API]';
+  static const _redactedPaths = ['/data-sharing/'];
+
+  static bool _isRedacted(Uri uri) {
+    final path = uri.path;
+    for (final p in _redactedPaths) {
+      if (path.contains(p)) return true;
+    }
+    return false;
+  }
+
+  @override
+  void onRequest(
+    RequestOptions options,
+    RequestInterceptorHandler handler,
+  ) {
+    final redacted = _isRedacted(options.uri);
+    debugPrint('$_prefix *** Request ***');
+    debugPrint('$_prefix uri: ${options.uri}');
+    debugPrint('$_prefix method: ${options.method}');
+    if (options.data != null) {
+      if (redacted) {
+        debugPrint('$_prefix data: <redacted>');
+      } else {
+        debugPrint('$_prefix data: ${options.data}');
+      }
+    }
+    handler.next(options);
+  }
+
+  @override
+  void onResponse(Response response, ResponseInterceptorHandler handler) {
+    final redacted = _isRedacted(response.requestOptions.uri);
+    debugPrint('$_prefix *** Response ***');
+    debugPrint('$_prefix uri: ${response.realUri}');
+    debugPrint('$_prefix statusCode: ${response.statusCode}');
+    if (redacted) {
+      debugPrint('$_prefix body: <redacted>');
+    } else {
+      debugPrint('$_prefix body: ${response.data}');
+    }
+    handler.next(response);
+  }
+
+  @override
+  void onError(DioException err, ErrorInterceptorHandler handler) {
+    final redacted = _isRedacted(err.requestOptions.uri);
+    debugPrint('$_prefix *** DioException ***');
+    debugPrint('$_prefix uri: ${err.requestOptions.uri}');
+    debugPrint('$_prefix message: ${err.message}');
+    if (err.response != null) {
+      debugPrint('$_prefix statusCode: ${err.response!.statusCode}');
+      if (redacted) {
+        debugPrint('$_prefix body: <redacted>');
+      } else {
+        debugPrint('$_prefix body: ${err.response!.data}');
+      }
+    }
+    handler.next(err);
   }
 }

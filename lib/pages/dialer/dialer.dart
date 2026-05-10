@@ -412,7 +412,7 @@ class MyCallingPage extends State<Calling> {
           _cachedSharingPrefs = next;
         },
         onError: (Object e, StackTrace s) =>
-            Logs().d('[DataSharing] background prefs refresh failed', e, s),
+            Logs().d('[DATA-SHARING] background prefs refresh failed', e, s),
       ),
     );
 
@@ -508,7 +508,11 @@ class MyCallingPage extends State<Calling> {
       _dismissCurrentSheet();
       return null;
     } catch (e, s) {
-      Logs().w('[DataSharing] approve failed', e, s);
+      Logs().w(
+        '[DATA-SHARING] approve failed request_id=${req.requestId} matrix_id=${req.fromMatrixId}',
+        e,
+        s,
+      );
       if (!mounted) return null;
       return L10n.of(widget.context).dataSharingShareFailed;
     }
@@ -520,7 +524,11 @@ class MyCallingPage extends State<Calling> {
     try {
       await service?.decline(req);
     } catch (e, s) {
-      Logs().w('[DataSharing] decline failed', e, s);
+      Logs().w(
+        '[DATA-SHARING] decline failed request_id=${req.requestId} matrix_id=${req.fromMatrixId}',
+        e,
+        s,
+      );
     }
     _dismissCurrentSheet();
   }
