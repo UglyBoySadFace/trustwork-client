@@ -18,6 +18,143 @@ import 'package:fluffychat/utils/ringer_vibration.dart';
 import '../../utils/voip/user_media_manager.dart';
 import '../widgets/matrix.dart';
 
+// Wraps RTCPeerConnection to fix a DTLS role conflict that crashes iceRestart.
+//
+// When we answer as callee we commit to a=setup:active (DTLS client). On
+// iceRestart our re-offer uses a=setup:actpass, but Firefox/Element responds
+// a=setup:active (both want to be DTLS client). libwebrtc-android then throws
+// "Failed to set SSL role for the transport" and the call is torn down before
+// relay candidates get a chance to connect. We fix the conflict by rewriting
+// the remote answer's a=setup:active → passive whenever we are already active.
+class _DtlsRoleFixPeerConnection extends RTCPeerConnection {
+  _DtlsRoleFixPeerConnection(this._pc) {
+    _pc.onSignalingState = (s) => onSignalingState?.call(s);
+    _pc.onConnectionState = (s) => onConnectionState?.call(s);
+    _pc.onIceGatheringState = (s) => onIceGatheringState?.call(s);
+    _pc.onIceConnectionState = (s) => onIceConnectionState?.call(s);
+    _pc.onIceCandidate = (c) => onIceCandidate?.call(c);
+    _pc.onAddStream = (s) => onAddStream?.call(s);
+    _pc.onRemoveStream = (s) => onRemoveStream?.call(s);
+    _pc.onAddTrack = (s, t) => onAddTrack?.call(s, t);
+    _pc.onRemoveTrack = (s, t) => onRemoveTrack?.call(s, t);
+    _pc.onDataChannel = (c) => onDataChannel?.call(c);
+    _pc.onRenegotiationNeeded = () => onRenegotiationNeeded?.call();
+    _pc.onTrack = (e) => onTrack?.call(e);
+  }
+
+  final RTCPeerConnection _pc;
+  // Committed DTLS role (active/passive). Updated only when we see a final
+  // role, not actpass, so re-offer actpass doesn't overwrite our real role.
+  String? _localDtlsRole;
+
+  @override
+  RTCSignalingState? get signalingState => _pc.signalingState;
+  @override
+  RTCIceGatheringState? get iceGatheringState => _pc.iceGatheringState;
+  @override
+  RTCIceConnectionState? get iceConnectionState => _pc.iceConnectionState;
+  @override
+  RTCPeerConnectionState? get connectionState => _pc.connectionState;
+  @override
+  Map<String, dynamic> get getConfiguration => _pc.getConfiguration;
+
+  @override
+  Future<void> dispose() => _pc.dispose();
+  @override
+  Future<void> setConfiguration(Map<String, dynamic> configuration) =>
+      _pc.setConfiguration(configuration);
+  @override
+  Future<RTCSessionDescription> createOffer([Map<String, dynamic> constraints = const {}]) =>
+      _pc.createOffer(constraints);
+  @override
+  Future<RTCSessionDescription> createAnswer([Map<String, dynamic> constraints = const {}]) =>
+      _pc.createAnswer(constraints);
+  @override
+  Future<void> addStream(MediaStream stream) => _pc.addStream(stream);
+  @override
+  Future<void> removeStream(MediaStream stream) => _pc.removeStream(stream);
+  @override
+  Future<RTCSessionDescription?> getLocalDescription() =>
+      _pc.getLocalDescription();
+
+  @override
+  Future<void> setLocalDescription(RTCSessionDescription description) async {
+    final match = RegExp(r'a=setup:(\w+)').firstMatch(description.sdp ?? '');
+    if (match != null) {
+      final role = match.group(1);
+      if (role == 'active' || role == 'passive') {
+        _localDtlsRole = role;
+        Logs().d('[VOIP] DTLS local role: $_localDtlsRole (${description.type})');
+      }
+    }
+    return _pc.setLocalDescription(description);
+  }
+
+  @override
+  Future<RTCSessionDescription?> getRemoteDescription() =>
+      _pc.getRemoteDescription();
+
+  @override
+  Future<void> setRemoteDescription(RTCSessionDescription description) {
+    var sdp = description.sdp ?? '';
+    if (description.type == 'answer' &&
+        _localDtlsRole == 'active' &&
+        sdp.contains('a=setup:active')) {
+      Logs().i('[VOIP] Fixing DTLS role conflict: a=setup:active → passive in remote answer');
+      sdp = sdp.replaceAll('a=setup:active', 'a=setup:passive');
+    }
+    return _pc.setRemoteDescription(RTCSessionDescription(sdp, description.type));
+  }
+
+  @override
+  Future<void> addCandidate(RTCIceCandidate candidate) =>
+      _pc.addCandidate(candidate);
+  @override
+  Future<List<StatsReport>> getStats([MediaStreamTrack? track]) =>
+      _pc.getStats(track);
+  @override
+  List<MediaStream?> getLocalStreams() => _pc.getLocalStreams();
+  @override
+  List<MediaStream?> getRemoteStreams() => _pc.getRemoteStreams();
+  @override
+  Future<RTCDataChannel> createDataChannel(
+    String label,
+    RTCDataChannelInit dataChannelDict,
+  ) => _pc.createDataChannel(label, dataChannelDict);
+  @override
+  Future<void> restartIce() => _pc.restartIce();
+  @override
+  Future<void> close() => _pc.close();
+  @override
+  RTCDTMFSender createDtmfSender(MediaStreamTrack track) =>
+      _pc.createDtmfSender(track);
+  @override
+  Future<List<RTCRtpSender>> getSenders() => _pc.getSenders();
+  @override
+  Future<List<RTCRtpReceiver>> getReceivers() => _pc.getReceivers();
+  @override
+  Future<List<RTCRtpTransceiver>> getTransceivers() => _pc.getTransceivers();
+  @override
+  Future<RTCRtpSender> addTrack(MediaStreamTrack track, [MediaStream? stream]) {
+    if (stream != null) return _pc.addTrack(track, stream);
+    return _pc.addTrack(track);
+  }
+
+  @override
+  Future<bool> removeTrack(RTCRtpSender sender) => _pc.removeTrack(sender);
+
+  @override
+  Future<RTCRtpTransceiver> addTransceiver({
+    MediaStreamTrack? track,
+    RTCRtpMediaType? kind,
+    RTCRtpTransceiverInit? init,
+  }) =>
+      // The abstract class declares non-null params but the concrete flutter_webrtc
+      // impl uses nullable. Cast through dynamic to match the actual runtime signature.
+      (_pc as dynamic).addTransceiver(track: track, kind: kind, init: init)
+          as Future<RTCRtpTransceiver>;
+}
+
 class VoipPlugin with WidgetsBindingObserver implements WebRTCDelegate {
   final MatrixState matrix;
   Client get client => matrix.client;
@@ -278,7 +415,8 @@ class VoipPlugin with WidgetsBindingObserver implements WebRTCDelegate {
       Logs().i('[VOIP] createPeerConnection iceServers (sanitized): $cleaned');
       configuration = {...configuration, 'iceServers': cleaned};
     }
-    return webrtc_impl.createPeerConnection(configuration, constraints);
+    final pc = await webrtc_impl.createPeerConnection(configuration, constraints);
+    return _DtlsRoleFixPeerConnection(pc);
   }
 
   Future<bool> get hasCallingAccount async => false;

@@ -367,6 +367,16 @@ class MyCallingPage extends State<Calling> {
 
   BuildContext? _calleeSheetContext;
 
+  // The Calling widget is mounted inside an OverlayEntry that sits above the
+  // root Navigator, so pushing a modal route through the outer Navigator (as
+  // showModalBottomSheet does by default) renders the sheet underneath the
+  // opaque call UI. We host the sheets in a local Navigator instead, which
+  // lives inside the OverlayEntry's subtree, so they stack above the call UI.
+  final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
+
+  BuildContext get _sheetHostContext =>
+      _navigatorKey.currentState?.overlay?.context ?? context;
+
   void _playCallSound() async {
     const path = 'assets/sounds/call.ogg';
     if (kIsWeb || PlatformInfos.isMobile || PlatformInfos.isMacOS) {
@@ -461,7 +471,6 @@ class MyCallingPage extends State<Calling> {
   }
 
   Future<void> _showApprovalSheet(IncomingDataRequest req) async {
-    final navigatorContext = context;
     final defaults = <ShareableField, bool>{
       for (final f in req.fields) f: _cachedSharingPrefs[f] ?? false,
     };
@@ -471,7 +480,7 @@ class MyCallingPage extends State<Calling> {
 
     try {
       await showModalBottomSheet<void>(
-        context: navigatorContext,
+        context: _sheetHostContext,
         isDismissible: false,
         enableDrag: false,
         isScrollControlled: true,
@@ -570,7 +579,7 @@ class MyCallingPage extends State<Calling> {
 
     try {
       await showModalBottomSheet<void>(
-        context: context,
+        context: _sheetHostContext,
         isScrollControlled: true,
         useSafeArea: true,
         builder: (sheetCtx) {
@@ -970,6 +979,18 @@ class MyCallingPage extends State<Calling> {
 
   @override
   Widget build(BuildContext context) {
+    return Navigator(
+      key: _navigatorKey,
+      onGenerateRoute: (settings) => PageRouteBuilder<void>(
+        settings: settings,
+        pageBuilder: (_, _, _) => _buildCallScreen(),
+        transitionDuration: Duration.zero,
+        reverseTransitionDuration: Duration.zero,
+      ),
+    );
+  }
+
+  Widget _buildCallScreen() {
     return PIPView(
       builder: (context, isFloating) {
         return Scaffold(
