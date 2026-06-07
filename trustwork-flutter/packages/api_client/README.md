@@ -74,6 +74,7 @@ Class | Method | HTTP request | Description
 [*EmailAuthApi*](doc/EmailAuthApi.md) | [**emailLoginAuthEmailLoginPost**](doc/EmailAuthApi.md#emailloginauthemailloginpost) | **POST** /auth/email/login | Email Login
 [*EmailAuthApi*](doc/EmailAuthApi.md) | [**emailStartAuthEmailStartPost**](doc/EmailAuthApi.md#emailstartauthemailstartpost) | **POST** /auth/email/start | Email Start
 [*EmailAuthApi*](doc/EmailAuthApi.md) | [**emailVerifyAuthEmailVerifyPost**](doc/EmailAuthApi.md#emailverifyauthemailverifypost) | **POST** /auth/email/verify | Email Verify
+[*EmailAuthApi*](doc/EmailAuthApi.md) | [**emailVerifyLinkAuthEmailVerifyLinkGet**](doc/EmailAuthApi.md#emailverifylinkauthemailverifylinkget) | **GET** /auth/email/verify-link | Email Verify Link
 [*HealthApi*](doc/HealthApi.md) | [**healthCheckHealthGet**](doc/HealthApi.md#healthcheckhealthget) | **GET** /health | Health Check
 [*PhoneAuthApi*](doc/PhoneAuthApi.md) | [**phoneCheckAuthPhoneCheckGet**](doc/PhoneAuthApi.md#phonecheckauthphonecheckget) | **GET** /auth/phone/check | Phone Check
 [*SharingApi*](doc/SharingApi.md) | [**approveDataRequestDataSharingApprovePost**](doc/SharingApi.md#approvedatarequestdatasharingapprovepost) | **POST** /data-sharing/approve | Approve Data Request
