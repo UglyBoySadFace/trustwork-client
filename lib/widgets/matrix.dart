@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import 'package:app_links/app_links.dart';
 import 'package:collection/collection.dart';
 import 'package:desktop_notifications/desktop_notifications.dart';
 import 'package:image_picker/image_picker.dart';
@@ -16,13 +17,16 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:universal_html/html.dart' as html;
 import 'package:url_launcher/url_launcher_string.dart';
 
+import 'package:fluffychat/config/app_config.dart';
 import 'package:fluffychat/l10n/l10n.dart';
+import 'package:fluffychat/pages/onboarding/onboarding_flow_coordinator.dart';
 import 'package:fluffychat/utils/client_manager.dart';
 import 'package:fluffychat/utils/data_sharing/data_sharing_service.dart';
 import 'package:fluffychat/utils/full_screen_intent_helper.dart';
 import 'package:fluffychat/utils/init_with_restore.dart';
 import 'package:fluffychat/utils/matrix_sdk_extensions/matrix_file_extension.dart';
 import 'package:fluffychat/utils/platform_infos.dart';
+import 'package:fluffychat/utils/trustwork_api_service.dart';
 import 'package:fluffychat/utils/uia_request_manager.dart';
 import 'package:fluffychat/utils/voip_plugin.dart';
 import 'package:fluffychat/widgets/adaptive_dialogs/show_ok_cancel_alert_dialog.dart';
@@ -184,6 +188,8 @@ class MatrixState extends State<Matrix> with WidgetsBindingObserver {
   final onLoginStateChanged = <String, StreamSubscription<LoginState>>{};
   final onUiaRequest = <String, StreamSubscription<UiaRequest>>{};
   final dataSharingServices = <String, DataSharingService>{};
+  StreamSubscription<void>? _twAuthExpiredSub;
+  StreamSubscription<Uri>? _verifyLinkSub;
 
   DataSharingService? get dataSharingService =>
       dataSharingServices[client.clientName];
@@ -219,6 +225,30 @@ class MatrixState extends State<Matrix> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     initMatrix();
+    _twAuthExpiredSub =
+        TrustworkApiService.instance.onAuthExpired.listen((_) {
+      // Don't tear down an active call — data sharing will just show an error.
+      // Tokens are already cleared, so the next Trustwork request after the
+      // call ends will re-fire this event and trigger the redirect then.
+      if (voipPlugin?.overlayEntry != null) return;
+      final loggedIn = widget.clients.where((c) => c.isLogged()).toList();
+      if (loggedIn.isEmpty) {
+        FluffyChatApp.router.go('/');
+        return;
+      }
+      for (final c in loggedIn) {
+        unawaited(
+          c.logout().catchError((_) => FluffyChatApp.router.go('/')),
+        );
+      }
+      // Navigation is handled by onLoginStateChanged → '/'.
+    });
+    unawaited(
+      TrustworkApiService.instance.checkAuthOnStartup(
+        requireAuth: AppSettings.hasSeenOnboarding.value,
+      ),
+    );
+    _wireVerifyDeepLinks();
   }
 
   void _registerSubs(String name) {
@@ -284,7 +314,7 @@ class MatrixState extends State<Matrix> with WidgetsBindingObserver {
         }
       } else {
         FluffyChatApp.router.go(
-          state == LoginState.loggedIn ? '/backup' : '/home',
+          state == LoginState.loggedIn ? '/backup' : '/',
         );
       }
     });
@@ -311,6 +341,56 @@ class MatrixState extends State<Matrix> with WidgetsBindingObserver {
     onNotification.remove(name);
     dataSharingServices[name]?.dispose();
     dataSharingServices.remove(name);
+  }
+
+  void _wireVerifyDeepLinks() {
+    final appLinks = AppLinks();
+    _verifyLinkSub = appLinks.uriLinkStream.listen(_handleAuthSuccessUri);
+    unawaited(
+      appLinks.getInitialLink().then(
+        _handleAuthSuccessUri,
+        onError: (_) {},
+      ),
+    );
+  }
+
+  void _handleAuthSuccessUri(Uri? uri) {
+    if (uri == null) return;
+    if (uri.scheme != AppConfig.appOpenUrlScheme || uri.host != 'auth-success') {
+      return;
+    }
+    if (widget.clients.any((c) => c.isLogged())) return;
+    unawaited(_loginFromAuthSuccess(uri.queryParameters));
+  }
+
+  Future<void> _loginFromAuthSuccess(Map<String, String> params) async {
+    final accessToken = params['access_token'];
+    final refreshToken = params['refresh_token'];
+    final matrixUserId = params['matrix_user_id'];
+    final matrixAccessToken = params['login_token'];
+    final matrixDeviceId = params['matrix_device_id'];
+    final matrixPassword = params['matrix_password'];
+
+    if (accessToken == null || refreshToken == null) return;
+    await TrustworkApiService.instance.saveTokens(accessToken, refreshToken);
+    if (matrixPassword != null) {
+      await TrustworkApiService.instance.saveMatrixPassword(matrixPassword);
+    }
+    if (matrixUserId == null ||
+        matrixAccessToken == null ||
+        matrixDeviceId == null) {
+      return;
+    }
+    final loginClient = await getLoginClient();
+    await loginClient.init(
+      newToken: matrixAccessToken,
+      newUserID: matrixUserId,
+      newDeviceID: matrixDeviceId,
+      newHomeserver: Uri.parse(AppConfig.matrixHomeserver),
+      waitForFirstSync: false,
+    );
+    OnboardingFlowCoordinator.instance.reset();
+    // onLoginStateChanged listener navigates to /backup on LoginState.loggedIn
   }
 
   void initMatrix() {
@@ -391,6 +471,8 @@ class MatrixState extends State<Matrix> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _twAuthExpiredSub?.cancel();
+    _verifyLinkSub?.cancel();
 
     onRoomKeyRequestSub.values.map((s) => s.cancel());
     onKeyVerificationRequestSub.values.map((s) => s.cancel());

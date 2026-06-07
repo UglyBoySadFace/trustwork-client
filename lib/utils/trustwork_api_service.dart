@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 
 import 'package:api_client/api_client.dart';
@@ -14,6 +17,13 @@ class TrustworkApiService {
 
   static final instance = TrustworkApiService._();
   TrustworkApiService._();
+
+  final _authExpiredController = StreamController<void>.broadcast();
+
+  /// Fires when the Trustwork session is definitively expired — the refresh
+  /// token itself returned 401, meaning re-authentication is required.
+  /// Tokens are cleared before the event is emitted.
+  Stream<void> get onAuthExpired => _authExpiredController.stream;
 
   final _dio = Dio(
     BaseOptions(
@@ -88,6 +98,7 @@ class TrustworkApiService {
   Future<T> authedRequest<T>(Future<T> Function(String token) call) async {
     final accessToken = await getAccessToken();
     if (accessToken == null) {
+      _authExpiredController.add(null);
       throw StateError('Not authenticated');
     }
     try {
@@ -100,10 +111,58 @@ class TrustworkApiService {
     }
   }
 
-  Future<String?> _refreshAccessToken() async {
+  /// Validates stored tokens at app start.
+  ///
+  /// If the access token is absent and [requireAuth] is true (user has
+  /// previously onboarded), fires [onAuthExpired] so the app redirects to
+  /// re-authentication. If the access token exists but is expired, silently
+  /// attempts a refresh — which fires [onAuthExpired] on its own if the refresh
+  /// token is also rejected by the server.
+  Future<void> checkAuthOnStartup({bool requireAuth = false}) async {
+    final accessToken = await getAccessToken();
+    if (accessToken == null) {
+      if (requireAuth) _authExpiredController.add(null);
+      return;
+    }
+    if (_isJwtExpired(accessToken)) {
+      await _refreshAccessToken();
+    }
+  }
+
+  bool _isJwtExpired(String token) {
+    try {
+      final parts = token.split('.');
+      if (parts.length != 3) return false;
+      final payload = base64Url.decode(base64Url.normalize(parts[1]));
+      final claims =
+          jsonDecode(utf8.decode(payload)) as Map<String, dynamic>;
+      final exp = claims['exp'];
+      if (exp is! int) return false;
+      return DateTime.fromMillisecondsSinceEpoch(exp * 1000)
+          .isBefore(DateTime.now());
+    } catch (_) {
+      return false;
+    }
+  }
+
+  // Deduplicates concurrent refresh calls so only one hits the server at a
+  // time. Rotating refresh tokens mean a second concurrent call with the old
+  // token would be rejected — both callers share the same Future instead.
+  Future<String?>? _refreshFuture;
+
+  Future<String?> _refreshAccessToken() {
+    return _refreshFuture ??= _doRefresh().whenComplete(() {
+      _refreshFuture = null;
+    });
+  }
+
+  Future<String?> _doRefresh() async {
     try {
       final refreshToken = await getRefreshToken();
-      if (refreshToken == null) return null;
+      if (refreshToken == null) {
+        _authExpiredController.add(null);
+        return null;
+      }
       final response = await token.refreshTokenAuthRefreshPost(
         refreshRequest: RefreshRequest((b) => b..refreshToken = refreshToken),
       );
@@ -116,6 +175,10 @@ class TrustworkApiService {
       debugPrint(
         '[TW-API] Refresh failed (${e.response?.statusCode}): ${e.message}',
       );
+      if (e.response?.statusCode == 401) {
+        await clearTokens();
+        _authExpiredController.add(null);
+      }
       return null;
     } catch (e) {
       debugPrint('[TW-API] Refresh failed: $e');
@@ -138,7 +201,7 @@ class TrustworkApiService {
       data: <String, dynamic>{
         'email': email,
         'code': code,
-        if (phone != null) 'phone': phone,
+        'phone': ?phone,
       },
     );
     final data = response.data!;

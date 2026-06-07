@@ -89,6 +89,15 @@
                <data android:scheme="cz.trustwork" android:host="chat" />
             </intent-filter>
 
+            <!-- Email magic-link callbacks: cz.trustwork://auth-success?... -->
+            <!-- Bank iD uses trustwork://auth-success (CallbackActivity below). -->
+            <intent-filter>
+               <action android:name="android.intent.action.VIEW" />
+               <category android:name="android.intent.category.DEFAULT" />
+               <category android:name="android.intent.category.BROWSABLE" />
+               <data android:scheme="cz.trustwork" android:host="auth-success" />
+            </intent-filter>
+
             <!-- App can receive shared text -->
             <intent-filter>
                <action android:name="android.intent.action.SEND" />

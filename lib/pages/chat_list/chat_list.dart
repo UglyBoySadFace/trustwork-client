@@ -328,6 +328,7 @@ class ChatListController extends State<ChatList>
 
   void _processIncomingUris(Uri? uri) async {
     if (uri == null) return;
+    if (uri.host == 'auth-success') return;
     context.go('/rooms');
     WidgetsBinding.instance.addPostFrameCallback((_) {
       UrlLauncher(context, uri.toString()).openMatrixToUrl();

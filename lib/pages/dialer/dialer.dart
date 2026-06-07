@@ -548,7 +548,7 @@ class MyCallingPage extends State<Calling> {
     // route after our own sheet was already removed.
     final ctx = _sheetContext;
     _sheetContext = null;
-    if (ctx != null && Navigator.canPop(ctx)) {
+    if (ctx != null && ctx.mounted && Navigator.canPop(ctx)) {
       Navigator.of(ctx).pop();
     }
   }
@@ -562,7 +562,7 @@ class MyCallingPage extends State<Calling> {
   void _dismissCalleeSheet() {
     final ctx = _calleeSheetContext;
     _calleeSheetContext = null;
-    if (ctx != null && Navigator.canPop(ctx)) {
+    if (ctx != null && ctx.mounted && Navigator.canPop(ctx)) {
       Navigator.of(ctx).pop();
     }
   }
@@ -1176,7 +1176,10 @@ class _DataSharingApprovalSheetState extends State<_DataSharingApprovalSheet> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: FilledButton(
-                        onPressed: _busy ? null : _share,
+                        onPressed:
+                            (_busy || _selectedFields().isEmpty)
+                                ? null
+                                : _share,
                         child: _busy
                             ? const SizedBox(
                                 width: 18,

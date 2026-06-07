@@ -65,7 +65,7 @@ abstract class AppRoutes {
     GoRouterState state,
   ) => Matrix.of(context).widget.clients.any((client) => client.isLogged())
       ? null
-      : '/home';
+      : '/';
 
   AppRoutes();
 
