@@ -77,9 +77,22 @@ class DataSharingService {
 
   final StreamController<IncomingDataRequest> _incoming =
       StreamController<IncomingDataRequest>.broadcast();
+  final StreamController<ProactiveShareData> _proactiveShares =
+      StreamController<ProactiveShareData>.broadcast();
+
+  // Cached so that late subscribers (e.g. the dialer widget, which opens after
+  // the to-device event is already processed) can still get the data.
+  ProactiveShareData? _lastProactiveShare;
 
   /// Caller-side stream of inbound requests during ringing.
   Stream<IncomingDataRequest> get incomingRequests => _incoming.stream;
+
+  /// Callee-side stream of data the caller pushed without being asked.
+  Stream<ProactiveShareData> get proactiveShares => _proactiveShares.stream;
+
+  /// The most recent proactive share received in this session, or null if none.
+  /// Use this to replay the share to a subscriber that registered late.
+  ProactiveShareData? get lastProactiveShare => _lastProactiveShare;
 
   /// Callee-side: ask [callerMatrixId] for [fields]. Resolves when the caller
   /// responds, declines, or [timeout] elapses.
@@ -176,6 +189,24 @@ class DataSharingService {
     Logs().i(
       '$_logTag response sent request_id=${request.requestId} matrix_id=${request.fromMatrixId}',
     );
+  }
+
+  /// Caller-side: proactively push [fields] to [calleeMatrixId] without
+  /// waiting for a data request. Used when the caller has pre-configured
+  /// sharing preferences and wants to share immediately on call start.
+  Future<void> proactiveShare({
+    required String calleeMatrixId,
+    required Set<ShareableField> fields,
+  }) async {
+    final syntheticRequest = IncomingDataRequest(
+      requestId: _uuid.v4(),
+      fromMatrixId: calleeMatrixId,
+      fields: fields,
+    );
+    Logs().i(
+      '$_logTag proactive share request_id=${syntheticRequest.requestId} callee_id=$calleeMatrixId fields=${fields.map((f) => f.wireId).toList()}',
+    );
+    await approve(request: syntheticRequest, approvedFields: fields);
   }
 
   /// Caller-side: decline [request]. No middleware call.
@@ -283,9 +314,15 @@ class DataSharingService {
       case eventTypeResponse:
         final pending = _pending[requestId];
         if (pending == null) {
-          Logs().d(
-            '$_logTag response for unknown request_id=$requestId from matrix_id=${event.sender}',
-          );
+          // May be a proactive share from the caller — fetch and emit.
+          final token = content['token'];
+          if (token is String && token.isNotEmpty) {
+            unawaited(_handleUnsolicitedResponse(event.sender, requestId, token));
+          } else {
+            Logs().d(
+              '$_logTag response for unknown request_id=$requestId from matrix_id=${event.sender}',
+            );
+          }
           return;
         }
         // Server stamps `sender`, so we trust it — but reject mismatches
@@ -359,6 +396,34 @@ class DataSharingService {
     }
   }
 
+  Future<void> _handleUnsolicitedResponse(
+    String senderMatrixId,
+    String requestId,
+    String token,
+  ) async {
+    Logs().i(
+      '$_logTag unsolicited response request_id=$requestId from=$senderMatrixId',
+    );
+    try {
+      final data = await _fetchSharedData(token);
+      if (data == null) {
+        Logs().w(
+          '$_logTag empty fetch for unsolicited response request_id=$requestId',
+        );
+        return;
+      }
+      final share = ProactiveShareData(fromMatrixId: senderMatrixId, data: data);
+      _lastProactiveShare = share;
+      _proactiveShares.add(share);
+    } catch (e, s) {
+      Logs().w(
+        '$_logTag fetch failed for unsolicited response request_id=$requestId',
+        e,
+        s,
+      );
+    }
+  }
+
   void _completeIfNeeded(
     Completer<DataSharingOutcome> completer,
     DataSharingOutcome outcome,
@@ -377,7 +442,9 @@ class DataSharingService {
     }
     _pending.clear();
     _seenIds.clear();
+    _lastProactiveShare = null;
     _incoming.close();
+    _proactiveShares.close();
   }
 }
 
@@ -419,4 +486,13 @@ class IncomingDataRequest {
   final String requestId;
   final String fromMatrixId;
   final Set<ShareableField> fields;
+}
+
+class ProactiveShareData {
+  const ProactiveShareData({
+    required this.fromMatrixId,
+    required this.data,
+  });
+  final String fromMatrixId;
+  final SharedData data;
 }

@@ -359,7 +359,15 @@ class MyCallingPage extends State<Calling> {
 
   AudioPlayer? _callSoundPlayer;
 
+  // Snapshot of call.isOutgoing taken once in initState.  Using call.isOutgoing
+  // directly on every build opens a small window where the SDK may not have
+  // fully initialised the direction (e.g. during the async handleNewCall path),
+  // causing the callee UI to flash briefly on an outgoing call.
+  late final bool _isOutgoing;
+
   StreamSubscription<IncomingDataRequest>? _dataReqSub;
+  StreamSubscription<ProactiveShareData>? _proactiveShareSub;
+  SharedData? _proactiveShareData;
   final List<IncomingDataRequest> _pendingPrompts = [];
   IncomingDataRequest? _currentPrompt;
   BuildContext? _sheetContext;
@@ -397,12 +405,56 @@ class MyCallingPage extends State<Calling> {
   @override
   void initState() {
     super.initState();
+    // Capture direction before initialize() so subscriptions and build logic
+    // always agree on whether this is an outgoing or incoming call.
+    _isOutgoing = call.isOutgoing;
     initialize();
-    if (call.isOutgoing) {
+    if (_isOutgoing) {
       // Only play outgoing dialing sound for calls we initiated.
       _playCallSound();
       _wireDataSharing();
+    } else {
+      _wireCalleeProactiveReceive();
     }
+  }
+
+  void _wireCalleeProactiveReceive() {
+    final service = Matrix.of(widget.context)
+        .dataSharingServices[widget.client.clientName];
+    if (service == null) {
+      Logs().w('[DATA-SHARING] _wireCalleeProactiveReceive: service is null');
+      return;
+    }
+    Logs().i('[DATA-SHARING] _wireCalleeProactiveReceive: subscribed');
+    _proactiveShareSub = service.proactiveShares.listen(_onProactiveShare);
+    // The to-device event often arrives before the dialer widget is built.
+    // Replay the cached share immediately if one already arrived.
+    final cached = service.lastProactiveShare;
+    if (cached != null) {
+      Logs().i('[DATA-SHARING] _wireCalleeProactiveReceive: replaying cached share from=${cached.fromMatrixId}');
+      _onProactiveShare(cached);
+    }
+  }
+
+  void _onProactiveShare(ProactiveShareData share) {
+    Logs().i(
+      '[DATA-SHARING] _onProactiveShare: from=${share.fromMatrixId} state=$_state mounted=$mounted isOutgoing=$_isOutgoing',
+    );
+    if (_isOutgoing) {
+      Logs().w('[DATA-SHARING] _onProactiveShare: called on outgoing call — ignoring');
+      return;
+    }
+    if (!mounted) return;
+    if (!_inDataSharingWindow(_state)) {
+      Logs().i('[DATA-SHARING] _onProactiveShare: dropped — outside window');
+      return;
+    }
+    if (!call.room.getParticipants().any((m) => m.id == share.fromMatrixId)) {
+      Logs().i('[DATA-SHARING] _onProactiveShare: dropped — sender not in room');
+      return;
+    }
+    Logs().i('[DATA-SHARING] _onProactiveShare: showing inline card');
+    setState(() => _proactiveShareData = share.data);
   }
 
   void _wireDataSharing() {
@@ -427,6 +479,38 @@ class MyCallingPage extends State<Calling> {
     );
 
     _dataReqSub = service.incomingRequests.listen(_onIncomingDataRequest);
+    _autoProactiveShare(service);
+  }
+
+  void _autoProactiveShare(DataSharingService service) {
+    final calleeId = call.room.directChatMatrixID;
+    if (calleeId == null) {
+      Logs().i('[DATA-SHARING] _autoProactiveShare: skipped — not a 1:1 room');
+      return;
+    }
+    final enabledFields = _cachedSharingPrefs.entries
+        .where((e) => e.value)
+        .map((e) => e.key)
+        .toSet();
+    if (enabledFields.isEmpty) {
+      Logs().i('[DATA-SHARING] _autoProactiveShare: skipped — no enabled fields');
+      return;
+    }
+    Logs().i(
+      '[DATA-SHARING] _autoProactiveShare: sharing fields=${enabledFields.map((f) => f.wireId).toList()} to=$calleeId',
+    );
+    unawaited(
+      service
+          .proactiveShare(calleeMatrixId: calleeId, fields: enabledFields)
+          .then(
+            (_) {},
+            onError: (Object e, StackTrace s) => Logs().w(
+              '[DATA-SHARING] proactive share failed callee_id=$calleeId',
+              e,
+              s,
+            ),
+          ),
+    );
   }
 
   void _onIncomingDataRequest(IncomingDataRequest req) {
@@ -648,6 +732,8 @@ class MyCallingPage extends State<Calling> {
     _stopStatsPolling();
     _dataReqSub?.cancel();
     _dataReqSub = null;
+    _proactiveShareSub?.cancel();
+    _proactiveShareSub = null;
     _abortDataSharingPrompts();
     super.dispose();
     call.cleanUp.call();
@@ -819,7 +905,7 @@ class MyCallingPage extends State<Calling> {
 
     switch (_state) {
       case CallState.kRinging:
-        return call.isOutgoing
+        return _isOutgoing
             ? <Widget>[muteMicButton, switchSpeakerButton, hangupButton]
             : <Widget>[
                 hangupButton,
@@ -990,6 +1076,50 @@ class MyCallingPage extends State<Calling> {
     );
   }
 
+  Widget _buildProactiveShareCard(SharedData data) {
+    final l10n = L10n.of(context);
+    final rows = <Widget>[];
+    for (final f in ShareableField.values) {
+      final value = f.formatValue(data, l10n);
+      if (value == null) continue;
+      rows.add(
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(
+                width: 120,
+                child: Text(
+                  f.label(l10n),
+                  style: const TextStyle(color: Colors.white60, fontSize: 13),
+                ),
+              ),
+              Expanded(
+                child: Text(
+                  value,
+                  style: const TextStyle(color: Colors.white, fontSize: 13),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    if (rows.isEmpty) return const SizedBox.shrink();
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.black54,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: rows,
+      ),
+    );
+  }
+
   Widget _buildCallScreen() {
     return PIPView(
       builder: (context, isFloating) {
@@ -1012,6 +1142,13 @@ class MyCallingPage extends State<Calling> {
                 child: Stack(
                   children: [
                     ..._buildContent(orientation, isFloating),
+                    if (!isFloating && _proactiveShareData != null)
+                      Positioned(
+                        left: 16,
+                        right: 16,
+                        bottom: 200,
+                        child: _buildProactiveShareCard(_proactiveShareData!),
+                      ),
                     if (!isFloating)
                       Positioned(
                         top: 24.0,
@@ -1229,12 +1366,12 @@ class _DataSharingRequestSheet extends StatefulWidget {
   const _DataSharingRequestSheet({
     required this.callerDisplayName,
     required this.callerMatrixId,
-    required this.service,
+    this.service,
   });
 
   final String callerDisplayName;
   final String callerMatrixId;
-  final DataSharingService service;
+  final DataSharingService? service;
 
   @override
   State<_DataSharingRequestSheet> createState() =>
@@ -1245,7 +1382,7 @@ class _DataSharingRequestSheetState extends State<_DataSharingRequestSheet> {
   final Map<ShareableField, bool> _selected = {
     for (final f in ShareableField.values) f: false,
   };
-  _CalleeFlowState _flow = const _CalleePicking();
+  late _CalleeFlowState _flow = const _CalleePicking();
 
   Set<ShareableField> _selectedFields() => _selected.entries
       .where((e) => e.value)
@@ -1253,19 +1390,26 @@ class _DataSharingRequestSheetState extends State<_DataSharingRequestSheet> {
       .toSet();
 
   Future<void> _send() async {
+    final service = widget.service;
+    if (service == null) return;
     final selected = _selectedFields();
     if (selected.isEmpty) return;
     setState(() => _flow = const _CalleeWaiting());
 
-    final outcome = await widget.service.request(
+    final outcome = await service.request(
       callerMatrixId: widget.callerMatrixId,
       fields: selected,
     );
     if (!mounted) return;
+    _handleOutcome(outcome, selected);
+  }
+
+  void _handleOutcome(DataSharingOutcome outcome, Set<ShareableField> fields) {
+    if (!mounted) return;
     final l10n = L10n.of(context);
     switch (outcome) {
       case DataSharingApproved(:final data):
-        final ordered = selected.toList()
+        final ordered = fields.toList()
           ..sort((a, b) => a.index.compareTo(b.index));
         setState(() => _flow = _CalleeShowing(ordered, data));
         return;
@@ -1376,7 +1520,9 @@ class _DataSharingRequestSheetState extends State<_DataSharingRequestSheet> {
               const SizedBox(width: 12),
               Expanded(
                 child: FilledButton(
-                  onPressed: _selectedFields().isEmpty ? null : _send,
+                  onPressed: (_selectedFields().isEmpty || widget.service == null)
+                      ? null
+                      : _send,
                   child: Text(l10n.dataSharingSendRequest),
                 ),
               ),
