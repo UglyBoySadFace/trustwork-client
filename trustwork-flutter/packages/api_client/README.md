@@ -70,6 +70,13 @@ Class | Method | HTTP request | Description
 ------------ | ------------- | ------------- | -------------
 [*AuthApi*](doc/AuthApi.md) | [**bankidCallbackAuthBankidCallbackGet**](doc/AuthApi.md#bankidcallbackauthbankidcallbackget) | **GET** /auth/bankid/callback | Bankid Callback
 [*AuthApi*](doc/AuthApi.md) | [**bankidStartAuthBankidStartGet**](doc/AuthApi.md#bankidstartauthbankidstartget) | **GET** /auth/bankid/start | Bankid Start
+[*ContactsApi*](doc/ContactsApi.md) | [**acceptContactRequestContactsRequestsRequestIdAcceptPost**](doc/ContactsApi.md#acceptcontactrequestcontactsrequestsrequestidacceptpost) | **POST** /contacts/requests/{request_id}/accept | Accept Contact Request
+[*ContactsApi*](doc/ContactsApi.md) | [**blockContactRequestContactsRequestsRequestIdBlockPost**](doc/ContactsApi.md#blockcontactrequestcontactsrequestsrequestidblockpost) | **POST** /contacts/requests/{request_id}/block | Block Contact Request
+[*ContactsApi*](doc/ContactsApi.md) | [**createContactRequestContactsRequestsPost**](doc/ContactsApi.md#createcontactrequestcontactsrequestspost) | **POST** /contacts/requests | Create Contact Request
+[*ContactsApi*](doc/ContactsApi.md) | [**declineContactRequestContactsRequestsRequestIdDeclinePost**](doc/ContactsApi.md#declinecontactrequestcontactsrequestsrequestiddeclinepost) | **POST** /contacts/requests/{request_id}/decline | Decline Contact Request
+[*ContactsApi*](doc/ContactsApi.md) | [**listContactsContactsGet**](doc/ContactsApi.md#listcontactscontactsget) | **GET** /contacts | List Contacts
+[*ContactsApi*](doc/ContactsApi.md) | [**listIncomingRequestsContactsRequestsIncomingGet**](doc/ContactsApi.md#listincomingrequestscontactsrequestsincomingget) | **GET** /contacts/requests/incoming | List Incoming Requests
+[*ContactsApi*](doc/ContactsApi.md) | [**listOutgoingRequestsContactsRequestsOutgoingGet**](doc/ContactsApi.md#listoutgoingrequestscontactsrequestsoutgoingget) | **GET** /contacts/requests/outgoing | List Outgoing Requests
 [*ContactsApi*](doc/ContactsApi.md) | [**scanContactsContactsScanPost**](doc/ContactsApi.md#scancontactscontactsscanpost) | **POST** /contacts/scan | Scan Contacts
 [*EmailAuthApi*](doc/EmailAuthApi.md) | [**emailLoginAuthEmailLoginPost**](doc/EmailAuthApi.md#emailloginauthemailloginpost) | **POST** /auth/email/login | Email Login
 [*EmailAuthApi*](doc/EmailAuthApi.md) | [**emailStartAuthEmailStartPost**](doc/EmailAuthApi.md#emailstartauthemailstartpost) | **POST** /auth/email/start | Email Start
@@ -89,6 +96,9 @@ Class | Method | HTTP request | Description
 ## Documentation For Models
 
  - [AuthResponse](doc/AuthResponse.md)
+ - [ContactProfile](doc/ContactProfile.md)
+ - [ContactRequestCreate](doc/ContactRequestCreate.md)
+ - [ContactSummary](doc/ContactSummary.md)
  - [ContactsScanRequest](doc/ContactsScanRequest.md)
  - [ContactsScanResponse](doc/ContactsScanResponse.md)
  - [DataSharingApproveRequest](doc/DataSharingApproveRequest.md)
@@ -97,10 +107,12 @@ Class | Method | HTTP request | Description
  - [EmailStartResponse](doc/EmailStartResponse.md)
  - [EmailVerifyRequest](doc/EmailVerifyRequest.md)
  - [HTTPValidationError](doc/HTTPValidationError.md)
+ - [IncomingContactRequest](doc/IncomingContactRequest.md)
  - [LocationInner](doc/LocationInner.md)
  - [MatchedContact](doc/MatchedContact.md)
  - [MatrixCredentials](doc/MatrixCredentials.md)
  - [MatrixPasswordResponse](doc/MatrixPasswordResponse.md)
+ - [OutgoingContactRequest](doc/OutgoingContactRequest.md)
  - [PhoneCheckResponse](doc/PhoneCheckResponse.md)
  - [RefreshRequest](doc/RefreshRequest.md)
  - [SharableField](doc/SharableField.md)

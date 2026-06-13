@@ -15,6 +15,9 @@ import 'package:api_client/src/date_serializer.dart';
 import 'package:api_client/src/model/date.dart';
 
 import 'package:api_client/src/model/auth_response.dart';
+import 'package:api_client/src/model/contact_profile.dart';
+import 'package:api_client/src/model/contact_request_create.dart';
+import 'package:api_client/src/model/contact_summary.dart';
 import 'package:api_client/src/model/contacts_scan_request.dart';
 import 'package:api_client/src/model/contacts_scan_response.dart';
 import 'package:api_client/src/model/data_sharing_approve_request.dart';
@@ -23,10 +26,12 @@ import 'package:api_client/src/model/email_start_request.dart';
 import 'package:api_client/src/model/email_start_response.dart';
 import 'package:api_client/src/model/email_verify_request.dart';
 import 'package:api_client/src/model/http_validation_error.dart';
+import 'package:api_client/src/model/incoming_contact_request.dart';
 import 'package:api_client/src/model/location_inner.dart';
 import 'package:api_client/src/model/matched_contact.dart';
 import 'package:api_client/src/model/matrix_credentials.dart';
 import 'package:api_client/src/model/matrix_password_response.dart';
+import 'package:api_client/src/model/outgoing_contact_request.dart';
 import 'package:api_client/src/model/phone_check_response.dart';
 import 'package:api_client/src/model/refresh_request.dart';
 import 'package:api_client/src/model/sharable_field.dart';
@@ -40,6 +45,9 @@ part 'serializers.g.dart';
 
 @SerializersFor([
   AuthResponse,
+  ContactProfile,
+  ContactRequestCreate,
+  ContactSummary,
   ContactsScanRequest,
   ContactsScanResponse,
   DataSharingApproveRequest,
@@ -48,10 +56,12 @@ part 'serializers.g.dart';
   EmailStartResponse,
   EmailVerifyRequest,
   HTTPValidationError,
+  IncomingContactRequest,
   LocationInner,
   MatchedContact,
   MatrixCredentials,
   MatrixPasswordResponse,
+  OutgoingContactRequest,
   PhoneCheckResponse,
   RefreshRequest,
   SharableField,
@@ -62,6 +72,18 @@ part 'serializers.g.dart';
   ValidationError,
 ])
 Serializers serializers = (_$serializers.toBuilder()
+      ..addBuilderFactory(
+        const FullType(BuiltList, [FullType(IncomingContactRequest)]),
+        () => ListBuilder<IncomingContactRequest>(),
+      )
+      ..addBuilderFactory(
+        const FullType(BuiltList, [FullType(OutgoingContactRequest)]),
+        () => ListBuilder<OutgoingContactRequest>(),
+      )
+      ..addBuilderFactory(
+        const FullType(BuiltList, [FullType(ContactSummary)]),
+        () => ListBuilder<ContactSummary>(),
+      )
       ..addBuilderFactory(
         const FullType(BuiltMap, [FullType(String), FullType(JsonObject)]),
         () => MapBuilder<String, JsonObject>(),

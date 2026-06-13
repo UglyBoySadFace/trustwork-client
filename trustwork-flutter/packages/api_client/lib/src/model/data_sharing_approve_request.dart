@@ -15,6 +15,7 @@ part 'data_sharing_approve_request.g.dart';
 /// Properties:
 /// * [calleeMatrixId] 
 /// * [approvedFields] 
+/// * [ttlMinutes] 
 @BuiltValue()
 abstract class DataSharingApproveRequest implements Built<DataSharingApproveRequest, DataSharingApproveRequestBuilder> {
   @BuiltValueField(wireName: r'callee_matrix_id')
@@ -22,6 +23,9 @@ abstract class DataSharingApproveRequest implements Built<DataSharingApproveRequ
 
   @BuiltValueField(wireName: r'approved_fields')
   BuiltList<SharableField> get approvedFields;
+
+  @BuiltValueField(wireName: r'ttl_minutes')
+  int? get ttlMinutes;
 
   DataSharingApproveRequest._();
 
@@ -56,6 +60,13 @@ class _$DataSharingApproveRequestSerializer implements PrimitiveSerializer<DataS
       object.approvedFields,
       specifiedType: const FullType(BuiltList, [FullType(SharableField)]),
     );
+    if (object.ttlMinutes != null) {
+      yield r'ttl_minutes';
+      yield serializers.serialize(
+        object.ttlMinutes,
+        specifiedType: const FullType.nullable(int),
+      );
+    }
   }
 
   @override
@@ -92,6 +103,14 @@ class _$DataSharingApproveRequestSerializer implements PrimitiveSerializer<DataS
             specifiedType: const FullType(BuiltList, [FullType(SharableField)]),
           ) as BuiltList<SharableField>;
           result.approvedFields.replace(valueDes);
+          break;
+        case r'ttl_minutes':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType.nullable(int),
+          ) as int?;
+          if (valueDes == null) continue;
+          result.ttlMinutes = valueDes;
           break;
         default:
           unhandled.add(key);
