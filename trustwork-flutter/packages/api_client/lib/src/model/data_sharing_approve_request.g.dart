@@ -11,13 +11,17 @@ class _$DataSharingApproveRequest extends DataSharingApproveRequest {
   final String calleeMatrixId;
   @override
   final BuiltList<SharableField> approvedFields;
+  @override
+  final int? ttlMinutes;
 
   factory _$DataSharingApproveRequest(
           [void Function(DataSharingApproveRequestBuilder)? updates]) =>
       (DataSharingApproveRequestBuilder()..update(updates))._build();
 
   _$DataSharingApproveRequest._(
-      {required this.calleeMatrixId, required this.approvedFields})
+      {required this.calleeMatrixId,
+      required this.approvedFields,
+      this.ttlMinutes})
       : super._();
   @override
   DataSharingApproveRequest rebuild(
@@ -33,7 +37,8 @@ class _$DataSharingApproveRequest extends DataSharingApproveRequest {
     if (identical(other, this)) return true;
     return other is DataSharingApproveRequest &&
         calleeMatrixId == other.calleeMatrixId &&
-        approvedFields == other.approvedFields;
+        approvedFields == other.approvedFields &&
+        ttlMinutes == other.ttlMinutes;
   }
 
   @override
@@ -41,6 +46,7 @@ class _$DataSharingApproveRequest extends DataSharingApproveRequest {
     var _$hash = 0;
     _$hash = $jc(_$hash, calleeMatrixId.hashCode);
     _$hash = $jc(_$hash, approvedFields.hashCode);
+    _$hash = $jc(_$hash, ttlMinutes.hashCode);
     _$hash = $jf(_$hash);
     return _$hash;
   }
@@ -49,7 +55,8 @@ class _$DataSharingApproveRequest extends DataSharingApproveRequest {
   String toString() {
     return (newBuiltValueToStringHelper(r'DataSharingApproveRequest')
           ..add('calleeMatrixId', calleeMatrixId)
-          ..add('approvedFields', approvedFields))
+          ..add('approvedFields', approvedFields)
+          ..add('ttlMinutes', ttlMinutes))
         .toString();
   }
 }
@@ -70,6 +77,10 @@ class DataSharingApproveRequestBuilder
   set approvedFields(ListBuilder<SharableField>? approvedFields) =>
       _$this._approvedFields = approvedFields;
 
+  int? _ttlMinutes;
+  int? get ttlMinutes => _$this._ttlMinutes;
+  set ttlMinutes(int? ttlMinutes) => _$this._ttlMinutes = ttlMinutes;
+
   DataSharingApproveRequestBuilder() {
     DataSharingApproveRequest._defaults(this);
   }
@@ -79,6 +90,7 @@ class DataSharingApproveRequestBuilder
     if ($v != null) {
       _calleeMatrixId = $v.calleeMatrixId;
       _approvedFields = $v.approvedFields.toBuilder();
+      _ttlMinutes = $v.ttlMinutes;
       _$v = null;
     }
     return this;
@@ -105,6 +117,7 @@ class DataSharingApproveRequestBuilder
             calleeMatrixId: BuiltValueNullFieldError.checkNotNull(
                 calleeMatrixId, r'DataSharingApproveRequest', 'calleeMatrixId'),
             approvedFields: approvedFields.build(),
+            ttlMinutes: ttlMinutes,
           );
     } catch (_) {
       late String _$failedField;

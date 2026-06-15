@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 
 import 'package:api_client/api_client.dart';
+import 'package:built_collection/built_collection.dart';
 import 'package:built_value/serializer.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -45,6 +46,83 @@ class TrustworkApiService {
   EmailAuthApi get emailAuth => _apiClient.getEmailAuthApi();
   TokenApi get token => _apiClient.getTokenApi();
   SharingApi get sharing => _apiClient.getSharingApi();
+  ContactsApi get contacts => _apiClient.getContactsApi();
+
+  Map<String, String> _authHeader(String token) =>
+      <String, String>{'Authorization': 'Bearer $token'};
+
+  /// Sends a contact request to the user behind [targetMatrixId].
+  Future<OutgoingContactRequest> createContactRequest(
+    String targetMatrixId,
+  ) async {
+    final response = await authedRequest(
+      (token) => contacts.createContactRequestContactsRequestsPost(
+        contactRequestCreate: ContactRequestCreate(
+          (b) => b..targetMatrixId = targetMatrixId,
+        ),
+        headers: _authHeader(token),
+      ),
+    );
+    return response.data!;
+  }
+
+  /// Requests sent to me, awaiting my decision.
+  Future<BuiltList<IncomingContactRequest>> getIncomingContactRequests() async {
+    final response = await authedRequest(
+      (token) => contacts.listIncomingRequestsContactsRequestsIncomingGet(
+        headers: _authHeader(token),
+      ),
+    );
+    return response.data ?? BuiltList();
+  }
+
+  /// Requests I sent, with their current status.
+  Future<BuiltList<OutgoingContactRequest>> getOutgoingContactRequests() async {
+    final response = await authedRequest(
+      (token) => contacts.listOutgoingRequestsContactsRequestsOutgoingGet(
+        headers: _authHeader(token),
+      ),
+    );
+    return response.data ?? BuiltList();
+  }
+
+  /// Accepts a pending incoming contact request, revealing my identity to
+  /// the requester and opening messaging.
+  Future<ContactSummary> acceptContactRequest(int requestId) async {
+    final response = await authedRequest(
+      (token) => contacts.acceptContactRequestContactsRequestsRequestIdAcceptPost(
+        requestId: requestId,
+        headers: _authHeader(token),
+      ),
+    );
+    return response.data!;
+  }
+
+  /// Declines a pending incoming contact request.
+  Future<void> declineContactRequest(int requestId) => authedRequest(
+    (token) => contacts.declineContactRequestContactsRequestsRequestIdDeclinePost(
+      requestId: requestId,
+      headers: _authHeader(token),
+    ),
+  );
+
+  /// Blocks the requester of a pending incoming contact request.
+  Future<void> blockContactRequest(int requestId) => authedRequest(
+    (token) => contacts.blockContactRequestContactsRequestsRequestIdBlockPost(
+      requestId: requestId,
+      headers: _authHeader(token),
+    ),
+  );
+
+  /// Accepted, two-way contacts.
+  Future<BuiltList<ContactSummary>> getContacts() async {
+    final response = await authedRequest(
+      (token) => contacts.listContactsContactsGet(
+        headers: _authHeader(token),
+      ),
+    );
+    return response.data ?? BuiltList();
+  }
 
   Future<void> saveTokens(String accessToken, String refreshToken) async {
     await Future.wait([

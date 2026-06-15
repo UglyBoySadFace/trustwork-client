@@ -83,7 +83,16 @@ Strings are in `.arb` files under `lib/l10n/`. English source: `lib/l10n/intl_en
 
 ### Trustwork API Client
 
-The OpenAPI-generated Dart client lives at `trustwork-flutter/packages/api_client/`. The user owns regeneration: when the backend API changes, they update the spec and run codegen themselves, then commit the regenerated files. Treat the contents of `trustwork-flutter/packages/api_client/lib/` as the source of truth for available endpoints and models — do not edit `trustwork-flutter/openapi.json` or run `build_runner` against the package. If a type or endpoint you need is missing, ask the user to regenerate rather than hand-editing.
+The OpenAPI-generated Dart client lives at `trustwork-flutter/packages/api_client/`. The user owns regeneration: when the backend API changes, they update the spec and run codegen themselves, then commit the regenerated files. Treat the contents of `trustwork-flutter/packages/api_client/lib/` as the source of truth for available endpoints and models — do not edit `trustwork-flutter/openapi.json`.
+
+OpenAPI codegen only produces the annotated source model files (e.g. `contact_summary.dart`) with `part 'xxx.g.dart'` — it does **not** produce the `.g.dart` builder/serializer files. Whenever `trustwork-flutter/packages/api_client/lib/src/model/*.dart` changes (new/changed `@BuiltValue` models after a regeneration), run `build_runner` in the package so the `.g.dart` files stay in sync, then commit both:
+
+```bash
+cd trustwork-flutter/packages/api_client
+dart run build_runner build
+```
+
+If a type or endpoint you need is missing entirely (not just its `.g.dart`), ask the user to regenerate the OpenAPI client rather than hand-editing.
 
 Singleton wrapper: `lib/utils/trustwork_api_service.dart` exposes accessors and handles auth/refresh.
 

@@ -21,6 +21,7 @@ import 'package:fluffychat/config/app_config.dart';
 import 'package:fluffychat/l10n/l10n.dart';
 import 'package:fluffychat/pages/onboarding/onboarding_flow_coordinator.dart';
 import 'package:fluffychat/utils/client_manager.dart';
+import 'package:fluffychat/utils/contacts/contacts_cache.dart';
 import 'package:fluffychat/utils/data_sharing/data_sharing_service.dart';
 import 'package:fluffychat/utils/full_screen_intent_helper.dart';
 import 'package:fluffychat/utils/init_with_restore.dart';
@@ -188,6 +189,7 @@ class MatrixState extends State<Matrix> with WidgetsBindingObserver {
   final onLoginStateChanged = <String, StreamSubscription<LoginState>>{};
   final onUiaRequest = <String, StreamSubscription<UiaRequest>>{};
   final dataSharingServices = <String, DataSharingService>{};
+  final contactsCache = ContactsCache();
   StreamSubscription<void>? _twAuthExpiredSub;
   StreamSubscription<Uri>? _verifyLinkSub;
 
@@ -224,6 +226,10 @@ class MatrixState extends State<Matrix> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    contactsCache.loadFromStore(store);
+    if (widget.clients.any((c) => c.isLogged())) {
+      unawaited(contactsCache.refresh(store));
+    }
     initMatrix();
     _twAuthExpiredSub =
         TrustworkApiService.instance.onAuthExpired.listen((_) {
@@ -294,6 +300,9 @@ class MatrixState extends State<Matrix> with WidgetsBindingObserver {
           );
         });
     onLoginStateChanged[name] ??= c.onLoginStateChanged.stream.listen((state) {
+      if (state == LoginState.loggedIn) {
+        unawaited(contactsCache.refresh(store));
+      }
       final loggedInWithMultipleClients = widget.clients.length > 1;
       if (state == LoginState.loggedOut) {
         _cancelSubs(c.clientName);
