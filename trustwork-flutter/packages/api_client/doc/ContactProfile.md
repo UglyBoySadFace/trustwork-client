@@ -1,4 +1,4 @@
-# api_client.model.DataSharingApproveRequest
+# api_client.model.ContactProfile
 
 ## Load the model package
 ```dart
@@ -8,9 +8,8 @@ import 'package:api_client/api.dart';
 ## Properties
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**calleeMatrixId** | **String** |  | 
-**approvedFields** | [**BuiltList&lt;SharableField&gt;**](SharableField.md) |  | 
-**ttlMinutes** | **int** |  | [optional] 
+**matrixUserId** | **String** |  | [optional] 
+**displayName** | **String** |  | 
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
 

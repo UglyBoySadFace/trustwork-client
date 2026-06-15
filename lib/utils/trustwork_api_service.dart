@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 
 import 'package:api_client/api_client.dart';
@@ -15,19 +18,25 @@ class TrustworkApiService {
   static final instance = TrustworkApiService._();
   TrustworkApiService._();
 
+  final _authExpiredController = StreamController<void>.broadcast();
+
+  /// Fires when the Trustwork session is definitively expired — the refresh
+  /// token itself returned 401, meaning re-authentication is required.
+  /// Tokens are cleared before the event is emitted.
+  Stream<void> get onAuthExpired => _authExpiredController.stream;
+
   final _dio = Dio(
     BaseOptions(
       baseUrl: AppConfig.trustworkApiBaseUrl,
       connectTimeout: const Duration(milliseconds: 5000),
       receiveTimeout: const Duration(milliseconds: 10000),
     ),
-  )..interceptors.add(
-      LogInterceptor(
-        requestBody: true,
-        responseBody: true,
-        logPrint: (o) => debugPrint('[TW-API] $o'),
-      ),
-    );
+  )..interceptors.add(_RedactingLogInterceptor());
+
+  /// Test-only access to the underlying [Dio] instance (e.g. for swapping
+  /// `httpClientAdapter` with a mock).
+  @visibleForTesting
+  Dio get dio => _dio;
 
   late final _apiClient = ApiClient(dio: _dio);
   final _storage = const FlutterSecureStorage();
@@ -89,6 +98,7 @@ class TrustworkApiService {
   Future<T> authedRequest<T>(Future<T> Function(String token) call) async {
     final accessToken = await getAccessToken();
     if (accessToken == null) {
+      _authExpiredController.add(null);
       throw StateError('Not authenticated');
     }
     try {
@@ -101,10 +111,58 @@ class TrustworkApiService {
     }
   }
 
-  Future<String?> _refreshAccessToken() async {
+  /// Validates stored tokens at app start.
+  ///
+  /// If the access token is absent and [requireAuth] is true (user has
+  /// previously onboarded), fires [onAuthExpired] so the app redirects to
+  /// re-authentication. If the access token exists but is expired, silently
+  /// attempts a refresh — which fires [onAuthExpired] on its own if the refresh
+  /// token is also rejected by the server.
+  Future<void> checkAuthOnStartup({bool requireAuth = false}) async {
+    final accessToken = await getAccessToken();
+    if (accessToken == null) {
+      if (requireAuth) _authExpiredController.add(null);
+      return;
+    }
+    if (_isJwtExpired(accessToken)) {
+      await _refreshAccessToken();
+    }
+  }
+
+  bool _isJwtExpired(String token) {
+    try {
+      final parts = token.split('.');
+      if (parts.length != 3) return false;
+      final payload = base64Url.decode(base64Url.normalize(parts[1]));
+      final claims =
+          jsonDecode(utf8.decode(payload)) as Map<String, dynamic>;
+      final exp = claims['exp'];
+      if (exp is! int) return false;
+      return DateTime.fromMillisecondsSinceEpoch(exp * 1000)
+          .isBefore(DateTime.now());
+    } catch (_) {
+      return false;
+    }
+  }
+
+  // Deduplicates concurrent refresh calls so only one hits the server at a
+  // time. Rotating refresh tokens mean a second concurrent call with the old
+  // token would be rejected — both callers share the same Future instead.
+  Future<String?>? _refreshFuture;
+
+  Future<String?> _refreshAccessToken() {
+    return _refreshFuture ??= _doRefresh().whenComplete(() {
+      _refreshFuture = null;
+    });
+  }
+
+  Future<String?> _doRefresh() async {
     try {
       final refreshToken = await getRefreshToken();
-      if (refreshToken == null) return null;
+      if (refreshToken == null) {
+        _authExpiredController.add(null);
+        return null;
+      }
       final response = await token.refreshTokenAuthRefreshPost(
         refreshRequest: RefreshRequest((b) => b..refreshToken = refreshToken),
       );
@@ -117,6 +175,10 @@ class TrustworkApiService {
       debugPrint(
         '[TW-API] Refresh failed (${e.response?.statusCode}): ${e.message}',
       );
+      if (e.response?.statusCode == 401) {
+        await clearTokens();
+        _authExpiredController.add(null);
+      }
       return null;
     } catch (e) {
       debugPrint('[TW-API] Refresh failed: $e');
@@ -139,7 +201,7 @@ class TrustworkApiService {
       data: <String, dynamic>{
         'email': email,
         'code': code,
-        if (phone != null) 'phone': phone,
+        'phone': ?phone,
       },
     );
     final data = response.data!;
@@ -208,8 +270,15 @@ class TrustworkApiService {
   /// Extracts a user-friendly message from a DioException and logs the full
   /// details so the complete response body is visible in Logcat.
   static String friendlyError(DioException e) {
+    final isRedacted = _RedactingLogInterceptor._isRedacted(
+      e.requestOptions.uri,
+    );
     debugPrint('[TW-API] ERROR ${e.response?.statusCode}: ${e.message}');
-    debugPrint('[TW-API] Response body: ${e.response?.data}');
+    if (isRedacted) {
+      debugPrint('[TW-API] Response body: <redacted>');
+    } else {
+      debugPrint('[TW-API] Response body: ${e.response?.data}');
+    }
     final data = e.response?.data;
     if (data is Map<String, dynamic>) {
       final detail = data['detail'];
@@ -220,5 +289,73 @@ class TrustworkApiService {
       }
     }
     return e.message ?? 'Something went wrong. Please try again.';
+  }
+}
+
+/// Drop-in for [LogInterceptor] that redacts request/response bodies for
+/// `/data-sharing/*` paths. The approve endpoint mints a short-lived fetch
+/// token and the fetch endpoint returns verified personal data — neither
+/// should land in logcat verbatim. URL, method, and status code are still
+/// logged so failures stay diagnosable.
+class _RedactingLogInterceptor extends Interceptor {
+  static const _prefix = '[TW-API]';
+  static const _redactedPaths = ['/data-sharing/'];
+
+  static bool _isRedacted(Uri uri) {
+    final path = uri.path;
+    for (final p in _redactedPaths) {
+      if (path.contains(p)) return true;
+    }
+    return false;
+  }
+
+  @override
+  void onRequest(
+    RequestOptions options,
+    RequestInterceptorHandler handler,
+  ) {
+    final redacted = _isRedacted(options.uri);
+    debugPrint('$_prefix *** Request ***');
+    debugPrint('$_prefix uri: ${options.uri}');
+    debugPrint('$_prefix method: ${options.method}');
+    if (options.data != null) {
+      if (redacted) {
+        debugPrint('$_prefix data: <redacted>');
+      } else {
+        debugPrint('$_prefix data: ${options.data}');
+      }
+    }
+    handler.next(options);
+  }
+
+  @override
+  void onResponse(Response response, ResponseInterceptorHandler handler) {
+    final redacted = _isRedacted(response.requestOptions.uri);
+    debugPrint('$_prefix *** Response ***');
+    debugPrint('$_prefix uri: ${response.realUri}');
+    debugPrint('$_prefix statusCode: ${response.statusCode}');
+    if (redacted) {
+      debugPrint('$_prefix body: <redacted>');
+    } else {
+      debugPrint('$_prefix body: ${response.data}');
+    }
+    handler.next(response);
+  }
+
+  @override
+  void onError(DioException err, ErrorInterceptorHandler handler) {
+    final redacted = _isRedacted(err.requestOptions.uri);
+    debugPrint('$_prefix *** DioException ***');
+    debugPrint('$_prefix uri: ${err.requestOptions.uri}');
+    debugPrint('$_prefix message: ${err.message}');
+    if (err.response != null) {
+      debugPrint('$_prefix statusCode: ${err.response!.statusCode}');
+      if (redacted) {
+        debugPrint('$_prefix body: <redacted>');
+      } else {
+        debugPrint('$_prefix body: ${err.response!.data}');
+      }
+    }
+    handler.next(err);
   }
 }

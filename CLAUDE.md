@@ -108,6 +108,25 @@ The Matrix SDK database uses SQLCipher (`sqlcipher_flutter_libs`) for encrypted 
 
 Enforces `prefer_single_quotes`, `require_trailing_commas`, `sort_pub_dependencies`, `omit_local_variable_types`, and several `dart_code_linter` rules (see `analysis_options.yaml`). Run `flutter analyze` before committing. The `l10n` generated files are excluded from analysis.
 
+### Import sorter
+
+Run `dart run import_sorter:main --no-comments` so the tool sorts imports without inserting `// Dart imports:` / `// Flutter imports:` / `// Package imports:` / `// Project imports:` section headers — those headers are not used anywhere in the existing codebase. The pubspec config does not currently disable them on its own, so always pass `--no-comments` on the command line.
+
+Also, the tool rewrites every file in `lib/` and `test/` regardless of which paths you pass; if you only want to sort the files you touched, run it on a clean working tree (no other unstaged changes) so you can revert the noise it introduces elsewhere with `git restore .` and keep just your real diffs.
+
+## Implementation workflow
+
+**One plan per session.** When working through a numbered plan in `plans/<feature>/`, implement exactly one plan file and then stop. Do not chain into the next plan in the same session, even if it's "blocked by" the one you just finished and even if it's small. The user reviews the code by hand between plans, and bulk implementations are harder to review and revert.
+
+**At the end of each plan:**
+
+1. Summarize what you changed in 1–3 bullets.
+2. Give the user a short manual-verification checklist — what to skim, what to spot-check, what behaviors to try if relevant. Be specific; "review the code" is not useful.
+3. Wait for the user to say it looks good.
+4. After approval, commit (do not push). Then the user starts a fresh session for the next plan.
+
+**New plan directory = new branch.** When the user asks you to start implementing a brand-new `plans/<feature>/` directory (i.e., the very first plan in that feature), first create a branch named after the feature (e.g., `git checkout -b data-sharing`) before any code changes. Subsequent plans within the same feature directory continue on that branch.
+
 ## Implementation Plans
 
 For any non-trivial feature (multi-PR, multi-file, or spec-driven), capture the plan as markdown under `plans/<feature-name>/` before writing code. The directory is gitignored — plans are local working notes, not shipped docs.

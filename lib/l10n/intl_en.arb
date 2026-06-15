@@ -3522,5 +3522,18 @@
   "dataSharingDecline": "Decline",
   "dataSharingShare": "Share",
   "dataSharingPreferencesTitle": "Data sharing",
-  "dataSharingPreferencesSubtitle": "Choose which details are pre-approved when callers ask for them."
+  "dataSharingPreferencesSubtitle": "Choose which details are pre-approved when callers ask for them.",
+  "dataSharingShareFailed": "Couldn't share. Please try again.",
+  "dataSharingRequestSubtitle": "Pick which details to send. You can change your defaults in Settings.",
+  "dataSharingRequestInfo": "Request info",
+  "dataSharingPickerTitle": "Request verification details",
+  "dataSharingPickerSubtitle": "Choose which details to ask for. The caller decides what to share.",
+  "dataSharingSendRequest": "Send request",
+  "dataSharingCancel": "Cancel",
+  "dataSharingClose": "Close",
+  "dataSharingWaitingTitle": "Waiting for response…",
+  "dataSharingWaitingSubtitle": "The caller is being asked to share these details.",
+  "dataSharingResultTitle": "Shared details",
+  "dataSharingTimedOut": "No response from the caller.",
+  "dataSharingErrored": "Something went wrong while requesting details."
 }

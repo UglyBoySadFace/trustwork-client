@@ -38,7 +38,7 @@ class EmailReactivateVerifyPage extends StatelessWidget {
                 ),
                 const SizedBox(height: 32),
                 OtpInput(
-                  onCompleted: (code) => viewModel.onCodeChanged(code),
+                  onCompleted: viewModel.onCodeChanged,
                 ),
                 if (state.error != null) ...[
                   const SizedBox(height: 16),
