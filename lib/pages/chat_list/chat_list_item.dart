@@ -13,6 +13,7 @@ import 'package:fluffychat/widgets/hover_builder.dart';
 import '../../config/themes.dart';
 import '../../utils/date_time_extension.dart';
 import '../../widgets/avatar.dart';
+import '../../widgets/matrix.dart';
 
 class ChatListItem extends StatelessWidget {
   final Room room;
@@ -48,9 +49,9 @@ class ChatListItem extends StatelessWidget {
     final backgroundColor = activeChat
         ? theme.colorScheme.secondaryContainer
         : null;
-    final displayname = room.getLocalizedDisplayname(
-      MatrixLocals(L10n.of(context)),
-    );
+    final displayname = isDirectChat
+        ? Matrix.of(context).contactsCache.label(directChatMatrixId)
+        : room.getLocalizedDisplayname(MatrixLocals(L10n.of(context)));
     final filter = this.filter;
     if (filter != null && !displayname.toLowerCase().contains(filter)) {
       return const SizedBox.shrink();

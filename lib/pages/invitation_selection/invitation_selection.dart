@@ -9,7 +9,6 @@ import 'package:fluffychat/pages/invitation_selection/invitation_selection_view.
 import 'package:fluffychat/utils/restricted_user_search.dart';
 import 'package:fluffychat/widgets/future_loading_dialog.dart';
 import 'package:fluffychat/widgets/matrix.dart';
-import '../../utils/localized_exception_extension.dart';
 
 class InvitationSelection extends StatefulWidget {
   final String roomId;
@@ -23,7 +22,6 @@ class InvitationSelection extends StatefulWidget {
 class InvitationSelectionController extends State<InvitationSelection> {
   TextEditingController controller = TextEditingController();
   late String currentSearchTerm;
-  bool loading = false;
   List<Profile> foundProfiles = [];
   Timer? coolDown;
 
@@ -32,6 +30,7 @@ class InvitationSelectionController extends State<InvitationSelection> {
   Future<List<User>> getContacts(BuildContext context) async {
     final client = Matrix.of(context).client;
     final room = client.getRoomById(roomId!)!;
+    final contactsCache = Matrix.of(context).contactsCache;
 
     final participants = (room.summary.mJoinedMemberCount ?? 0) > 100
         ? room.getParticipants()
@@ -44,8 +43,8 @@ class InvitationSelectionController extends State<InvitationSelection> {
         .map((r) => r.unsafeGetUserFromMemoryOrFallback(r.directChatMatrixID!))
         .toList();
     contacts.sort(
-      (a, b) => a.calcDisplayname().toLowerCase().compareTo(
-        b.calcDisplayname().toLowerCase(),
+      (a, b) => contactsCache.label(a.id).toLowerCase().compareTo(
+        contactsCache.label(b.id).toLowerCase(),
       ),
     );
     return contacts;
@@ -75,30 +74,19 @@ class InvitationSelectionController extends State<InvitationSelection> {
     );
   }
 
-  void searchUser(BuildContext context, String text) async {
+  void searchUser(BuildContext context, String text) {
     coolDown?.cancel();
     if (text.isEmpty) {
       setState(() => foundProfiles = []);
       return;
     }
     currentSearchTerm = text;
-    if (loading) return;
-    setState(() => loading = true);
-    try {
-      final results = await restrictedUserSearch(
-        Matrix.of(context).client,
+    setState(
+      () => foundProfiles = restrictedUserSearch(
+        Matrix.of(context).contactsCache,
         text,
-      );
-      if (mounted) setState(() => foundProfiles = results);
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toLocalizedString(context))),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => loading = false);
-    }
+      ),
+    );
   }
 
   @override

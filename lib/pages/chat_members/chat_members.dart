@@ -43,12 +43,17 @@ class ChatMembersController extends State<ChatMembersPage> {
       });
       return;
     }
+    final contactsCache = Matrix.of(context).contactsCache;
     setState(() {
       filteredMembers =
           members
               ?.where(
                 (user) =>
-                    user.displayName?.toLowerCase().contains(filter) ??
+                    (contactsCache
+                            .displayName(user.id)
+                            ?.toLowerCase()
+                            .contains(filter) ??
+                        false) ||
                     user.id.toLowerCase().contains(filter),
               )
               .toList()

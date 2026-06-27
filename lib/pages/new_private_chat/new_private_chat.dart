@@ -52,8 +52,9 @@ class NewPrivateChatController extends State<NewPrivateChat> {
     });
   }
 
-  Future<List<Profile>> _searchUser(String searchTerm) =>
-      restrictedUserSearch(Matrix.of(context).client, searchTerm);
+  Future<List<Profile>> _searchUser(String searchTerm) => Future.value(
+    restrictedUserSearch(Matrix.of(context).contactsCache, searchTerm),
+  );
 
   void inviteAction() => FluffyShare.shareInviteLink(context);
 

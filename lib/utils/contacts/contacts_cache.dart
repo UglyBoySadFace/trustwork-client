@@ -20,6 +20,9 @@ class ContactsCache {
   String label(String matrixUserId) =>
       displayName(matrixUserId) ?? matrixUserId;
 
+  /// All accepted contacts as `matrix_user_id -> display_name` entries.
+  Iterable<MapEntry<String, String>> get entries => _displayNames.entries;
+
   void loadFromStore(SharedPreferences store) {
     final raw = store.getString(storageKey);
     if (raw == null) return;

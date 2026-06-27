@@ -56,20 +56,7 @@ class InvitationSelectionView extends StatelessWidget {
                     fontWeight: FontWeight.normal,
                   ),
                   hintText: L10n.of(context).inviteContactToGroup(groupName),
-                  prefixIcon: controller.loading
-                      ? const Padding(
-                          padding: EdgeInsets.symmetric(
-                            vertical: 10.0,
-                            horizontal: 12,
-                          ),
-                          child: SizedBox.square(
-                            dimension: 24,
-                            child: CircularProgressIndicator.adaptive(
-                              strokeWidth: 2,
-                            ),
-                          ),
-                        )
-                      : const Icon(Icons.search_outlined),
+                  prefixIcon: const Icon(Icons.search_outlined),
                 ),
                 onChanged: controller.searchUserWithCoolDown,
               ),
@@ -117,6 +104,9 @@ class InvitationSelectionView extends StatelessWidget {
                             );
                           }
                           final contacts = snapshot.data!;
+                          final contactsCache = Matrix.of(
+                            context,
+                          ).contactsCache;
                           return ListView.builder(
                             physics: const NeverScrollableScrollPhysics(),
                             shrinkWrap: true,
@@ -126,10 +116,9 @@ class InvitationSelectionView extends StatelessWidget {
                                   user: contacts[i],
                                   profile: Profile(
                                     avatarUrl: contacts[i].avatarUrl,
-                                    displayName:
-                                        contacts[i].displayName ??
-                                        contacts[i].id.localpart ??
-                                        L10n.of(context).user,
+                                    displayName: contactsCache.label(
+                                      contacts[i].id,
+                                    ),
                                     userId: contacts[i].id,
                                   ),
                                   isMember: participants.contains(
@@ -138,9 +127,7 @@ class InvitationSelectionView extends StatelessWidget {
                                   onTap: () => controller.inviteAction(
                                     context,
                                     contacts[i].id,
-                                    contacts[i].displayName ??
-                                        contacts[i].id.localpart ??
-                                        L10n.of(context).user,
+                                    contactsCache.label(contacts[i].id),
                                   ),
                                 ),
                           );
@@ -181,7 +168,7 @@ class _InviteContactListTile extends StatelessWidget {
         onTap: () => UserDialog.show(context: context, profile: profile),
       ),
       title: Text(
-        profile.displayName ?? profile.userId.localpart ?? l10n.user,
+        profile.displayName ?? profile.userId,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
       ),

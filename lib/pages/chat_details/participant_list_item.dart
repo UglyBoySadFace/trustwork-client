@@ -6,6 +6,7 @@ import 'package:fluffychat/config/app_config.dart';
 import 'package:fluffychat/l10n/l10n.dart';
 import 'package:fluffychat/widgets/member_actions_popup_menu_button.dart';
 import '../../widgets/avatar.dart';
+import '../../widgets/matrix.dart';
 
 class ParticipantListItem extends StatelessWidget {
   final User user;
@@ -30,15 +31,14 @@ class ParticipantListItem extends StatelessWidget {
         ? L10n.of(context).moderator
         : '';
 
+    final displayname = Matrix.of(context).contactsCache.label(user.id);
+
     return ListTile(
       onTap: () => showMemberActionsPopupMenu(context: context, user: user),
       title: Row(
         children: <Widget>[
           Expanded(
-            child: Text(
-              user.calcDisplayname(),
-              overflow: TextOverflow.ellipsis,
-            ),
+            child: Text(displayname, overflow: TextOverflow.ellipsis),
           ),
           if (permissionBatch.isNotEmpty)
             Container(
@@ -86,7 +86,7 @@ class ParticipantListItem extends StatelessWidget {
         opacity: user.membership == Membership.join ? 1 : 0.5,
         child: Avatar(
           mxContent: user.avatarUrl,
-          name: user.calcDisplayname(),
+          name: displayname,
           presenceUserId: user.stateKey,
         ),
       ),
