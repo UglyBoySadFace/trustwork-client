@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'package:dio/dio.dart';
 import 'package:flutter_linkify/flutter_linkify.dart';
 import 'package:go_router/go_router.dart';
 import 'package:matrix/matrix.dart';
@@ -8,6 +9,7 @@ import 'package:matrix/matrix.dart';
 import 'package:fluffychat/config/themes.dart';
 import 'package:fluffychat/l10n/l10n.dart';
 import 'package:fluffychat/utils/date_time_extension.dart';
+import 'package:fluffychat/utils/trustwork_api_service.dart';
 import 'package:fluffychat/widgets/adaptive_dialogs/adaptive_dialog_action.dart';
 import 'package:fluffychat/widgets/avatar.dart';
 import 'package:fluffychat/widgets/presence_builder.dart';
@@ -163,26 +165,29 @@ class UserDialog extends StatelessWidget {
       ),
       actions: [
         if (client.userID != profile.userId) ...[
-          AdaptiveDialogAction(
-            borderRadius: AdaptiveDialogAction.topRadius,
-            bigButtons: true,
-            onPressed: () async {
-              final router = GoRouter.of(context);
-              final roomIdResult = await showFutureLoadingDialog(
-                context: context,
-                future: () => client.startDirectChat(profile.userId),
-              );
-              final roomId = roomIdResult.result;
-              if (roomId == null) return;
-              if (context.mounted) Navigator.of(context).pop();
-              router.go('/rooms/$roomId');
-            },
-            child: Text(
-              dmRoomId == null
-                  ? L10n.of(context).startConversation
-                  : L10n.of(context).sendAMessage,
-            ),
-          ),
+          if (Matrix.of(context).contactsCache.isContact(profile.userId))
+            AdaptiveDialogAction(
+              borderRadius: AdaptiveDialogAction.topRadius,
+              bigButtons: true,
+              onPressed: () async {
+                final router = GoRouter.of(context);
+                final roomIdResult = await showFutureLoadingDialog(
+                  context: context,
+                  future: () => client.startDirectChat(profile.userId),
+                );
+                final roomId = roomIdResult.result;
+                if (roomId == null) return;
+                if (context.mounted) Navigator.of(context).pop();
+                router.go('/rooms/$roomId');
+              },
+              child: Text(
+                dmRoomId == null
+                    ? L10n.of(context).startConversation
+                    : L10n.of(context).sendAMessage,
+              ),
+            )
+          else
+            _SendRequestAction(userId: profile.userId),
           AdaptiveDialogAction(
             bigButtons: true,
             borderRadius: AdaptiveDialogAction.centerRadius,
@@ -209,4 +214,65 @@ class UserDialog extends StatelessWidget {
       ],
     );
   }
+}
+
+class _SendRequestAction extends StatefulWidget {
+  final String userId;
+
+  const _SendRequestAction({required this.userId});
+
+  @override
+  State<_SendRequestAction> createState() => _SendRequestActionState();
+}
+
+class _SendRequestActionState extends State<_SendRequestAction> {
+  bool _sending = false;
+
+  Future<void> _send() async {
+    final router = GoRouter.of(context);
+    setState(() => _sending = true);
+    try {
+      await TrustworkApiService.instance.createContactRequest(widget.userId);
+      if (!mounted) return;
+      Navigator.of(context).pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content:
+              Text(L10n.of(context).contactRequestSentTo(widget.userId)),
+        ),
+      );
+    } on DioException catch (e) {
+      if (!mounted) return;
+      if (e.response?.statusCode == 409) {
+        Navigator.of(context).pop();
+        router.go('/rooms/contacts/requests');
+        return;
+      }
+      Navigator.of(context).pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(TrustworkApiService.friendlyError(e))),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.of(context).pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString())),
+      );
+    } finally {
+      if (mounted) setState(() => _sending = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => AdaptiveDialogAction(
+    borderRadius: AdaptiveDialogAction.topRadius,
+    bigButtons: true,
+    onPressed: _sending ? null : _send,
+    child: _sending
+        ? const SizedBox.square(
+            dimension: 20,
+            child: CircularProgressIndicator.adaptive(strokeWidth: 2),
+          )
+        : Text(L10n.of(context).sendContactRequest),
+  );
 }

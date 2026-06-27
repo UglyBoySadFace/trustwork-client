@@ -15,6 +15,8 @@ class ContactsCache {
 
   String? displayName(String matrixUserId) => _displayNames[matrixUserId];
 
+  bool isContact(String matrixUserId) => _displayNames.containsKey(matrixUserId);
+
   /// Returns the cached display name for [matrixUserId], falling back to the
   /// Matrix ID itself when no accepted contact is known.
   String label(String matrixUserId) =>

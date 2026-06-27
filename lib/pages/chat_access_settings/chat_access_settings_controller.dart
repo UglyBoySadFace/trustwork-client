@@ -223,6 +223,10 @@ class ChatAccessSettingsController extends State<ChatAccessSettings> {
               await newRoom.invite(user.id);
               onProgress(i / users.length);
             } on MatrixException catch (e) {
+              if (e.error == MatrixError.M_FORBIDDEN) {
+                Logs().w('Skipping non-contact ${user.id} during room upgrade');
+                continue;
+              }
               final retryAfterMs = e.retryAfterMs;
               if (e.error != MatrixError.M_LIMIT_EXCEEDED ||
                   retryAfterMs == null) {

@@ -218,9 +218,25 @@ class ChatController extends State<ChatPageWithRoom>
         'Try to recreate a room with is not a DM room. This should not be possible from the UI!',
       );
     }
+    if (!Matrix.of(context).contactsCache.isContact(userId)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(L10n.of(context).mustBeContactFirst)),
+      );
+      return;
+    }
+    final mustConnectFirst = L10n.of(context).mustBeContactFirst;
     await showFutureLoadingDialog(
       context: context,
-      future: () => room.invite(userId),
+      future: () async {
+        try {
+          return await room.invite(userId);
+        } on MatrixException catch (e) {
+          if (e.error == MatrixError.M_FORBIDDEN) {
+            throw Exception(mustConnectFirst);
+          }
+          rethrow;
+        }
+      },
     );
   }
 

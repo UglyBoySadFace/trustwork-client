@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'package:device_info_plus/device_info_plus.dart';
+import 'package:dio/dio.dart';
+import 'package:go_router/go_router.dart';
 import 'package:matrix/matrix.dart';
 
 import 'package:fluffychat/l10n/l10n.dart';
@@ -13,6 +15,7 @@ import 'package:fluffychat/utils/adaptive_bottom_sheet.dart';
 import 'package:fluffychat/utils/fluffy_share.dart';
 import 'package:fluffychat/utils/platform_infos.dart';
 import 'package:fluffychat/utils/restricted_user_search.dart';
+import 'package:fluffychat/utils/trustwork_api_service.dart';
 import 'package:fluffychat/utils/url_launcher.dart';
 import 'package:fluffychat/widgets/matrix.dart';
 import '../../widgets/adaptive_dialogs/user_dialog.dart';
@@ -29,10 +32,19 @@ class NewPrivateChatController extends State<NewPrivateChat> {
   final FocusNode textFieldFocus = FocusNode();
 
   Future<List<Profile>>? searchResponse;
+  bool isSendingRequest = false;
+  // 'pending' | 'accepted' | null
+  String? sendRequestStatus;
+  String? sendRequestError;
 
   Timer? _searchCoolDown;
 
   static const Duration _coolDown = Duration(milliseconds: 500);
+
+  bool get looksLikeMxid {
+    final text = controller.text.trim();
+    return text.startsWith('@') && text.contains(':') && text.length > 4;
+  }
 
   void searchUsers([String? input]) async {
     final searchTerm = input ?? controller.text;
@@ -40,16 +52,59 @@ class NewPrivateChatController extends State<NewPrivateChat> {
       _searchCoolDown?.cancel();
       setState(() {
         searchResponse = _searchCoolDown = null;
+        sendRequestStatus = null;
+        sendRequestError = null;
       });
       return;
     }
 
+    setState(() {
+      sendRequestStatus = null;
+      sendRequestError = null;
+    });
     _searchCoolDown?.cancel();
     _searchCoolDown = Timer(_coolDown, () {
       setState(() {
         searchResponse = _searchUser(searchTerm);
       });
     });
+  }
+
+  Future<void> sendContactRequest() async {
+    if (!looksLikeMxid) {
+      setState(() => sendRequestError = L10n.of(context).invalidMxid);
+      return;
+    }
+    final mxid = controller.text.trim();
+    setState(() {
+      isSendingRequest = true;
+      sendRequestError = null;
+      sendRequestStatus = null;
+    });
+    try {
+      final req = await TrustworkApiService.instance.createContactRequest(mxid);
+      if (!mounted) return;
+      setState(() {
+        sendRequestStatus = req.status == 'accepted' ? 'accepted' : 'pending';
+        isSendingRequest = false;
+      });
+    } on DioException catch (e) {
+      if (!mounted) return;
+      if (e.response?.statusCode == 409) {
+        context.go('/rooms/contacts/requests');
+        return;
+      }
+      setState(() {
+        sendRequestError = TrustworkApiService.friendlyError(e);
+        isSendingRequest = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        sendRequestError = e.toString();
+        isSendingRequest = false;
+      });
+    }
   }
 
   Future<List<Profile>> _searchUser(String searchTerm) => Future.value(

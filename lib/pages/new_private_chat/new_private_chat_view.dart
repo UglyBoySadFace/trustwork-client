@@ -10,7 +10,6 @@ import 'package:fluffychat/l10n/l10n.dart';
 import 'package:fluffychat/pages/new_private_chat/new_private_chat.dart';
 import 'package:fluffychat/utils/localized_exception_extension.dart';
 import 'package:fluffychat/utils/platform_infos.dart';
-import 'package:fluffychat/utils/url_launcher.dart';
 import 'package:fluffychat/widgets/avatar.dart';
 import 'package:fluffychat/widgets/layouts/max_width_body.dart';
 import 'package:fluffychat/widgets/matrix.dart';
@@ -24,22 +23,18 @@ class NewPrivateChatView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-
     final searchResponse = controller.searchResponse;
     final userId = Matrix.of(context).client.userID!;
     return Scaffold(
       appBar: AppBar(
         scrolledUnderElevation: 0,
         leading: const Center(child: BackButton()),
-        title: Text(L10n.of(context).newChat),
+        title: Text(L10n.of(context).addContact),
         backgroundColor: theme.scaffoldBackgroundColor,
         actions: [
           TextButton(
-            onPressed: UrlLauncher(
-              context,
-              AppConfig.startChatTutorial,
-            ).launchUrl,
-            child: Text(L10n.of(context).help),
+            onPressed: () => context.go('/rooms/contacts/requests'),
+            child: Text(L10n.of(context).contactRequests),
           ),
         ],
       ),
@@ -288,9 +283,70 @@ class NewPrivateChatView extends StatelessWidget {
                       ),
               ),
             ),
+            if (controller.looksLikeMxid ||
+                controller.sendRequestStatus != null)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                child: _buildSendRequestSection(context, theme),
+              ),
           ],
         ),
       ),
     );
+  }
+
+  Widget _buildSendRequestSection(BuildContext context, ThemeData theme) {
+    final l10n = L10n.of(context);
+    return switch (controller.sendRequestStatus) {
+      'pending' => Row(
+        children: [
+          Icon(Icons.check_circle_outline, color: theme.colorScheme.primary),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              l10n.contactRequestSentTo(controller.controller.text.trim()),
+              style: TextStyle(color: theme.colorScheme.primary),
+            ),
+          ),
+        ],
+      ),
+      'accepted' => Row(
+        children: [
+          Icon(Icons.check_circle_outline, color: theme.colorScheme.primary),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              l10n.alreadyConnected,
+              style: TextStyle(color: theme.colorScheme.primary),
+            ),
+          ),
+        ],
+      ),
+      _ => Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (controller.sendRequestError != null) ...[
+            Text(
+              controller.sendRequestError!,
+              style: TextStyle(color: theme.colorScheme.error),
+            ),
+            const SizedBox(height: 8),
+          ],
+          FilledButton.icon(
+            onPressed: controller.isSendingRequest
+                ? null
+                : controller.sendContactRequest,
+            icon: controller.isSendingRequest
+                ? const SizedBox.square(
+                    dimension: 20,
+                    child: CircularProgressIndicator.adaptive(strokeWidth: 2),
+                  )
+                : const Icon(Icons.person_add_outlined),
+            label: Text(l10n.sendContactRequest),
+          ),
+        ],
+      ),
+    };
   }
 }

@@ -52,10 +52,19 @@ class InvitationSelectionController extends State<InvitationSelection> {
 
   void inviteAction(BuildContext context, String id, String displayname) async {
     final room = Matrix.of(context).client.getRoomById(roomId!)!;
-
+    final mustConnectFirst = L10n.of(context).mustBeContactFirst;
     final success = await showFutureLoadingDialog(
       context: context,
-      future: () => room.invite(id),
+      future: () async {
+        try {
+          return await room.invite(id);
+        } on MatrixException catch (e) {
+          if (e.error == MatrixError.M_FORBIDDEN) {
+            throw Exception(mustConnectFirst);
+          }
+          rethrow;
+        }
+      },
     );
     if (success.error == null) {
       ScaffoldMessenger.of(context).showSnackBar(

@@ -3535,5 +3535,49 @@
   "dataSharingWaitingSubtitle": "The caller is being asked to share these details.",
   "dataSharingResultTitle": "Shared details",
   "dataSharingTimedOut": "No response from the caller.",
-  "dataSharingErrored": "Something went wrong while requesting details."
+  "dataSharingErrored": "Something went wrong while requesting details.",
+  "addContact": "Add Contact",
+  "@addContact": {},
+  "contactRequests": "Contact Requests",
+  "@contactRequests": {},
+  "incomingRequests": "Incoming",
+  "@incomingRequests": {},
+  "outgoingRequests": "Outgoing",
+  "@outgoingRequests": {},
+  "sendContactRequest": "Send contact request",
+  "@sendContactRequest": {},
+  "contactRequestSentTo": "Contact request sent to {mxid}",
+  "@contactRequestSentTo": {
+    "placeholders": {
+      "mxid": {"type": "String"}
+    }
+  },
+  "alreadyConnected": "You are already connected with this user.",
+  "@alreadyConnected": {},
+  "requestMoreInfo": "Request more info",
+  "@requestMoreInfo": {},
+  "noIncomingRequests": "No incoming contact requests",
+  "@noIncomingRequests": {},
+  "noOutgoingRequests": "No outgoing contact requests",
+  "@noOutgoingRequests": {},
+  "invalidMxid": "Enter a valid Matrix ID (e.g. @user:server.com)",
+  "@invalidMxid": {},
+  "willShareWithYou": "Will share: {fields}",
+  "@willShareWithYou": {
+    "placeholders": {
+      "fields": {"type": "String"}
+    }
+  },
+  "sharesNothingWithYou": "Shares nothing",
+  "@sharesNothingWithYou": {},
+  "contactRequestStatusPending": "Pending",
+  "@contactRequestStatusPending": {},
+  "contactRequestStatusAccepted": "Accepted",
+  "@contactRequestStatusAccepted": {},
+  "contactRequestStatusDeclined": "Declined",
+  "@contactRequestStatusDeclined": {},
+  "contactRequestStatusBlocked": "Blocked",
+  "@contactRequestStatusBlocked": {},
+  "mustBeContactFirst": "You need to connect with this person first.",
+  "@mustBeContactFirst": {}
 }
