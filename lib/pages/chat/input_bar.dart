@@ -8,6 +8,7 @@ import 'package:slugify/slugify.dart';
 import 'package:fluffychat/config/app_config.dart';
 import 'package:fluffychat/config/setting_keys.dart';
 import 'package:fluffychat/l10n/l10n.dart';
+import 'package:fluffychat/utils/contacts/contacts_cache.dart';
 import 'package:fluffychat/utils/markdown_context_builder.dart';
 import 'package:fluffychat/widgets/mxc_image.dart';
 import '../../widgets/avatar.dart';
@@ -29,6 +30,7 @@ class InputBar extends StatelessWidget {
   final bool? autofocus;
   final bool readOnly;
   final List<Emoji> suggestionEmojis;
+  final ContactsCache? contactsCache;
 
   const InputBar({
     required this.room,
@@ -45,6 +47,7 @@ class InputBar extends StatelessWidget {
     this.textInputAction,
     this.readOnly = false,
     required this.suggestionEmojis,
+    this.contactsCache,
     super.key,
   });
 
@@ -154,17 +157,16 @@ class InputBar extends StatelessWidget {
     if (userMatch != null) {
       final userSearch = userMatch[1]!.toLowerCase();
       for (final user in room.getParticipants()) {
-        if ((user.displayName != null &&
-                (user.displayName!.toLowerCase().contains(userSearch) ||
-                    slugify(
-                      user.displayName!.toLowerCase(),
-                    ).contains(userSearch))) ||
+        final name =
+            contactsCache?.label(user.id) ?? user.displayName ?? user.id;
+        if (name.toLowerCase().contains(userSearch) ||
+            slugify(name.toLowerCase()).contains(userSearch) ||
             user.id.localpart!.toLowerCase().contains(userSearch)) {
           ret.add({
             'type': 'user',
             'mxid': user.id,
             'mention': user.mention,
-            'displayname': user.displayName,
+            'displayname': contactsCache?.label(user.id) ?? user.displayName,
             'avatar_url': user.avatarUrl?.toString(),
           });
         }

@@ -83,11 +83,13 @@ class MessageContent extends StatelessWidget {
                 contentPadding: EdgeInsets.zero,
                 leading: Avatar(
                   mxContent: sender.avatarUrl,
-                  name: sender.calcDisplayname(),
+                  name: Matrix.of(context).contactsCache.label(sender.id),
                   presenceUserId: sender.stateKey,
                   client: event.room.client,
                 ),
-                title: Text(sender.calcDisplayname()),
+                title: Text(
+                  Matrix.of(context).contactsCache.label(sender.id),
+                ),
                 subtitle: Text(event.originServerTs.localizedTime(context)),
                 trailing: const Icon(Icons.lock_outlined),
               ),
@@ -305,37 +307,25 @@ class MessageContent extends StatelessWidget {
           linkColor: linkColor,
         );
       case EventTypes.CallInvite:
-        return FutureBuilder<User?>(
-          future: event.fetchSenderUser(),
-          builder: (context, snapshot) {
-            return _ButtonContent(
-              label: L10n.of(context).startedACall(
-                snapshot.data?.calcDisplayname() ??
-                    event.senderFromMemoryOrFallback.calcDisplayname(),
-              ),
-              icon: '📞',
-              textColor: buttonTextColor,
-              onPressed: () => onInfoTab!(event),
-              fontSize: fontSize,
-            );
-          },
+        return _ButtonContent(
+          label: L10n.of(context).startedACall(
+            Matrix.of(context).contactsCache.label(event.senderId),
+          ),
+          icon: '📞',
+          textColor: buttonTextColor,
+          onPressed: () => onInfoTab!(event),
+          fontSize: fontSize,
         );
       default:
-        return FutureBuilder<User?>(
-          future: event.fetchSenderUser(),
-          builder: (context, snapshot) {
-            return _ButtonContent(
-              label: L10n.of(context).userSentUnknownEvent(
-                snapshot.data?.calcDisplayname() ??
-                    event.senderFromMemoryOrFallback.calcDisplayname(),
-                event.type,
-              ),
-              icon: 'ℹ️',
-              textColor: buttonTextColor,
-              onPressed: () => onInfoTab!(event),
-              fontSize: fontSize,
-            );
-          },
+        return _ButtonContent(
+          label: L10n.of(context).userSentUnknownEvent(
+            Matrix.of(context).contactsCache.label(event.senderId),
+            event.type,
+          ),
+          icon: 'ℹ️',
+          textColor: buttonTextColor,
+          onPressed: () => onInfoTab!(event),
+          fontSize: fontSize,
         );
     }
   }
@@ -361,10 +351,10 @@ class RedactionWidget extends StatelessWidget {
       future: event.redactedBecause?.fetchSenderUser(),
       builder: (context, snapshot) {
         final reason = event.redactedBecause?.content.tryGet<String>('reason');
-        final redactedBy =
-            snapshot.data?.calcDisplayname() ??
-            event.redactedBecause?.senderId.localpart ??
-            L10n.of(context).user;
+        final redactedBySenderId = event.redactedBecause?.senderId;
+        final redactedBy = redactedBySenderId != null
+            ? Matrix.of(context).contactsCache.label(redactedBySenderId)
+            : L10n.of(context).user;
         return _ButtonContent(
           label: reason == null
               ? L10n.of(context).redactedBy(redactedBy)

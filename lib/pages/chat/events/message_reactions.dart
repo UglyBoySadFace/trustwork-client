@@ -213,11 +213,13 @@ class _AdaptableReactorsDialog extends StatelessWidget {
             Chip(
               avatar: Avatar(
                 mxContent: reactor.avatarUrl,
-                name: reactor.displayName,
+                name: Matrix.of(context).contactsCache.label(reactor.id),
                 client: client,
                 presenceUserId: reactor.stateKey,
               ),
-              label: Text(reactor.displayName!),
+              label: Text(
+                Matrix.of(context).contactsCache.label(reactor.id),
+              ),
             ),
         ],
       ),

@@ -9,6 +9,7 @@ import 'package:fluffychat/l10n/l10n.dart';
 import 'package:fluffychat/utils/adaptive_bottom_sheet.dart';
 import 'package:fluffychat/utils/date_time_extension.dart';
 import 'package:fluffychat/widgets/avatar.dart';
+import 'package:fluffychat/widgets/matrix.dart';
 
 extension EventInfoDialogExtension on Event {
   void showInfoDialog(BuildContext context) => showAdaptiveBottomSheet(
@@ -46,13 +47,13 @@ class EventInfoDialog extends StatelessWidget {
           ListTile(
             leading: Avatar(
               mxContent: event.senderFromMemoryOrFallback.avatarUrl,
-              name: event.senderFromMemoryOrFallback.calcDisplayname(),
+              name: Matrix.of(context).contactsCache.label(event.senderId),
               client: event.room.client,
               presenceUserId: event.senderId,
             ),
             title: Text(L10n.of(context).sender),
             subtitle: Text(
-              '${event.senderFromMemoryOrFallback.calcDisplayname()} [${event.senderId}]',
+              '${Matrix.of(context).contactsCache.label(event.senderId)} [${event.senderId}]',
             ),
           ),
           ListTile(

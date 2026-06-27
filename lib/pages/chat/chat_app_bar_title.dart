@@ -10,6 +10,7 @@ import 'package:fluffychat/utils/date_time_extension.dart';
 import 'package:fluffychat/utils/matrix_sdk_extensions/matrix_locals.dart';
 import 'package:fluffychat/utils/sync_status_localization.dart';
 import 'package:fluffychat/widgets/avatar.dart';
+import 'package:fluffychat/widgets/matrix.dart';
 import 'package:fluffychat/widgets/presence_builder.dart';
 
 class ChatAppBarTitle extends StatelessWidget {
@@ -27,6 +28,11 @@ class ChatAppBarTitle extends StatelessWidget {
         ),
       );
     }
+    final cache = Matrix.of(context).contactsCache;
+    final dmId = room.directChatMatrixID;
+    final roomName = dmId != null
+        ? cache.label(dmId)
+        : room.getLocalizedDisplayname(MatrixLocals(L10n.of(context)));
     return InkWell(
       hoverColor: Colors.transparent,
       splashColor: Colors.transparent,
@@ -42,9 +48,7 @@ class ChatAppBarTitle extends StatelessWidget {
             tag: 'content_banner',
             child: Avatar(
               mxContent: room.avatar,
-              name: room.getLocalizedDisplayname(
-                MatrixLocals(L10n.of(context)),
-              ),
+              name: roomName,
               size: 32,
             ),
           ),
@@ -54,7 +58,7 @@ class ChatAppBarTitle extends StatelessWidget {
               crossAxisAlignment: .start,
               children: [
                 Text(
-                  room.getLocalizedDisplayname(MatrixLocals(L10n.of(context))),
+                  roomName,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(fontSize: 16),

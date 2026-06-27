@@ -61,7 +61,9 @@ class TypingIndicators extends StatelessWidget {
                         Avatar(
                           size: avatarSize,
                           mxContent: typingUsers.first.avatarUrl,
-                          name: typingUsers.first.calcDisplayname(),
+                          name: Matrix.of(context).contactsCache.label(
+                            typingUsers.first.id,
+                          ),
                         ),
                       if (typingUsers.length == 2)
                         Padding(
@@ -72,7 +74,9 @@ class TypingIndicators extends StatelessWidget {
                                 ? typingUsers.last.avatarUrl
                                 : null,
                             name: typingUsers.length == 2
-                                ? typingUsers.last.calcDisplayname()
+                                ? Matrix.of(context).contactsCache.label(
+                                    typingUsers.last.id,
+                                  )
                                 : '+${typingUsers.length - 1}',
                           ),
                         ),

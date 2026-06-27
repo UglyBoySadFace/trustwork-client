@@ -363,7 +363,11 @@ class Message extends StatelessWidget {
                                             event.senderFromMemoryOrFallback;
                                         return Avatar(
                                           mxContent: user.avatarUrl,
-                                          name: user.calcDisplayname(),
+                                          name: Matrix.of(
+                                            context,
+                                          ).contactsCache.label(
+                                            event.senderId,
+                                          ),
                                           onTap: () =>
                                               showMemberActionsPopupMenu(
                                                 context: context,
@@ -397,11 +401,11 @@ class Message extends StatelessWidget {
                                                         .fetchSenderUser(),
                                                     builder: (context, snapshot) {
                                                       final displayname =
-                                                          snapshot.data
-                                                              ?.calcDisplayname() ??
-                                                          event
-                                                              .senderFromMemoryOrFallback
-                                                              .calcDisplayname();
+                                                          Matrix.of(context)
+                                                              .contactsCache
+                                                              .label(
+                                                                event.senderId,
+                                                              );
                                                       return Text(
                                                         displayname,
                                                         style: TextStyle(

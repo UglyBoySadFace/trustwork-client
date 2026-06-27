@@ -58,7 +58,7 @@ class SeenByRow extends StatelessWidget {
                     .map(
                       (user) => Avatar(
                         mxContent: user.avatarUrl,
-                        name: user.calcDisplayname(),
+                        name: Matrix.of(context).contactsCache.label(user.id),
                         size: 16,
                       ),
                     ),

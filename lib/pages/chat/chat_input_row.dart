@@ -341,6 +341,8 @@ class ChatInputRow extends StatelessWidget {
                         onChanged: controller.onInputBarChanged,
                         suggestionEmojis:
                             controller.getSuggestionEmojis(context),
+                        contactsCache:
+                            Matrix.of(context).contactsCache,
                       ),
                     ),
                   ),

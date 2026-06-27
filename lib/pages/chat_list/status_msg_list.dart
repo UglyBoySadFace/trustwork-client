@@ -117,9 +117,7 @@ class PresenceAvatar extends StatelessWidget {
 
         final profile = snapshot.data;
         final displayName =
-            profile?.displayName ??
-            presence.userid.localpart ??
-            presence.userid;
+            Matrix.of(context).contactsCache.label(presence.userid);
         final statusMsg = presence.statusMsg;
 
         const statusMsgBubbleElevation = 6.0;
