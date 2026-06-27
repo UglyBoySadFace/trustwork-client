@@ -5,6 +5,7 @@ import 'package:built_collection/built_collection.dart';
 import 'package:dio/dio.dart';
 
 import 'package:fluffychat/l10n/l10n.dart';
+import 'package:fluffychat/pages/contact_requests/contact_request_data_sheet.dart';
 import 'package:fluffychat/utils/trustwork_api_service.dart';
 import 'package:fluffychat/widgets/matrix.dart';
 
@@ -87,6 +88,21 @@ class _IncomingRequestsTabState extends State<IncomingRequestsTab> {
     } finally {
       if (mounted) setState(() => _processingIds.remove(req.id));
     }
+  }
+
+  Future<void> _requestMoreInfo(IncomingContactRequest req) async {
+    final mxid = req.requester.matrixUserId;
+    if (mxid == null || mxid.isEmpty) return;
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (_) => ContactRequestDataSheet(
+        requesterDisplayName: req.requester.displayName,
+        requesterMatrixId: mxid,
+        sharingPreferences: req.requesterSharingPreferences,
+      ),
+    );
   }
 
   Future<void> _block(IncomingContactRequest req) async {
@@ -218,7 +234,7 @@ class _IncomingRequestsTabState extends State<IncomingRequestsTab> {
                           child: Text(l10n.block),
                         ),
                         OutlinedButton(
-                          onPressed: null,
+                          onPressed: () => _requestMoreInfo(req),
                           child: Text(l10n.requestMoreInfo),
                         ),
                       ],

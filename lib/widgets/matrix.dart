@@ -23,6 +23,8 @@ import 'package:fluffychat/pages/onboarding/onboarding_flow_coordinator.dart';
 import 'package:fluffychat/utils/client_manager.dart';
 import 'package:fluffychat/utils/contacts/contacts_cache.dart';
 import 'package:fluffychat/utils/data_sharing/data_sharing_service.dart';
+import 'package:fluffychat/utils/data_sharing/shareable_field.dart';
+import 'package:fluffychat/utils/data_sharing/sharing_preferences_cache.dart';
 import 'package:fluffychat/utils/full_screen_intent_helper.dart';
 import 'package:fluffychat/utils/init_with_restore.dart';
 import 'package:fluffychat/utils/matrix_sdk_extensions/matrix_file_extension.dart';
@@ -189,6 +191,8 @@ class MatrixState extends State<Matrix> with WidgetsBindingObserver {
   final onLoginStateChanged = <String, StreamSubscription<LoginState>>{};
   final onUiaRequest = <String, StreamSubscription<UiaRequest>>{};
   final dataSharingServices = <String, DataSharingService>{};
+  final _incomingDataReqSubs =
+      <String, StreamSubscription<IncomingDataRequest>>{};
   final contactsCache = ContactsCache();
   StreamSubscription<void>? _twAuthExpiredSub;
   StreamSubscription<Uri>? _verifyLinkSub;
@@ -329,6 +333,9 @@ class MatrixState extends State<Matrix> with WidgetsBindingObserver {
     });
     onUiaRequest[name] ??= c.onUiaRequest.stream.listen(uiaRequestHandler);
     dataSharingServices[name] ??= DataSharingService(c);
+    _incomingDataReqSubs[name] ??= dataSharingServices[name]!
+        .incomingRequests
+        .listen((req) => _autoApproveDataRequest(name, req));
     if (PlatformInfos.isWeb || PlatformInfos.isLinux) {
       c.onSync.stream.first.then((s) {
         html.Notification.requestPermission();
@@ -348,6 +355,8 @@ class MatrixState extends State<Matrix> with WidgetsBindingObserver {
     onLoginStateChanged.remove(name);
     onNotification[name]?.cancel();
     onNotification.remove(name);
+    _incomingDataReqSubs[name]?.cancel();
+    _incomingDataReqSubs.remove(name);
     dataSharingServices[name]?.dispose();
     dataSharingServices.remove(name);
   }
@@ -455,6 +464,33 @@ class MatrixState extends State<Matrix> with WidgetsBindingObserver {
     }
   }
 
+  // Auto-approve data-sharing requests that arrive outside of an active call.
+  // Requests from active call peers are handled by the dialer UI instead.
+  void _autoApproveDataRequest(String clientName, IncomingDataRequest req) {
+    final service = dataSharingServices[clientName];
+    if (service == null) return;
+
+    final c = getClientByName(clientName);
+    if (c == null) return;
+
+    final hasCallWithRequester = voipPlugin?.voip.calls.keys.any((key) {
+      final room = c.getRoomById(key.roomId);
+      return room?.directChatMatrixID == req.fromMatrixId;
+    }) ?? false;
+    if (hasCallWithRequester) return;
+
+    final prefs = SharingPreferencesCache.read(store);
+    final approved = prefs == null
+        ? <ShareableField>{}
+        : req.fields.where((f) => prefs[f] == true).toSet();
+
+    if (approved.isEmpty) {
+      unawaited(service.decline(req));
+      return;
+    }
+    unawaited(service.approve(request: req, approvedFields: approved));
+  }
+
   void createVoipPlugin() {
     voipPlugin?.dispose();
     voipPlugin = VoipPlugin(this);
@@ -487,6 +523,10 @@ class MatrixState extends State<Matrix> with WidgetsBindingObserver {
     onKeyVerificationRequestSub.values.map((s) => s.cancel());
     onLoginStateChanged.values.map((s) => s.cancel());
     onNotification.values.map((s) => s.cancel());
+    for (final s in _incomingDataReqSubs.values) {
+      s.cancel();
+    }
+    _incomingDataReqSubs.clear();
     for (final s in dataSharingServices.values) {
       s.dispose();
     }
