@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:badges/badges.dart' as b;
 import 'package:go_router/go_router.dart';
 import 'package:matrix/matrix.dart';
 import 'package:pretty_qr_code/pretty_qr_code.dart';
@@ -32,9 +33,26 @@ class NewPrivateChatView extends StatelessWidget {
         title: Text(L10n.of(context).addContact),
         backgroundColor: theme.scaffoldBackgroundColor,
         actions: [
-          TextButton(
-            onPressed: () => context.go('/rooms/contacts/requests'),
-            child: Text(L10n.of(context).contactRequests),
+          ValueListenableBuilder<int>(
+            valueListenable:
+                Matrix.of(context).incomingContactRequestCount,
+            builder: (context, count, _) => b.Badge(
+              showBadge: count > 0,
+              badgeContent: Text(
+                count.toString(),
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onPrimary,
+                  fontSize: 10,
+                ),
+              ),
+              badgeStyle: b.BadgeStyle(
+                badgeColor: Theme.of(context).colorScheme.primary,
+              ),
+              child: TextButton(
+                onPressed: () => context.go('/rooms/contacts/requests'),
+                child: Text(L10n.of(context).contactRequests),
+              ),
+            ),
           ),
         ],
       ),

@@ -194,6 +194,7 @@ class MatrixState extends State<Matrix> with WidgetsBindingObserver {
   final _incomingDataReqSubs =
       <String, StreamSubscription<IncomingDataRequest>>{};
   final contactsCache = ContactsCache();
+  final incomingContactRequestCount = ValueNotifier<int>(0);
   StreamSubscription<void>? _twAuthExpiredSub;
   StreamSubscription<Uri>? _verifyLinkSub;
 
@@ -496,20 +497,34 @@ class MatrixState extends State<Matrix> with WidgetsBindingObserver {
     voipPlugin = VoipPlugin(this);
   }
 
+  Future<void> refreshIncomingRequestCount() async {
+    try {
+      final requests =
+          await TrustworkApiService.instance.getIncomingContactRequests();
+      incomingContactRequestCount.value = requests.length;
+    } catch (_) {
+      // Best-effort — badge stays stale on error.
+    }
+  }
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     final foreground =
         state != AppLifecycleState.inactive &&
         state != AppLifecycleState.paused;
-    for (final client in widget.clients) {
-      client.syncPresence = state == AppLifecycleState.resumed
+    for (final c in widget.clients) {
+      c.syncPresence = state == AppLifecycleState.resumed
           ? null
           : PresenceType.unavailable;
       if (PlatformInfos.isMobile) {
-        client.backgroundSync = foreground;
-        client.requestHistoryOnLimitedTimeline = !foreground;
+        c.backgroundSync = foreground;
+        c.requestHistoryOnLimitedTimeline = !foreground;
         Logs().v('Set background sync to', foreground);
       }
+    }
+    if (state == AppLifecycleState.resumed) {
+      unawaited(refreshIncomingRequestCount());
+      unawaited(contactsCache.refresh(store));
     }
   }
 
@@ -531,6 +546,7 @@ class MatrixState extends State<Matrix> with WidgetsBindingObserver {
       s.dispose();
     }
     dataSharingServices.clear();
+    incomingContactRequestCount.dispose();
     client.httpClient.close();
 
     linuxNotifications?.close();

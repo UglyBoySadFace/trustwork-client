@@ -37,6 +37,7 @@ class _IncomingRequestsTabState extends State<IncomingRequestsTab> {
       final requests =
           await TrustworkApiService.instance.getIncomingContactRequests();
       if (!mounted) return;
+      Matrix.of(context).incomingContactRequestCount.value = requests.length;
       setState(() {
         _requests = requests;
         _loading = false;
