@@ -171,7 +171,11 @@ class _StreamView extends StatelessWidget {
             Positioned(
               child: Avatar(
                 mxContent: avatarUrl,
-                name: displayName,
+                name: isLocal
+                    ? displayName
+                    : Matrix.of(context)
+                        .contactsCache
+                        .label(wrappedStream.getUser().id),
                 size: mainView ? 96 : 48,
                 client: matrixClient,
                 // textSize: mainView ? 36 : 24,
@@ -314,8 +318,15 @@ class _StatsOverlay extends StatelessWidget {
 class MyCallingPage extends State<Calling> {
   Room? get room => call.room;
 
-  String get displayName =>
-      call.room.getLocalizedDisplayname(MatrixLocals(L10n.of(widget.context)));
+  String get displayName {
+    final mxId = call.room.directChatMatrixID;
+    if (mxId != null) {
+      return Matrix.of(widget.context).contactsCache.label(mxId);
+    }
+    return call.room.getLocalizedDisplayname(
+      MatrixLocals(L10n.of(widget.context)),
+    );
+  }
 
   String get callId => widget.callId;
 
@@ -558,9 +569,8 @@ class MyCallingPage extends State<Calling> {
     final defaults = <ShareableField, bool>{
       for (final f in req.fields) f: _cachedSharingPrefs[f] ?? false,
     };
-    final fromName = call.room
-        .unsafeGetUserFromMemoryOrFallback(req.fromMatrixId)
-        .calcDisplayname();
+    final fromName =
+        Matrix.of(widget.context).contactsCache.label(req.fromMatrixId);
 
     try {
       await showModalBottomSheet<void>(
@@ -657,9 +667,7 @@ class MyCallingPage extends State<Calling> {
     final service =
         Matrix.of(context).dataSharingServices[widget.client.clientName];
     if (service == null) return;
-    final callerName = call.room
-        .unsafeGetUserFromMemoryOrFallback(mxId)
-        .calcDisplayname();
+    final callerName = Matrix.of(context).contactsCache.label(mxId);
 
     try {
       await showModalBottomSheet<void>(
@@ -948,8 +956,7 @@ class MyCallingPage extends State<Calling> {
     if (call.localHold || call.remoteOnHold) {
       var title = '';
       if (call.localHold) {
-        title =
-            '${call.room.getLocalizedDisplayname(MatrixLocals(L10n.of(widget.context)))} held the call.';
+        title = '$displayName held the call.';
       } else if (call.remoteOnHold) {
         title = 'You held the call.';
       }
