@@ -65,9 +65,7 @@ class _ContactRequestDataSheetState extends State<ContactRequestDataSheet> {
       .map((e) => e.key)
       .toSet();
 
-  List<ShareableField> get _availableFields => ShareableField.values
-      .where((f) => f.readPreference(widget.sharingPreferences))
-      .toList();
+  List<ShareableField> get _availableFields => ShareableField.values.toList();
 
   Future<void> _send() async {
     final service = Matrix.of(context).dataSharingService;
@@ -167,31 +165,21 @@ class _ContactRequestDataSheetState extends State<ContactRequestDataSheet> {
           ),
         ),
         const SizedBox(height: 8),
-        if (available.isEmpty)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-            child: Text(
-              l10n.sharesNothingWithYou,
-              style: Theme.of(context).textTheme.bodyMedium,
-              textAlign: TextAlign.center,
-            ),
-          )
-        else
-          Flexible(
-            child: ListView(
-              shrinkWrap: true,
-              children: [
-                for (final f in available)
-                  CheckboxListTile(
-                    value: _selected[f] ?? false,
-                    onChanged: (v) =>
-                        setState(() => _selected[f] = v ?? false),
-                    title: Text(f.label(l10n)),
-                    controlAffinity: ListTileControlAffinity.leading,
-                  ),
-              ],
-            ),
+        Flexible(
+          child: ListView(
+            shrinkWrap: true,
+            children: [
+              for (final f in available)
+                CheckboxListTile(
+                  value: _selected[f] ?? false,
+                  onChanged: (v) =>
+                      setState(() => _selected[f] = v ?? false),
+                  title: Text(f.label(l10n)),
+                  controlAffinity: ListTileControlAffinity.leading,
+                ),
+            ],
           ),
+        ),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
           child: Row(
