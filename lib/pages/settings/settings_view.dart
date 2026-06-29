@@ -83,14 +83,12 @@ class SettingsView extends StatelessWidget {
                         mainAxisAlignment: .center,
                         crossAxisAlignment: .start,
                         children: [
-                          TextButton.icon(
-                            onPressed: controller.setDisplaynameAction,
-                            icon: const Icon(Icons.edit_outlined, size: 16),
-                            style: TextButton.styleFrom(
-                              foregroundColor: theme.colorScheme.onSurface,
-                              iconColor: theme.colorScheme.onSurface,
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
                             ),
-                            label: Text(
+                            child: Text(
                               displayname,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
