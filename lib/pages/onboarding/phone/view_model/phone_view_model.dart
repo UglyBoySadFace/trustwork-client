@@ -14,16 +14,32 @@ class PhoneViewModel extends ValueNotifier<PhoneState> {
     phoneController.addListener(_onPhoneChanged);
   }
 
+  // Strips formatting and normalises to E.164.
+  // Accepts: +420123456789, +420 123 456 789, 00420123456789
+  // Returns null when the result is not a plausible E.164 number.
+  static String? _toE164(String raw) {
+    var digits = raw.replaceAll(RegExp(r'[\s\-().]+'), '');
+    if (digits.startsWith('00')) digits = '+${digits.substring(2)}';
+    // E.164: + followed by 7–15 digits
+    if (!RegExp(r'^\+[1-9]\d{6,14}$').hasMatch(digits)) return null;
+    return digits;
+  }
+
   void _onPhoneChanged() {
-    value = value.copyWith(
-      isValid: phoneController.text.trim().length >= 7,
-      clearError: true,
-    );
+    final e164 = _toE164(phoneController.text);
+    value = value.copyWith(isValid: e164 != null, clearError: true);
   }
 
   Future<void> onContinue(BuildContext context) async {
-    final phone = phoneController.text.trim();
+    final e164 = _toE164(phoneController.text);
+    if (e164 == null) {
+      value = value.copyWith(
+        error: 'Enter your number in international format, e.g. +420123456789',
+      );
+      return;
+    }
     value = value.copyWith(isLoading: true, clearError: true);
+    final phone = e164;
     try {
       final response = await TrustworkApiService.instance.phoneAuth
           .phoneCheckAuthPhoneCheckGet(phone: phone);
