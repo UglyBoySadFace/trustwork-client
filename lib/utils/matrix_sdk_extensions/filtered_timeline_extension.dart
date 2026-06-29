@@ -36,7 +36,10 @@ extension IsStateExtension on Event {
       // if we enabled to hide all redacted events, don't show those
       (!AppSettings.hideRedactedEvents.value || !redacted) &&
       // if we enabled to hide all unknown events, don't show those
-      (!AppSettings.hideUnknownEvents.value || isEventTypeKnown);
+      // — but always show our own Trustwork events regardless of that setting
+      (!AppSettings.hideUnknownEvents.value ||
+          isEventTypeKnown ||
+          type == 'com.trustwork.contact_request');
 
   bool get isState => !{
     EventTypes.Message,
