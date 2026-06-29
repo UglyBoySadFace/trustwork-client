@@ -91,7 +91,9 @@ class _ContactRequestBubbleState extends State<ContactRequestBubble> {
     } else if (_loading) {
       body = const Center(child: CircularProgressIndicator.adaptive());
     } else {
-      body = Row(
+      body = Wrap(
+        spacing: 8,
+        runSpacing: 4,
         children: [
           FilledButton(
             onPressed: () => _act(
@@ -100,7 +102,6 @@ class _ContactRequestBubbleState extends State<ContactRequestBubble> {
             ),
             child: const Text('Accept'),
           ),
-          const SizedBox(width: 8),
           OutlinedButton(
             onPressed: () => _act(
               'declined',
@@ -108,7 +109,6 @@ class _ContactRequestBubbleState extends State<ContactRequestBubble> {
             ),
             child: const Text('Decline'),
           ),
-          const SizedBox(width: 8),
           TextButton(
             style: TextButton.styleFrom(
               foregroundColor: theme.colorScheme.error,
