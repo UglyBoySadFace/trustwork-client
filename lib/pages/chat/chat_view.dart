@@ -16,6 +16,7 @@ import 'package:fluffychat/pages/chat/encryption_button.dart';
 import 'package:fluffychat/pages/chat/pinned_events.dart';
 import 'package:fluffychat/pages/chat/reply_display.dart';
 import 'package:fluffychat/utils/account_config.dart';
+import 'package:fluffychat/utils/contacts/contacts_cache.dart';
 import 'package:fluffychat/utils/localized_exception_extension.dart';
 import 'package:fluffychat/widgets/chat_settings_popup_menu.dart';
 import 'package:fluffychat/widgets/future_loading_dialog.dart';
@@ -27,6 +28,17 @@ import 'chat_emoji_picker.dart';
 import 'chat_input_row.dart';
 
 enum _EventContextAction { info, report }
+
+// Returns true for accepted contact-request rooms that aren't yet flagged as
+// m.direct (e.g. the sender's side before the backend sets m.direct).
+bool _isCallableContactRoom(Room room, ContactsCache cache) {
+  final other = room
+      .getParticipants()
+      .where((m) => m.id != room.client.userID)
+      .map((m) => m.id)
+      .firstOrNull;
+  return other != null && cache.isContact(other);
+}
 
 class ChatView extends StatelessWidget {
   final ChatController controller;
@@ -133,7 +145,11 @@ class ChatView extends StatelessWidget {
     } else if (!controller.room.isArchived) {
       return [
         if (Matrix.of(context).voipPlugin != null &&
-            controller.room.isDirectChat)
+            (controller.room.isDirectChat ||
+                _isCallableContactRoom(
+                  controller.room,
+                  Matrix.of(context).contactsCache,
+                )))
           IconButton(
             onPressed: controller.onPhoneButtonTap,
             icon: const Icon(Icons.call_outlined),

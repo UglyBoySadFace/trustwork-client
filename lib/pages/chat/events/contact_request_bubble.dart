@@ -47,6 +47,10 @@ class _ContactRequestBubbleState extends State<ContactRequestBubble> {
               .contactsCache
               .refresh(Matrix.of(context).store),
         );
+        // Mark as a DM so the call button and other DM affordances appear.
+        unawaited(
+          widget.event.room.addToDirectChat(widget.event.senderId),
+        );
       }
     } on DioException catch (e) {
       if (!mounted) return;
