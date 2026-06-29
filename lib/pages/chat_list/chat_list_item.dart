@@ -289,6 +289,15 @@ class ChatListItem extends StatelessWidget {
                             maxLines: 1,
                             softWrap: false,
                           )
+                        : lastEvent?.type == 'com.trustwork.contact_request'
+                        ? Text(
+                            'Contact request',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          )
                         : FutureBuilder(
                             key: ValueKey(
                               '${lastEvent?.eventId}_${lastEvent?.type}_${lastEvent?.redacted}',

@@ -21,6 +21,7 @@ import '../../../utils/event_checkbox_extension.dart';
 import '../../../utils/platform_infos.dart';
 import '../../../utils/url_launcher.dart';
 import 'audio_player.dart';
+import 'contact_request_bubble.dart';
 import 'cute_events.dart';
 import 'html_message.dart';
 import 'image_bubble.dart';
@@ -316,6 +317,8 @@ class MessageContent extends StatelessWidget {
           onPressed: () => onInfoTab!(event),
           fontSize: fontSize,
         );
+      case 'com.trustwork.contact_request':
+        return ContactRequestBubble(event: event);
       default:
         return _ButtonContent(
           label: L10n.of(context).userSentUnknownEvent(

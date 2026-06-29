@@ -197,7 +197,6 @@ class MatrixState extends State<Matrix> with WidgetsBindingObserver {
   final incomingContactRequestCount = ValueNotifier<int>(0);
   StreamSubscription<void>? _twAuthExpiredSub;
   StreamSubscription<Uri>? _verifyLinkSub;
-
   DataSharingService? get dataSharingService =>
       dataSharingServices[client.clientName];
 
@@ -523,7 +522,6 @@ class MatrixState extends State<Matrix> with WidgetsBindingObserver {
       }
     }
     if (state == AppLifecycleState.resumed) {
-      unawaited(refreshIncomingRequestCount());
       unawaited(contactsCache.refresh(store));
     }
   }
