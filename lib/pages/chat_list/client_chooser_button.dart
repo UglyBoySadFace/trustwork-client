@@ -7,7 +7,6 @@ import 'package:url_launcher/url_launcher_string.dart';
 import 'package:fluffychat/config/app_config.dart';
 import 'package:fluffychat/config/themes.dart';
 import 'package:fluffychat/l10n/l10n.dart';
-import 'package:fluffychat/widgets/adaptive_dialogs/show_ok_cancel_alert_dialog.dart';
 import 'package:fluffychat/widgets/avatar.dart';
 import 'package:fluffychat/widgets/matrix.dart';
 import '../../utils/fluffy_share.dart';
@@ -119,23 +118,24 @@ class ClientChooserButton extends StatelessWidget {
                 value: client,
                 child: FutureBuilder<Profile?>(
                   future: client.fetchOwnProfile(),
-                  builder: (context, snapshot) => Row(
-                    children: [
-                      Avatar(
-                        mxContent: snapshot.data?.avatarUrl,
-                        name:
-                            snapshot.data?.displayName ??
-                            client.userID!.localpart,
-                        size: 32,
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          snapshot.data?.displayName ??
-                              client.userID!.localpart!,
-                          overflow: TextOverflow.ellipsis,
+                  builder: (context, snapshot) {
+                    final name = Matrix.of(context).trustworkDisplayName ??
+                        snapshot.data?.displayName ??
+                        client.userID!.localpart!;
+                    return Row(
+                      children: [
+                        Avatar(
+                          mxContent: snapshot.data?.avatarUrl,
+                          name: name,
+                          size: 32,
                         ),
-                      ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            name,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
                       const SizedBox(width: 12),
                       IconButton(
                         icon: const Icon(Icons.edit_outlined),
@@ -144,22 +144,13 @@ class ClientChooserButton extends StatelessWidget {
                           bundle,
                         ),
                       ),
-                    ],
-                  ),
+                      ],
+                    );
+                  },
                 ),
               ),
             ),
       ],
-      PopupMenuItem(
-        value: SettingsAction.addAccount,
-        child: Row(
-          children: [
-            const Icon(Icons.person_add_outlined),
-            const SizedBox(width: 18),
-            Text(L10n.of(context).addAccount),
-          ],
-        ),
-      ),
     ];
   }
 
@@ -184,8 +175,9 @@ class ClientChooserButton extends StatelessWidget {
           child: Center(
             child: Avatar(
               mxContent: snapshot.data?.avatarUrl,
-              name:
-                  snapshot.data?.displayName ?? matrix.client.userID?.localpart,
+              name: Matrix.of(context).trustworkDisplayName ??
+                  snapshot.data?.displayName ??
+                  matrix.client.userID?.localpart,
               size: 32,
             ),
           ),
@@ -201,17 +193,6 @@ class ClientChooserButton extends StatelessWidget {
       controller.setActiveBundle(object);
     } else if (object is SettingsAction) {
       switch (object) {
-        case SettingsAction.addAccount:
-          final consent = await showOkCancelAlertDialog(
-            context: context,
-            title: L10n.of(context).addAccount,
-            message: L10n.of(context).enableMultiAccounts,
-            okLabel: L10n.of(context).next,
-            cancelLabel: L10n.of(context).cancel,
-          );
-          if (consent != OkCancelResult.ok) return;
-          context.go('/rooms/settings/addaccount');
-          break;
         case SettingsAction.newGroup:
           context.go('/rooms/newgroup');
           break;
@@ -236,7 +217,6 @@ class ClientChooserButton extends StatelessWidget {
 }
 
 enum SettingsAction {
-  addAccount,
   newGroup,
   setStatus,
   invite,

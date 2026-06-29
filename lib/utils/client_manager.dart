@@ -142,6 +142,13 @@ abstract class ClientManager {
       onSoftLogout: enableSoftLogout
           ? (client) => client.refreshAccessToken()
           : null,
+      roomPreviewLastEvents: {
+        EventTypes.Message,
+        EventTypes.Encrypted,
+        EventTypes.Sticker,
+        EventTypes.CallInvite,
+        'com.trustwork.contact_request',
+      },
     );
   }
 
