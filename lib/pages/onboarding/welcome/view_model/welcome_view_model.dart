@@ -135,12 +135,20 @@ class WelcomeViewModel extends ValueNotifier<WelcomeState> {
     );
 
     // Sync the BankID display name to the Matrix profile.
+    // Falls back to the MXID localpart so the Synapse profile row is always
+    // created even if the Trustwork API is temporarily unavailable.
+    String displayName;
     try {
       final profile = await TrustworkApiService.instance.getMe();
+      displayName = profile.displayName;
+    } catch (_) {
+      displayName = userId.split(':').first.replaceFirst('@', '');
+    }
+    try {
       await loginClient.setProfileField(
         userId,
         'displayname',
-        {'displayname': profile.displayName},
+        {'displayname': displayName},
       );
     } catch (_) {
       // Best-effort — login still succeeds if this fails.

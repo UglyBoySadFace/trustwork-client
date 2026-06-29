@@ -227,18 +227,29 @@ class MatrixState extends State<Matrix> with WidgetsBindingObserver {
   final Map<String, int> linuxNotificationIds = {};
 
   Future<void> _syncDisplayName() async {
+    final c = client;
+    if (!c.isLogged() || c.userID == null) return;
+
+    // Resolve the display name from our middleware (BankID source of truth).
+    // Fall back to the MXID localpart so the Synapse profile row is at least
+    // created even when the Trustwork API is temporarily unavailable.
+    String displayName;
     try {
       final profile = await TrustworkApiService.instance.getMe();
-      final c = client;
-      if (c.isLogged() && c.userID != null) {
-        await c.setProfileField(
-          c.userID!,
-          'displayname',
-          {'displayname': profile.displayName},
-        );
-      }
-    } catch (_) {
-      // Best-effort — ignore failures.
+      displayName = profile.displayName;
+    } catch (e) {
+      Logs().w('[TW] getMe failed during display name sync, using localpart: $e');
+      displayName = c.userID!.localpart ?? c.userID!;
+    }
+
+    try {
+      await c.setProfileField(
+        c.userID!,
+        'displayname',
+        {'displayname': displayName},
+      );
+    } catch (e) {
+      Logs().w('[TW] setProfileField failed: $e');
     }
   }
 
