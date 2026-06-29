@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import 'package:matrix/matrix.dart';
 
+import 'package:fluffychat/pages/contact_requests/contact_request_data_sheet.dart';
 import 'package:fluffychat/utils/trustwork_api_service.dart';
 import 'package:fluffychat/widgets/matrix.dart';
 
@@ -19,6 +20,7 @@ class ContactRequestBubble extends StatefulWidget {
 
 class _ContactRequestBubbleState extends State<ContactRequestBubble> {
   bool _loading = false;
+  bool _loadingSheet = false;
   String? _resolvedStatus;
 
   bool get _isSender =>
@@ -59,6 +61,41 @@ class _ContactRequestBubbleState extends State<ContactRequestBubble> {
       );
     } finally {
       if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _requestMoreInfo() async {
+    final id = _requestId;
+    if (id == null) return;
+    setState(() => _loadingSheet = true);
+    try {
+      final requests =
+          await TrustworkApiService.instance.getIncomingContactRequests();
+      final request = requests.where((r) => r.id == id).firstOrNull;
+      if (!mounted) return;
+      if (request == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Request not found')),
+        );
+        return;
+      }
+      await showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        useSafeArea: true,
+        builder: (_) => ContactRequestDataSheet(
+          requesterDisplayName: _requesterDisplayName,
+          requesterMatrixId: widget.event.senderId,
+          sharingPreferences: request.requesterSharingPreferences,
+        ),
+      );
+    } on DioException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(TrustworkApiService.friendlyError(e))),
+      );
+    } finally {
+      if (mounted) setState(() => _loadingSheet = false);
     }
   }
 
@@ -119,6 +156,17 @@ class _ContactRequestBubbleState extends State<ContactRequestBubble> {
             ),
             child: const Text('Block'),
           ),
+          _loadingSheet
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator.adaptive(strokeWidth: 2),
+                )
+              : TextButton.icon(
+                  onPressed: _requestMoreInfo,
+                  icon: const Icon(Icons.info_outline, size: 16),
+                  label: const Text('Request more info'),
+                ),
         ],
       );
     }
