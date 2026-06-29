@@ -82,12 +82,10 @@ class NewPrivateChatController extends State<NewPrivateChat> {
       sendRequestStatus = null;
     });
     try {
-      final req = await TrustworkApiService.instance.createContactRequest(mxid);
+      await TrustworkApiService.instance.createContactRequest(mxid);
       if (!mounted) return;
-      setState(() {
-        sendRequestStatus = req.status == 'accepted' ? 'accepted' : 'pending';
-        isSendingRequest = false;
-      });
+      setState(() => isSendingRequest = false);
+      await _navigateToRequestRoom(mxid);
     } on DioException catch (e) {
       if (!mounted) return;
       if (e.response?.statusCode == 409) {
@@ -105,6 +103,39 @@ class NewPrivateChatController extends State<NewPrivateChat> {
         isSendingRequest = false;
       });
     }
+  }
+
+  // After the backend creates the room, wait up to 5s for the Matrix client
+  // to sync it in, then navigate there.
+  // Uses room membership scan — does not rely on m.direct account data.
+  Future<void> _navigateToRequestRoom(String targetMxid) async {
+    final matrixClient = Matrix.of(context).client;
+    var roomId = _findContactRequestRoom(matrixClient, targetMxid);
+    if (roomId == null) {
+      await for (final _ in matrixClient.onSync.stream.timeout(
+        const Duration(seconds: 5),
+        onTimeout: (sink) => sink.close(),
+      )) {
+        roomId = _findContactRequestRoom(matrixClient, targetMxid);
+        if (roomId != null) break;
+      }
+    }
+    if (!mounted) return;
+    if (roomId != null) {
+      context.go('/rooms/$roomId');
+    } else {
+      context.go('/rooms');
+    }
+  }
+
+  static String? _findContactRequestRoom(Client client, String targetMxid) {
+    for (final room in client.rooms) {
+      if (room.lastEvent?.type != 'com.trustwork.contact_request') continue;
+      final target =
+          room.lastEvent!.content.tryGet<String>('target_matrix_id');
+      if (target == targetMxid) return room.id;
+    }
+    return null;
   }
 
   Future<List<Profile>> _searchUser(String searchTerm) => Future.value(

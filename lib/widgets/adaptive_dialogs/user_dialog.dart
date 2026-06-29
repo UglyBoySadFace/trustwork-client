@@ -235,12 +235,7 @@ class _SendRequestActionState extends State<_SendRequestAction> {
       await TrustworkApiService.instance.createContactRequest(widget.userId);
       if (!mounted) return;
       Navigator.of(context).pop();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content:
-              Text(L10n.of(context).contactRequestSentTo(widget.userId)),
-        ),
-      );
+      await _navigateToRequestRoom(router, widget.userId);
     } on DioException catch (e) {
       if (!mounted) return;
       if (e.response?.statusCode == 409) {
@@ -261,6 +256,39 @@ class _SendRequestActionState extends State<_SendRequestAction> {
     } finally {
       if (mounted) setState(() => _sending = false);
     }
+  }
+
+  Future<void> _navigateToRequestRoom(
+    GoRouter router,
+    String targetMxid,
+  ) async {
+    if (!mounted) return;
+    final matrixClient = Matrix.of(context).client;
+    var roomId = _findContactRequestRoom(matrixClient, targetMxid);
+    if (roomId == null) {
+      await for (final _ in matrixClient.onSync.stream.timeout(
+        const Duration(seconds: 5),
+        onTimeout: (sink) => sink.close(),
+      )) {
+        roomId = _findContactRequestRoom(matrixClient, targetMxid);
+        if (roomId != null) break;
+      }
+    }
+    if (roomId != null) {
+      router.go('/rooms/$roomId');
+    } else {
+      router.go('/rooms');
+    }
+  }
+
+  static String? _findContactRequestRoom(Client client, String targetMxid) {
+    for (final room in client.rooms) {
+      if (room.lastEvent?.type != 'com.trustwork.contact_request') continue;
+      final target =
+          room.lastEvent!.content.tryGet<String>('target_matrix_id');
+      if (target == targetMxid) return room.id;
+    }
+    return null;
   }
 
   @override
