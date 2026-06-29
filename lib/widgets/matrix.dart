@@ -226,6 +226,22 @@ class MatrixState extends State<Matrix> with WidgetsBindingObserver {
       : null;
   final Map<String, int> linuxNotificationIds = {};
 
+  Future<void> _syncDisplayName() async {
+    try {
+      final profile = await TrustworkApiService.instance.getMe();
+      final c = client;
+      if (c.isLogged() && c.userID != null) {
+        await c.setProfileField(
+          c.userID!,
+          'displayname',
+          {'displayname': profile.displayName},
+        );
+      }
+    } catch (_) {
+      // Best-effort — ignore failures.
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -233,6 +249,7 @@ class MatrixState extends State<Matrix> with WidgetsBindingObserver {
     contactsCache.loadFromStore(store);
     if (widget.clients.any((c) => c.isLogged())) {
       unawaited(contactsCache.refresh(store));
+      unawaited(_syncDisplayName());
     }
     initMatrix();
     _twAuthExpiredSub =

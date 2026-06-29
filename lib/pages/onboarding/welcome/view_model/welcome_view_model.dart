@@ -133,6 +133,19 @@ class WelcomeViewModel extends ValueNotifier<WelcomeState> {
       newHomeserver: Uri.parse(AppConfig.matrixHomeserver),
       waitForFirstSync: false,
     );
+
+    // Sync the BankID display name to the Matrix profile.
+    try {
+      final profile = await TrustworkApiService.instance.getMe();
+      await loginClient.setProfileField(
+        userId,
+        'displayname',
+        {'displayname': profile.displayName},
+      );
+    } catch (_) {
+      // Best-effort — login still succeeds if this fails.
+    }
+
     // getLoginClient() listener navigates to /backup on LoginState.loggedIn
     OnboardingFlowCoordinator.instance.reset();
   }

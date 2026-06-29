@@ -131,6 +131,14 @@ class TrustworkApiService {
     ),
   );
 
+  /// Current user's Trustwork profile (includes BankID display name).
+  Future<UserProfile> getMe() async {
+    final response = await authedRequest(
+      (accessToken) => token.getMeMeGet(headers: _authHeader(accessToken)),
+    );
+    return response.data!;
+  }
+
   /// Accepted, two-way contacts.
   Future<BuiltList<ContactSummary>> getContacts() async {
     final response = await authedRequest(
