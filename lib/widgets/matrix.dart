@@ -195,6 +195,10 @@ class MatrixState extends State<Matrix> with WidgetsBindingObserver {
       <String, StreamSubscription<IncomingDataRequest>>{};
   final contactsCache = ContactsCache();
   final incomingContactRequestCount = ValueNotifier<int>(0);
+  /// Display name sourced from the Trustwork middleware (BankID). Populated on
+  /// startup and after login. Use this instead of the Matrix profile which may
+  /// be absent when the homeserver rejects profile writes.
+  String? trustworkDisplayName;
   StreamSubscription<void>? _twAuthExpiredSub;
   StreamSubscription<Uri>? _verifyLinkSub;
   DataSharingService? get dataSharingService =>
@@ -241,6 +245,8 @@ class MatrixState extends State<Matrix> with WidgetsBindingObserver {
       Logs().w('[TW] getMe failed during display name sync, using localpart: $e');
       displayName = c.userID!.localpart ?? c.userID!;
     }
+
+    trustworkDisplayName = displayName;
 
     try {
       await c.setProfileField(

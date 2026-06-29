@@ -46,7 +46,10 @@ class SettingsView extends StatelessWidget {
                 final mxid =
                     Matrix.of(context).client.userID ?? L10n.of(context).user;
                 final displayname =
-                    profile?.displayName ?? mxid.localpart ?? mxid;
+                    Matrix.of(context).trustworkDisplayName ??
+                    profile?.displayName ??
+                    mxid.localpart ??
+                    mxid;
                 return Row(
                   children: [
                     Padding(
