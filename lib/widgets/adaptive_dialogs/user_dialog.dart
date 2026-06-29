@@ -232,10 +232,12 @@ class _SendRequestActionState extends State<_SendRequestAction> {
     final router = GoRouter.of(context);
     setState(() => _sending = true);
     try {
+      final matrixClient = Matrix.of(context).client;
+      final knownRoomIds = matrixClient.rooms.map((r) => r.id).toSet();
       await TrustworkApiService.instance.createContactRequest(widget.userId);
       if (!mounted) return;
       Navigator.of(context).pop();
-      await _navigateToRequestRoom(router, widget.userId);
+      await _navigateToRequestRoom(router, matrixClient, widget.userId, knownRoomIds);
     } on DioException catch (e) {
       if (!mounted) return;
       if (e.response?.statusCode == 409) {
@@ -260,17 +262,18 @@ class _SendRequestActionState extends State<_SendRequestAction> {
 
   Future<void> _navigateToRequestRoom(
     GoRouter router,
+    Client matrixClient,
     String targetMxid,
+    Set<String> knownRoomIds,
   ) async {
     if (!mounted) return;
-    final matrixClient = Matrix.of(context).client;
-    var roomId = _findContactRequestRoom(matrixClient, targetMxid);
+    var roomId = _findNewRoom(matrixClient, targetMxid, knownRoomIds);
     if (roomId == null) {
       await for (final _ in matrixClient.onSync.stream.timeout(
-        const Duration(seconds: 5),
+        const Duration(seconds: 10),
         onTimeout: (sink) => sink.close(),
       )) {
-        roomId = _findContactRequestRoom(matrixClient, targetMxid);
+        roomId = _findNewRoom(matrixClient, targetMxid, knownRoomIds);
         if (roomId != null) break;
       }
     }
@@ -281,12 +284,16 @@ class _SendRequestActionState extends State<_SendRequestAction> {
     }
   }
 
-  static String? _findContactRequestRoom(Client client, String targetMxid) {
+  static String? _findNewRoom(
+    Client client,
+    String targetMxid,
+    Set<String> knownRoomIds,
+  ) {
     for (final room in client.rooms) {
-      if (room.lastEvent?.type != 'com.trustwork.contact_request') continue;
-      final target =
-          room.lastEvent!.content.tryGet<String>('target_matrix_id');
-      if (target == targetMxid) return room.id;
+      if (knownRoomIds.contains(room.id)) continue;
+      if (room.getParticipants().any((m) => m.id == targetMxid)) {
+        return room.id;
+      }
     }
     return null;
   }

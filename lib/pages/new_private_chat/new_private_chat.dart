@@ -82,10 +82,12 @@ class NewPrivateChatController extends State<NewPrivateChat> {
       sendRequestStatus = null;
     });
     try {
+      final matrixClient = Matrix.of(context).client;
+      final knownRoomIds = matrixClient.rooms.map((r) => r.id).toSet();
       await TrustworkApiService.instance.createContactRequest(mxid);
       if (!mounted) return;
       setState(() => isSendingRequest = false);
-      await _navigateToRequestRoom(mxid);
+      await _navigateToRequestRoom(matrixClient, mxid, knownRoomIds);
     } on DioException catch (e) {
       if (!mounted) return;
       if (e.response?.statusCode == 409) {
@@ -105,18 +107,21 @@ class NewPrivateChatController extends State<NewPrivateChat> {
     }
   }
 
-  // After the backend creates the room, wait up to 5s for the Matrix client
-  // to sync it in, then navigate there.
-  // Uses room membership scan — does not rely on m.direct account data.
-  Future<void> _navigateToRequestRoom(String targetMxid) async {
-    final matrixClient = Matrix.of(context).client;
-    var roomId = _findContactRequestRoom(matrixClient, targetMxid);
+  // Waits up to 10s for the backend-created room to appear in the Matrix
+  // client, then navigates there. Snapshots known rooms before the API call
+  // so only genuinely new rooms are considered.
+  Future<void> _navigateToRequestRoom(
+    Client matrixClient,
+    String targetMxid,
+    Set<String> knownRoomIds,
+  ) async {
+    var roomId = _findNewRoom(matrixClient, targetMxid, knownRoomIds);
     if (roomId == null) {
       await for (final _ in matrixClient.onSync.stream.timeout(
-        const Duration(seconds: 5),
+        const Duration(seconds: 10),
         onTimeout: (sink) => sink.close(),
       )) {
-        roomId = _findContactRequestRoom(matrixClient, targetMxid);
+        roomId = _findNewRoom(matrixClient, targetMxid, knownRoomIds);
         if (roomId != null) break;
       }
     }
@@ -128,12 +133,18 @@ class NewPrivateChatController extends State<NewPrivateChat> {
     }
   }
 
-  static String? _findContactRequestRoom(Client client, String targetMxid) {
+  // Finds a room that (a) wasn't there before the API call and (b) has the
+  // target as a member. Doesn't rely on lastEvent or m.direct.
+  static String? _findNewRoom(
+    Client client,
+    String targetMxid,
+    Set<String> knownRoomIds,
+  ) {
     for (final room in client.rooms) {
-      if (room.lastEvent?.type != 'com.trustwork.contact_request') continue;
-      final target =
-          room.lastEvent!.content.tryGet<String>('target_matrix_id');
-      if (target == targetMxid) return room.id;
+      if (knownRoomIds.contains(room.id)) continue;
+      if (room.getParticipants().any((m) => m.id == targetMxid)) {
+        return room.id;
+      }
     }
     return null;
   }
