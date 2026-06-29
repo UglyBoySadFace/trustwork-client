@@ -5,6 +5,7 @@ import 'package:matrix/matrix.dart';
 import 'package:fluffychat/config/app_config.dart';
 import 'package:fluffychat/l10n/l10n.dart';
 import 'package:fluffychat/pages/chat_list/unread_bubble.dart';
+import 'package:fluffychat/utils/contact_request_room_title.dart';
 import 'package:fluffychat/utils/matrix_sdk_extensions/matrix_locals.dart';
 import 'package:fluffychat/utils/room_status_extension.dart';
 import 'package:fluffychat/widgets/adaptive_dialogs/show_ok_cancel_alert_dialog.dart';
@@ -49,9 +50,11 @@ class ChatListItem extends StatelessWidget {
     final backgroundColor = activeChat
         ? theme.colorScheme.secondaryContainer
         : null;
-    final displayname = isDirectChat
-        ? Matrix.of(context).contactsCache.label(directChatMatrixId)
-        : room.getLocalizedDisplayname(MatrixLocals(L10n.of(context)));
+    final displayname = contactRequestRoomTitle(
+      room,
+      Matrix.of(context).contactsCache,
+      L10n.of(context),
+    );
     final filter = this.filter;
     if (filter != null && !displayname.toLowerCase().contains(filter)) {
       return const SizedBox.shrink();

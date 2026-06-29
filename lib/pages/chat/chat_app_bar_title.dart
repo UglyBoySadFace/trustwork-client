@@ -6,8 +6,8 @@ import 'package:matrix/matrix.dart';
 import 'package:fluffychat/config/themes.dart';
 import 'package:fluffychat/l10n/l10n.dart';
 import 'package:fluffychat/pages/chat/chat.dart';
+import 'package:fluffychat/utils/contact_request_room_title.dart';
 import 'package:fluffychat/utils/date_time_extension.dart';
-import 'package:fluffychat/utils/matrix_sdk_extensions/matrix_locals.dart';
 import 'package:fluffychat/utils/sync_status_localization.dart';
 import 'package:fluffychat/widgets/avatar.dart';
 import 'package:fluffychat/widgets/matrix.dart';
@@ -29,10 +29,7 @@ class ChatAppBarTitle extends StatelessWidget {
       );
     }
     final cache = Matrix.of(context).contactsCache;
-    final dmId = room.directChatMatrixID;
-    final roomName = dmId != null
-        ? cache.label(dmId)
-        : room.getLocalizedDisplayname(MatrixLocals(L10n.of(context)));
+    final roomName = contactRequestRoomTitle(room, cache, L10n.of(context));
     return InkWell(
       hoverColor: Colors.transparent,
       splashColor: Colors.transparent,
