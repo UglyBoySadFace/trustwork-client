@@ -37,7 +37,8 @@ class _IncomingRequestsTabState extends State<IncomingRequestsTab> {
       final requests =
           await TrustworkApiService.instance.getIncomingContactRequests();
       if (!mounted) return;
-      Matrix.of(context).incomingContactRequestCount.value = requests.length;
+      Matrix.of(context).incomingContactRequestCount.value =
+          requests.where((r) => r.status == 'pending').length;
       setState(() {
         _requests = requests;
         _loading = false;
@@ -164,7 +165,9 @@ class _IncomingRequestsTabState extends State<IncomingRequestsTab> {
       );
     }
 
-    final requests = _requests ?? BuiltList<IncomingContactRequest>();
+    final requests = (_requests ?? BuiltList<IncomingContactRequest>())
+        .where((r) => r.status == 'pending')
+        .toList();
     if (requests.isEmpty) {
       return Center(
         child: Text(

@@ -114,6 +114,23 @@ class TrustworkApiService {
     ),
   );
 
+  /// Resets a blocked request back to pending (only the blocker may call this).
+  Future<void> unblockContactRequest(int requestId) => authedRequest(
+    (token) =>
+        contacts.unblockContactRequestContactsRequestsRequestIdUnblockPost(
+      requestId: requestId,
+      headers: _authHeader(token),
+    ),
+  );
+
+  /// Removes an accepted two-way contact.
+  Future<void> removeContact(String matrixUserId) => authedRequest(
+    (token) => contacts.removeContactContactsMatrixUserIdDelete(
+      matrixUserId: matrixUserId,
+      headers: _authHeader(token),
+    ),
+  );
+
   /// Accepted, two-way contacts.
   Future<BuiltList<ContactSummary>> getContacts() async {
     final response = await authedRequest(

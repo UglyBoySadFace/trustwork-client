@@ -8,6 +8,7 @@ part of 'serializers.dart';
 
 Serializers _$serializers = (Serializers().toBuilder()
       ..add(AuthResponse.serializer)
+      ..add(BlockedContactRequest.serializer)
       ..add(ContactProfile.serializer)
       ..add(ContactRequestCreate.serializer)
       ..add(ContactSummary.serializer)

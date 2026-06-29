@@ -19,6 +19,7 @@ export 'package:api_client/src/api/sharing_api.dart';
 export 'package:api_client/src/api/token_api.dart';
 
 export 'package:api_client/src/model/auth_response.dart';
+export 'package:api_client/src/model/blocked_contact_request.dart';
 export 'package:api_client/src/model/contact_profile.dart';
 export 'package:api_client/src/model/contact_request_create.dart';
 export 'package:api_client/src/model/contact_summary.dart';

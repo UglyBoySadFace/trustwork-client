@@ -197,6 +197,15 @@ class SettingsView extends StatelessWidget {
                   ? theme.colorScheme.surfaceContainerHigh
                   : null,
             ),
+            ListTile(
+              leading: const Icon(Icons.block_outlined),
+              title: Text(L10n.of(context).blockedUsers),
+              onTap: () => context.go('/rooms/settings/blocked-contacts'),
+              tileColor:
+                  activeRoute.startsWith('/rooms/settings/blocked-contacts')
+                  ? theme.colorScheme.surfaceContainerHigh
+                  : null,
+            ),
             Divider(color: theme.dividerColor),
             ListTile(
               leading: const Icon(Icons.dns_outlined),

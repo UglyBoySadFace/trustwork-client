@@ -15,6 +15,7 @@ import 'package:api_client/src/date_serializer.dart';
 import 'package:api_client/src/model/date.dart';
 
 import 'package:api_client/src/model/auth_response.dart';
+import 'package:api_client/src/model/blocked_contact_request.dart';
 import 'package:api_client/src/model/contact_profile.dart';
 import 'package:api_client/src/model/contact_request_create.dart';
 import 'package:api_client/src/model/contact_summary.dart';
@@ -45,6 +46,7 @@ part 'serializers.g.dart';
 
 @SerializersFor([
   AuthResponse,
+  BlockedContactRequest,
   ContactProfile,
   ContactRequestCreate,
   ContactSummary,
@@ -79,6 +81,10 @@ Serializers serializers = (_$serializers.toBuilder()
       ..addBuilderFactory(
         const FullType(BuiltList, [FullType(OutgoingContactRequest)]),
         () => ListBuilder<OutgoingContactRequest>(),
+      )
+      ..addBuilderFactory(
+        const FullType(BuiltList, [FullType(BlockedContactRequest)]),
+        () => ListBuilder<BlockedContactRequest>(),
       )
       ..addBuilderFactory(
         const FullType(BuiltList, [FullType(ContactSummary)]),

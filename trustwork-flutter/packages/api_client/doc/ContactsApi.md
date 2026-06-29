@@ -13,10 +13,13 @@ Method | HTTP request | Description
 [**blockContactRequestContactsRequestsRequestIdBlockPost**](ContactsApi.md#blockcontactrequestcontactsrequestsrequestidblockpost) | **POST** /contacts/requests/{request_id}/block | Block Contact Request
 [**createContactRequestContactsRequestsPost**](ContactsApi.md#createcontactrequestcontactsrequestspost) | **POST** /contacts/requests | Create Contact Request
 [**declineContactRequestContactsRequestsRequestIdDeclinePost**](ContactsApi.md#declinecontactrequestcontactsrequestsrequestiddeclinepost) | **POST** /contacts/requests/{request_id}/decline | Decline Contact Request
+[**listBlockedRequestsContactsBlockedGet**](ContactsApi.md#listblockedrequestscontactsblockedget) | **GET** /contacts/blocked | List Blocked Requests
 [**listContactsContactsGet**](ContactsApi.md#listcontactscontactsget) | **GET** /contacts | List Contacts
 [**listIncomingRequestsContactsRequestsIncomingGet**](ContactsApi.md#listincomingrequestscontactsrequestsincomingget) | **GET** /contacts/requests/incoming | List Incoming Requests
 [**listOutgoingRequestsContactsRequestsOutgoingGet**](ContactsApi.md#listoutgoingrequestscontactsrequestsoutgoingget) | **GET** /contacts/requests/outgoing | List Outgoing Requests
+[**removeContactContactsMatrixUserIdDelete**](ContactsApi.md#removecontactcontactsmatrixuseriddelete) | **DELETE** /contacts/{matrix_user_id} | Remove Contact
 [**scanContactsContactsScanPost**](ContactsApi.md#scancontactscontactsscanpost) | **POST** /contacts/scan | Scan Contacts
+[**unblockContactRequestContactsRequestsRequestIdUnblockPost**](ContactsApi.md#unblockcontactrequestcontactsrequestsrequestidunblockpost) | **POST** /contacts/requests/{request_id}/unblock | Unblock Contact Request
 
 
 # **acceptContactRequestContactsRequestsRequestIdAcceptPost**
@@ -197,6 +200,47 @@ void (empty response body)
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
+# **listBlockedRequestsContactsBlockedGet**
+> BuiltList<BlockedContactRequest> listBlockedRequestsContactsBlockedGet()
+
+List Blocked Requests
+
+Requests I blocked — the data behind an Unblock action.
+
+### Example
+```dart
+import 'package:api_client/api.dart';
+// TODO Configure OAuth2 access token for authorization: OAuth2PasswordBearer
+//defaultApiClient.getAuthentication<OAuth>('OAuth2PasswordBearer').accessToken = 'YOUR_ACCESS_TOKEN';
+
+final api = ApiClient().getContactsApi();
+
+try {
+    final response = api.listBlockedRequestsContactsBlockedGet();
+    print(response);
+} on DioException catch (e) {
+    print('Exception when calling ContactsApi->listBlockedRequestsContactsBlockedGet: $e\n');
+}
+```
+
+### Parameters
+This endpoint does not need any parameter.
+
+### Return type
+
+[**BuiltList&lt;BlockedContactRequest&gt;**](BlockedContactRequest.md)
+
+### Authorization
+
+[OAuth2PasswordBearer](../README.md#OAuth2PasswordBearer)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
 # **listContactsContactsGet**
 > BuiltList<ContactSummary> listContactsContactsGet()
 
@@ -320,6 +364,50 @@ This endpoint does not need any parameter.
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
+# **removeContactContactsMatrixUserIdDelete**
+> removeContactContactsMatrixUserIdDelete(matrixUserId)
+
+Remove Contact
+
+Remove an accepted contact (either direction). Tears down the shared room.
+
+### Example
+```dart
+import 'package:api_client/api.dart';
+// TODO Configure OAuth2 access token for authorization: OAuth2PasswordBearer
+//defaultApiClient.getAuthentication<OAuth>('OAuth2PasswordBearer').accessToken = 'YOUR_ACCESS_TOKEN';
+
+final api = ApiClient().getContactsApi();
+final String matrixUserId = matrixUserId_example; // String | 
+
+try {
+    api.removeContactContactsMatrixUserIdDelete(matrixUserId);
+} on DioException catch (e) {
+    print('Exception when calling ContactsApi->removeContactContactsMatrixUserIdDelete: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **matrixUserId** | **String**|  | 
+
+### Return type
+
+void (empty response body)
+
+### Authorization
+
+[OAuth2PasswordBearer](../README.md#OAuth2PasswordBearer)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
 # **scanContactsContactsScanPost**
 > ContactsScanResponse scanContactsContactsScanPost(contactsScanRequest)
 
@@ -361,6 +449,50 @@ Name | Type | Description  | Notes
 ### HTTP request headers
 
  - **Content-Type**: application/json
+ - **Accept**: application/json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **unblockContactRequestContactsRequestsRequestIdUnblockPost**
+> unblockContactRequestContactsRequestsRequestIdUnblockPost(requestId)
+
+Unblock Contact Request
+
+Unblock a request you previously blocked — resets it to pending.  Only the blocker (the request's target) may unblock. A blocked requester cannot unblock themselves.
+
+### Example
+```dart
+import 'package:api_client/api.dart';
+// TODO Configure OAuth2 access token for authorization: OAuth2PasswordBearer
+//defaultApiClient.getAuthentication<OAuth>('OAuth2PasswordBearer').accessToken = 'YOUR_ACCESS_TOKEN';
+
+final api = ApiClient().getContactsApi();
+final int requestId = 56; // int | 
+
+try {
+    api.unblockContactRequestContactsRequestsRequestIdUnblockPost(requestId);
+} on DioException catch (e) {
+    print('Exception when calling ContactsApi->unblockContactRequestContactsRequestsRequestIdUnblockPost: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **requestId** | **int**|  | 
+
+### Return type
+
+void (empty response body)
+
+### Authorization
+
+[OAuth2PasswordBearer](../README.md#OAuth2PasswordBearer)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
  - **Accept**: application/json
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)

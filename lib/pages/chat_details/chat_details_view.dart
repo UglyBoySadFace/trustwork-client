@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:dio/dio.dart';
 import 'package:flutter_linkify/flutter_linkify.dart';
 import 'package:go_router/go_router.dart';
 import 'package:matrix/matrix.dart';
@@ -9,6 +10,7 @@ import 'package:fluffychat/pages/chat_details/chat_details.dart';
 import 'package:fluffychat/pages/chat_details/participant_list_item.dart';
 import 'package:fluffychat/utils/fluffy_share.dart';
 import 'package:fluffychat/utils/matrix_sdk_extensions/matrix_locals.dart';
+import 'package:fluffychat/utils/trustwork_api_service.dart';
 import 'package:fluffychat/widgets/avatar.dart';
 import 'package:fluffychat/widgets/chat_settings_popup_menu.dart';
 import 'package:fluffychat/widgets/layouts/max_width_body.dart';
@@ -319,6 +321,66 @@ class ChatDetailsView extends StatelessWidget {
                             ),
                             trailing: const Icon(Icons.chevron_right_outlined),
                             onTap: () => context.go('/rooms/${room.id}/invite'),
+                          ),
+                        if (room.isDirectChat &&
+                            room.directChatMatrixID != null)
+                          ListTile(
+                            leading: CircleAvatar(
+                              backgroundColor:
+                                  theme.colorScheme.errorContainer,
+                              foregroundColor:
+                                  theme.colorScheme.onErrorContainer,
+                              radius: Avatar.defaultSize / 2,
+                              child: const Icon(Icons.person_remove_outlined),
+                            ),
+                            title: Text(L10n.of(context).removeContact),
+                            onTap: () async {
+                              final confirmed = await showDialog<bool>(
+                                context: context,
+                                builder: (ctx) => AlertDialog(
+                                  title: Text(L10n.of(context).removeContact),
+                                  content: Text(
+                                    L10n.of(context).removeContactConfirmation,
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () =>
+                                          Navigator.of(ctx).pop(false),
+                                      child: Text(L10n.of(context).cancel),
+                                    ),
+                                    TextButton(
+                                      style: TextButton.styleFrom(
+                                        foregroundColor:
+                                            theme.colorScheme.error,
+                                      ),
+                                      onPressed: () =>
+                                          Navigator.of(ctx).pop(true),
+                                      child: Text(L10n.of(context).removeContact),
+                                    ),
+                                  ],
+                                ),
+                              );
+                              if (confirmed != true) return;
+                              try {
+                                await TrustworkApiService.instance
+                                    .removeContact(room.directChatMatrixID!);
+                                if (!context.mounted) return;
+                                await Matrix.of(context)
+                                    .contactsCache
+                                    .refresh(Matrix.of(context).store);
+                                if (!context.mounted) return;
+                                context.go('/rooms');
+                              } on DioException catch (e) {
+                                if (!context.mounted) return;
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      TrustworkApiService.friendlyError(e),
+                                    ),
+                                  ),
+                                );
+                              }
+                            },
                           ),
                       ],
                     )

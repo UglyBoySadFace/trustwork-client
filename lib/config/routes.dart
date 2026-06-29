@@ -36,6 +36,7 @@ import 'package:fluffychat/pages/onboarding/terms/terms_page.dart';
 import 'package:fluffychat/pages/onboarding/welcome/welcome_page.dart';
 import 'package:fluffychat/pages/settings/settings.dart';
 import 'package:fluffychat/pages/settings_3pid/settings_3pid.dart';
+import 'package:fluffychat/pages/settings_blocked_contacts/settings_blocked_contacts.dart';
 import 'package:fluffychat/pages/settings_chat/settings_chat.dart';
 import 'package:fluffychat/pages/settings_data_sharing/settings_data_sharing.dart';
 import 'package:fluffychat/pages/settings_emotes/settings_emotes.dart';
@@ -352,6 +353,15 @@ abstract class AppRoutes {
                         context,
                         state,
                         const SettingsDataSharing(),
+                      ),
+                      redirect: loggedOutRedirect,
+                    ),
+                    GoRoute(
+                      path: 'blocked-contacts',
+                      pageBuilder: (context, state) => defaultPageBuilder(
+                        context,
+                        state,
+                        const SettingsBlockedContacts(),
                       ),
                       redirect: loggedOutRedirect,
                     ),

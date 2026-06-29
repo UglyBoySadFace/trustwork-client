@@ -74,10 +74,13 @@ Class | Method | HTTP request | Description
 [*ContactsApi*](doc/ContactsApi.md) | [**blockContactRequestContactsRequestsRequestIdBlockPost**](doc/ContactsApi.md#blockcontactrequestcontactsrequestsrequestidblockpost) | **POST** /contacts/requests/{request_id}/block | Block Contact Request
 [*ContactsApi*](doc/ContactsApi.md) | [**createContactRequestContactsRequestsPost**](doc/ContactsApi.md#createcontactrequestcontactsrequestspost) | **POST** /contacts/requests | Create Contact Request
 [*ContactsApi*](doc/ContactsApi.md) | [**declineContactRequestContactsRequestsRequestIdDeclinePost**](doc/ContactsApi.md#declinecontactrequestcontactsrequestsrequestiddeclinepost) | **POST** /contacts/requests/{request_id}/decline | Decline Contact Request
+[*ContactsApi*](doc/ContactsApi.md) | [**listBlockedRequestsContactsBlockedGet**](doc/ContactsApi.md#listblockedrequestscontactsblockedget) | **GET** /contacts/blocked | List Blocked Requests
 [*ContactsApi*](doc/ContactsApi.md) | [**listContactsContactsGet**](doc/ContactsApi.md#listcontactscontactsget) | **GET** /contacts | List Contacts
 [*ContactsApi*](doc/ContactsApi.md) | [**listIncomingRequestsContactsRequestsIncomingGet**](doc/ContactsApi.md#listincomingrequestscontactsrequestsincomingget) | **GET** /contacts/requests/incoming | List Incoming Requests
 [*ContactsApi*](doc/ContactsApi.md) | [**listOutgoingRequestsContactsRequestsOutgoingGet**](doc/ContactsApi.md#listoutgoingrequestscontactsrequestsoutgoingget) | **GET** /contacts/requests/outgoing | List Outgoing Requests
+[*ContactsApi*](doc/ContactsApi.md) | [**removeContactContactsMatrixUserIdDelete**](doc/ContactsApi.md#removecontactcontactsmatrixuseriddelete) | **DELETE** /contacts/{matrix_user_id} | Remove Contact
 [*ContactsApi*](doc/ContactsApi.md) | [**scanContactsContactsScanPost**](doc/ContactsApi.md#scancontactscontactsscanpost) | **POST** /contacts/scan | Scan Contacts
+[*ContactsApi*](doc/ContactsApi.md) | [**unblockContactRequestContactsRequestsRequestIdUnblockPost**](doc/ContactsApi.md#unblockcontactrequestcontactsrequestsrequestidunblockpost) | **POST** /contacts/requests/{request_id}/unblock | Unblock Contact Request
 [*EmailAuthApi*](doc/EmailAuthApi.md) | [**emailLoginAuthEmailLoginPost**](doc/EmailAuthApi.md#emailloginauthemailloginpost) | **POST** /auth/email/login | Email Login
 [*EmailAuthApi*](doc/EmailAuthApi.md) | [**emailStartAuthEmailStartPost**](doc/EmailAuthApi.md#emailstartauthemailstartpost) | **POST** /auth/email/start | Email Start
 [*EmailAuthApi*](doc/EmailAuthApi.md) | [**emailVerifyAuthEmailVerifyPost**](doc/EmailAuthApi.md#emailverifyauthemailverifypost) | **POST** /auth/email/verify | Email Verify
@@ -96,6 +99,7 @@ Class | Method | HTTP request | Description
 ## Documentation For Models
 
  - [AuthResponse](doc/AuthResponse.md)
+ - [BlockedContactRequest](doc/BlockedContactRequest.md)
  - [ContactProfile](doc/ContactProfile.md)
  - [ContactRequestCreate](doc/ContactRequestCreate.md)
  - [ContactSummary](doc/ContactSummary.md)
