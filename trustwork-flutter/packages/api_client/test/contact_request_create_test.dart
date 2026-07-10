@@ -12,5 +12,10 @@ void main() {
       // TODO
     });
 
+    // String initialMessage
+    test('to test the property `initialMessage`', () async {
+      // TODO
+    });
+
   });
 }

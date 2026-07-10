@@ -39,7 +39,8 @@ extension IsStateExtension on Event {
       // — but always show our own Trustwork events regardless of that setting
       (!AppSettings.hideUnknownEvents.value ||
           isEventTypeKnown ||
-          type == 'com.trustwork.contact_request');
+          type == 'com.trustwork.contact_request' ||
+          type == 'com.trustwork.data_request');
 
   bool get isState => !{
     EventTypes.Message,

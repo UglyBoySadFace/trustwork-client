@@ -27,6 +27,16 @@ void main() {
       // TODO
     });
 
+    // String loginToken
+    test('to test the property `loginToken`', () async {
+      // TODO
+    });
+
+    // String matrixDeviceId
+    test('to test the property `matrixDeviceId`', () async {
+      // TODO
+    });
+
     // MatrixCredentials matrix
     test('to test the property `matrix`', () async {
       // TODO

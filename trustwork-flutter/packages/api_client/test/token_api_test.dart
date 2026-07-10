@@ -7,6 +7,13 @@ void main() {
   final instance = ApiClient().getTokenApi();
 
   group(TokenApi, () {
+    // Get Matrix Password
+    //
+    //Future<MatrixPasswordResponse> getMatrixPasswordMeMatrixPasswordGet() async
+    test('test getMatrixPasswordMeMatrixPasswordGet', () async {
+      // TODO
+    });
+
     // Get Me
     //
     //Future<UserProfile> getMeMeGet() async

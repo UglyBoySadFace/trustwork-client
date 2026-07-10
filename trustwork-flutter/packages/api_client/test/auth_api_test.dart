@@ -9,7 +9,7 @@ void main() {
   group(AuthApi, () {
     // Bankid Callback
     //
-    // Bank iD OAuth2 callback endpoint.  Bank iD redirects here after user authentication with code and state, or with error parameters if authentication failed.  For now, this just extracts the user identity and returns it. Later, this will create/update Matrix accounts and return credentials.
+    // Bank iD callback — links identity to existing user and provisions Matrix account.
     //
     //Future<JsonObject> bankidCallbackAuthBankidCallbackGet({ String code, String state, String error, String errorDescription }) async
     test('test bankidCallbackAuthBankidCallbackGet', () async {
@@ -18,19 +18,10 @@ void main() {
 
     // Bankid Start
     //
-    // Start Bank iD OAuth2 flow.  Requires a valid onboarding_token from email verification. Optionally pass a phone number to link it to the account. Returns a redirect URL that the client should open in a browser/webview.
+    // Start Bank iD verification for an authenticated user. Requires Bearer token from email verify/login.
     //
-    //Future<JsonObject> bankidStartAuthBankidStartGet(String onboardingToken, { String phone }) async
+    //Future<JsonObject> bankidStartAuthBankidStartGet() async
     test('test bankidStartAuthBankidStartGet', () async {
-      // TODO
-    });
-
-    // Bankid Test
-    //
-    // Test endpoint: triggers the full Bank iD flow and redirects to authorization URL.  This is for quick browser-based testing. Open http://localhost:8000/auth/bankid/test in your browser to start the flow.
-    //
-    //Future<JsonObject> bankidTestAuthBankidTestGet() async
-    test('test bankidTestAuthBankidTestGet', () async {
       // TODO
     });
 

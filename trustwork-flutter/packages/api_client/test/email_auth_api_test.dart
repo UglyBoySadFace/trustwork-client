@@ -9,7 +9,7 @@ void main() {
   group(EmailAuthApi, () {
     // Email Login
     //
-    // Login flow for existing users — verifies email code and returns full auth tokens.
+    // Login for existing users — verifies email code and returns full auth tokens.
     //
     //Future<AuthResponse> emailLoginAuthEmailLoginPost(EmailVerifyRequest emailVerifyRequest) async
     test('test emailLoginAuthEmailLoginPost', () async {
@@ -18,6 +18,8 @@ void main() {
 
     // Email Start
     //
+    // Send (or resend) a verification email containing both a 6-digit code and a magic link.  Calling this again acts as resend: any previous unused code is invalidated, subject to a 60s rate limit (returns 429 if called too soon).
+    //
     //Future<EmailStartResponse> emailStartAuthEmailStartPost(EmailStartRequest emailStartRequest) async
     test('test emailStartAuthEmailStartPost', () async {
       // TODO
@@ -25,10 +27,19 @@ void main() {
 
     // Email Verify
     //
-    // Registration flow — returns an onboarding token to continue with Bank iD.
+    // Registration — verifies email code, creates user with optional phone, returns auth tokens.
     //
-    //Future<OnboardingTokenResponse> emailVerifyAuthEmailVerifyPost(EmailVerifyRequest emailVerifyRequest) async
+    //Future<AuthResponse> emailVerifyAuthEmailVerifyPost(EmailVerifyRequest emailVerifyRequest) async
     test('test emailVerifyAuthEmailVerifyPost', () async {
+      // TODO
+    });
+
+    // Email Verify Link
+    //
+    // Magic-link verification — runs in the browser, redirects back into the app via deep link.  Handles both registration and login: a new email creates an account, an existing one logs in.
+    //
+    //Future<JsonObject> emailVerifyLinkAuthEmailVerifyLinkGet(String token, { String phone }) async
+    test('test emailVerifyLinkAuthEmailVerifyLinkGet', () async {
       // TODO
     });
 

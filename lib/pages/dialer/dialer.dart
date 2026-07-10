@@ -29,13 +29,17 @@ import 'package:just_audio/just_audio.dart';
 import 'package:matrix/matrix.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
+import 'package:dio/dio.dart';
+
 import 'package:fluffychat/l10n/l10n.dart';
+import 'package:fluffychat/pages/data_sharing/data_sharing_approval_sheet.dart';
 import 'package:fluffychat/utils/data_sharing/data_sharing_service.dart';
 import 'package:fluffychat/utils/data_sharing/shareable_field.dart';
 import 'package:fluffychat/utils/data_sharing/sharing_preferences_cache.dart';
 import 'package:fluffychat/utils/matrix_sdk_extensions/matrix_locals.dart';
 import 'package:fluffychat/utils/platform_infos.dart';
 import 'package:fluffychat/utils/ringer_vibration.dart';
+import 'package:fluffychat/utils/trustwork_api_service.dart';
 import 'package:fluffychat/utils/voip/user_media_manager.dart';
 import 'package:fluffychat/utils/voip/video_renderer.dart';
 import 'package:fluffychat/widgets/avatar.dart';
@@ -581,7 +585,7 @@ class MyCallingPage extends State<Calling> {
         useSafeArea: true,
         builder: (sheetCtx) {
           _sheetContext = sheetCtx;
-          return _DataSharingApprovalSheet(
+          return DataSharingApprovalSheet(
             requesterDisplayName: fromName,
             fields: req.fields.toList()..sort((a, b) => a.index.compareTo(b.index)),
             defaults: defaults,
@@ -789,6 +793,48 @@ class MyCallingPage extends State<Calling> {
     }
   }
 
+  Future<int?> _findContactRequestId() async {
+    // Try the DB — works whether or not the room's timeline was opened in UI.
+    final events = await widget.client.database.getEventList(
+      call.room,
+      limit: 30,
+    );
+    for (final event in events) {
+      if (event.type == 'com.trustwork.contact_request') {
+        return event.content.tryGet<int>('request_id');
+      }
+    }
+    return null;
+  }
+
+  Future<void> _acceptContactRequestInBackground(int requestId) async {
+    try {
+      await TrustworkApiService.instance.acceptContactRequest(requestId);
+      if (!mounted) return;
+      final matrix = Matrix.of(context);
+      unawaited(matrix.contactsCache.refresh(matrix.store));
+      unawaited(matrix.refreshIncomingRequestCount());
+      final callerId = call.room
+          .getParticipants()
+          .where((m) => m.id != widget.client.userID)
+          .firstOrNull
+          ?.id;
+      if (callerId != null) {
+        unawaited(call.room.addToDirectChat(callerId));
+      }
+      unawaited(
+        call.room
+            .sendEvent({}, type: 'com.trustwork.contact_accepted')
+            .catchError((_) => ''),
+      );
+    } on DioException catch (e) {
+      Logs().w('[CALL-CONNECT] acceptContactRequest($requestId) failed: '
+          '${TrustworkApiService.friendlyError(e)}');
+    } catch (e) {
+      Logs().w('[CALL-CONNECT] acceptContactRequest($requestId) failed: $e');
+    }
+  }
+
   void _answerCall() {
     _stopCallSound();
     UserMediaManager().stopRingingTone();
@@ -801,9 +847,22 @@ class MyCallingPage extends State<Calling> {
     if (voipPlugin != null) {
       unawaited(voipPlugin.onCallAnswered());
     }
+    // If answering in a locked contact-request delivery room, also accept the
+    // contact request so the room unlocks and both sides become contacts.
+    // Only fires on the callee side (_isOutgoing == false).
+    if (!_isOutgoing) {
+      unawaited(_findAndAcceptContactRequest());
+    }
     setState(() {
       call.answer();
     });
+  }
+
+  Future<void> _findAndAcceptContactRequest() async {
+    final requestId = await _findContactRequestId();
+    if (requestId != null) {
+      await _acceptContactRequestInBackground(requestId);
+    }
   }
 
   void _hangUp() {
@@ -1181,167 +1240,6 @@ class MyCallingPage extends State<Calling> {
           ),
         );
       },
-    );
-  }
-}
-
-class _DataSharingApprovalSheet extends StatefulWidget {
-  const _DataSharingApprovalSheet({
-    required this.requesterDisplayName,
-    required this.fields,
-    required this.defaults,
-    required this.onShare,
-    required this.onDecline,
-  });
-
-  final String requesterDisplayName;
-  final List<ShareableField> fields;
-  final Map<ShareableField, bool> defaults;
-
-  /// Returns `null` on success (sheet closes); a non-null error message
-  /// keeps the sheet open and is rendered above the action buttons.
-  final Future<String?> Function(Set<ShareableField> selected) onShare;
-  final Future<void> Function() onDecline;
-
-  @override
-  State<_DataSharingApprovalSheet> createState() =>
-      _DataSharingApprovalSheetState();
-}
-
-class _DataSharingApprovalSheetState extends State<_DataSharingApprovalSheet> {
-  late final Map<ShareableField, bool> _selected = {
-    for (final f in widget.fields) f: widget.defaults[f] ?? false,
-  };
-  bool _busy = false;
-  String? _errorMessage;
-
-  Set<ShareableField> _selectedFields() => _selected.entries
-      .where((e) => e.value)
-      .map((e) => e.key)
-      .toSet();
-
-  Future<void> _share() async {
-    setState(() {
-      _busy = true;
-      _errorMessage = null;
-    });
-    final error = await widget.onShare(_selectedFields());
-    if (!mounted) return;
-    if (error != null) {
-      setState(() {
-        _busy = false;
-        _errorMessage = error;
-      });
-    }
-  }
-
-  Future<void> _decline() async {
-    setState(() => _busy = true);
-    await widget.onDecline();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = L10n.of(context);
-    return PopScope(
-      canPop: false,
-      child: SafeArea(
-        top: false,
-        child: Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.viewInsetsOf(context).bottom,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const SizedBox(height: 12),
-              Container(
-                width: 36,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Theme.of(context).dividerColor,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Text(
-                  l10n.dataSharingRequestTitle(widget.requesterDisplayName),
-                  style: Theme.of(context).textTheme.titleMedium,
-                  textAlign: TextAlign.center,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Text(
-                  l10n.dataSharingRequestSubtitle,
-                  style: Theme.of(context).textTheme.bodySmall,
-                  textAlign: TextAlign.center,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Flexible(
-                child: ListView(
-                  shrinkWrap: true,
-                  children: [
-                    for (final f in widget.fields)
-                      CheckboxListTile(
-                        value: _selected[f] ?? false,
-                        onChanged: _busy
-                            ? null
-                            : (v) => setState(() => _selected[f] = v ?? false),
-                        title: Text(f.label(l10n)),
-                        controlAffinity: ListTileControlAffinity.leading,
-                      ),
-                  ],
-                ),
-              ),
-              if (_errorMessage != null)
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
-                  child: Text(
-                    _errorMessage!,
-                    style: TextStyle(color: Theme.of(context).colorScheme.error),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: _busy ? null : _decline,
-                        child: Text(l10n.dataSharingDecline),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: FilledButton(
-                        onPressed:
-                            (_busy || _selectedFields().isEmpty)
-                                ? null
-                                : _share,
-                        child: _busy
-                            ? const SizedBox(
-                                width: 18,
-                                height: 18,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : Text(l10n.dataSharingShare),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 }

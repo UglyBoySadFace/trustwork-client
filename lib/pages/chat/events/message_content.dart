@@ -23,6 +23,7 @@ import '../../../utils/url_launcher.dart';
 import 'audio_player.dart';
 import 'contact_request_bubble.dart';
 import 'cute_events.dart';
+import 'data_request_bubble.dart';
 import 'html_message.dart';
 import 'image_bubble.dart';
 import 'map_bubble.dart';
@@ -319,6 +320,8 @@ class MessageContent extends StatelessWidget {
         );
       case 'com.trustwork.contact_request':
         return ContactRequestBubble(event: event);
+      case 'com.trustwork.data_request':
+        return DataRequestBubble(event: event);
       default:
         return _ButtonContent(
           label: L10n.of(context).userSentUnknownEvent(

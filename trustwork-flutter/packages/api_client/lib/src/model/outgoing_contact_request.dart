@@ -18,6 +18,7 @@ part 'outgoing_contact_request.g.dart';
 /// * [createdAt] 
 /// * [respondedAt] 
 /// * [target] 
+/// * [matrixRoomId] 
 @BuiltValue()
 abstract class OutgoingContactRequest implements Built<OutgoingContactRequest, OutgoingContactRequestBuilder> {
   @BuiltValueField(wireName: r'id')
@@ -37,6 +38,9 @@ abstract class OutgoingContactRequest implements Built<OutgoingContactRequest, O
 
   @BuiltValueField(wireName: r'target')
   ContactProfile? get target;
+
+  @BuiltValueField(wireName: r'matrix_room_id')
+  String? get matrixRoomId;
 
   OutgoingContactRequest._();
 
@@ -93,6 +97,13 @@ class _$OutgoingContactRequestSerializer implements PrimitiveSerializer<Outgoing
       yield serializers.serialize(
         object.target,
         specifiedType: const FullType.nullable(ContactProfile),
+      );
+    }
+    if (object.matrixRoomId != null) {
+      yield r'matrix_room_id';
+      yield serializers.serialize(
+        object.matrixRoomId,
+        specifiedType: const FullType.nullable(String),
       );
     }
   }
@@ -161,6 +172,14 @@ class _$OutgoingContactRequestSerializer implements PrimitiveSerializer<Outgoing
           ) as ContactProfile?;
           if (valueDes == null) continue;
           result.target.replace(valueDes);
+          break;
+        case r'matrix_room_id':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType.nullable(String),
+          ) as String?;
+          if (valueDes == null) continue;
+          result.matrixRoomId = valueDes;
           break;
         default:
           unhandled.add(key);

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import 'package:api_client/api_client.dart';
@@ -64,6 +66,20 @@ class _IncomingRequestsTabState extends State<IncomingRequestsTab> {
       await TrustworkApiService.instance.acceptContactRequest(req.id);
       if (!mounted) return;
       await Matrix.of(context).contactsCache.refresh(Matrix.of(context).store);
+      final mxid = req.requester.matrixUserId;
+      if (mxid != null && mxid.isNotEmpty) {
+        final client = Matrix.of(context).client;
+        final room = client.rooms
+            .where((r) {
+              final ids =
+                  r.getParticipants().map((m) => m.id).toSet();
+              return ids.contains(mxid) &&
+                  ids.contains(client.userID) &&
+                  ids.length == 2;
+            })
+            .firstOrNull;
+        if (room != null) unawaited(room.addToDirectChat(mxid));
+      }
       if (!mounted) return;
       await _load();
     } on DioException catch (e) {
@@ -214,6 +230,30 @@ class _IncomingRequestsTabState extends State<IncomingRequestsTab> {
                       color: theme.colorScheme.secondary,
                     ),
                   ),
+                  if (req.initialMessage != null &&
+                      req.initialMessage!.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(
+                          Icons.chat_bubble_outline,
+                          size: 14,
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            req.initialMessage!,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                              fontStyle: FontStyle.italic,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                   const SizedBox(height: 12),
                   if (isProcessing)
                     const Center(child: CircularProgressIndicator.adaptive())

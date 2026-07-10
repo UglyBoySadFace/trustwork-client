@@ -15,6 +15,7 @@ import 'package:fluffychat/pages/chat_list/chat_list.dart';
 import 'package:fluffychat/pages/dialer/dialer.dart';
 import 'package:fluffychat/utils/platform_infos.dart';
 import 'package:fluffychat/utils/ringer_vibration.dart';
+import 'package:fluffychat/utils/trustwork_api_service.dart';
 import '../../utils/voip/user_media_manager.dart';
 import '../widgets/matrix.dart';
 
@@ -308,6 +309,45 @@ class VoipPlugin with WidgetsBindingObserver implements WebRTCDelegate {
     }
   }
 
+  // Scans the room's DB timeline for a com.trustwork.contact_request event
+  // and fires acceptContactRequest if found. Used on the callee side when
+  // answering from the lock screen (cold-start path) where the dialer's
+  // _answerCall() is never invoked.
+  Future<void> _acceptContactRequestFromRoom(CallSession call) async {
+    final events = await client.database.getEventList(call.room, limit: 30);
+    for (final event in events) {
+      if (event.type == 'com.trustwork.contact_request') {
+        final requestId = event.content.tryGet<int>('request_id');
+        if (requestId != null) {
+          unawaited(_doAcceptContactRequest(requestId, call.room));
+          return;
+        }
+      }
+    }
+  }
+
+  Future<void> _doAcceptContactRequest(int requestId, Room room) async {
+    try {
+      await TrustworkApiService.instance.acceptContactRequest(requestId);
+      await matrix.contactsCache.refresh(matrix.store);
+      final callerId = room
+          .getParticipants()
+          .where((m) => m.id != client.userID)
+          .firstOrNull
+          ?.id;
+      if (callerId != null) {
+        unawaited(room.addToDirectChat(callerId));
+      }
+      unawaited(
+        room
+            .sendEvent({}, type: 'com.trustwork.contact_accepted')
+            .catchError((_) => ''),
+      );
+    } catch (e) {
+      Logs().w('[CALL-CONNECT] _doAcceptContactRequest($requestId) failed: $e');
+    }
+  }
+
   void addCallingOverlay(String callId, CallSession call) {
     final context = ChatList.contextForVoip ?? this.context;
 
@@ -487,6 +527,9 @@ class VoipPlugin with WidgetsBindingObserver implements WebRTCDelegate {
       if (PlatformInfos.isAndroid) {
         unawaited(_startForegroundService());
       }
+      // If this call arrived in a contact-request delivery room, accept the
+      // request so the room unlocks. Fire-and-forget alongside the call answer.
+      unawaited(_acceptContactRequestFromRoom(call));
       // Answer before showing the overlay so the dialer doesn't briefly
       // render the ringing UI (answer/decline buttons) on top of a call
       // the user already accepted from the lock-screen callkit notification.

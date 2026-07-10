@@ -351,17 +351,58 @@ class NewPrivateChatView extends StatelessWidget {
             ),
             const SizedBox(height: 8),
           ],
-          FilledButton.icon(
-            onPressed: controller.isSendingRequest
-                ? null
-                : controller.sendContactRequest,
-            icon: controller.isSendingRequest
-                ? const SizedBox.square(
-                    dimension: 20,
-                    child: CircularProgressIndicator.adaptive(strokeWidth: 2),
-                  )
-                : const Icon(Icons.person_add_outlined),
-            label: Text(l10n.sendContactRequest),
+          TextField(
+            controller: controller.initialMessageController,
+            enabled: !controller.isSendingRequest,
+            maxLength: 2000,
+            maxLines: 3,
+            minLines: 1,
+            textInputAction: TextInputAction.newline,
+            decoration: InputDecoration(
+              hintText: l10n.initialMessageHint,
+              labelText: l10n.addAMessage,
+              filled: true,
+              fillColor: theme.colorScheme.surfaceContainerHighest,
+              border: OutlineInputBorder(
+                borderSide: BorderSide.none,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              counterStyle: TextStyle(
+                color: theme.colorScheme.onSurfaceVariant,
+                fontSize: 11,
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: FilledButton.icon(
+                  onPressed: controller.isSendingRequest
+                      ? null
+                      : controller.sendContactRequest,
+                  icon: controller.isSendingRequest
+                      ? const SizedBox.square(
+                          dimension: 20,
+                          child: CircularProgressIndicator.adaptive(
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : const Icon(Icons.person_add_outlined),
+                  label: Text(l10n.sendContactRequest),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: controller.isSendingRequest
+                      ? null
+                      : controller.callToConnect,
+                  icon: const Icon(Icons.call_outlined),
+                  label: Text(l10n.callToConnect),
+                ),
+              ),
+            ],
           ),
         ],
       ),

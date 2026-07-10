@@ -87,6 +87,8 @@ class Message extends StatelessWidget {
       EventTypes.CallInvite,
       PollEventContent.startType,
       'com.trustwork.contact_request',
+      'com.trustwork.contact_accepted',
+      'com.trustwork.data_request',
     }.contains(event.type)) {
       if (event.type.startsWith('m.call.')) {
         return const SizedBox.shrink();

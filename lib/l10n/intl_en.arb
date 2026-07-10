@@ -3544,6 +3544,16 @@
   "dataSharingResultTitle": "Shared details",
   "dataSharingTimedOut": "No response from the caller.",
   "dataSharingErrored": "Something went wrong while requesting details.",
+  "dataRequestSentWaiting": "You requested more info — waiting for response…",
+  "@dataRequestSentWaiting": {},
+  "dataRequestReceived": "Info request received from {name}",
+  "@dataRequestReceived": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "addContact": "Add Contact",
   "@addContact": {},
   "contactRequests": "Contact Requests",
@@ -3587,5 +3597,21 @@
   "contactRequestStatusBlocked": "Blocked",
   "@contactRequestStatusBlocked": {},
   "mustBeContactFirst": "You need to connect with this person first.",
-  "@mustBeContactFirst": {}
+  "@mustBeContactFirst": {},
+  "contacts": "Contacts",
+  "@contacts": {},
+  "noContactsYet": "No contacts yet",
+  "@noContactsYet": {},
+  "connectionRequestAccepted": "Connection request accepted",
+  "@connectionRequestAccepted": {},
+  "addAMessage": "Add a message (optional)",
+  "@addAMessage": {},
+  "initialMessageHint": "Say hi before they respond…",
+  "@initialMessageHint": {},
+  "initialMessageLabel": "Your message",
+  "@initialMessageLabel": {},
+  "callToConnect": "Call to connect",
+  "@callToConnect": {},
+  "callToConnectHint": "Place a call — answering connects you",
+  "@callToConnectHint": {}
 }

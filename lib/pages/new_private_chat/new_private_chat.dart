@@ -29,6 +29,8 @@ class NewPrivateChat extends StatefulWidget {
 
 class NewPrivateChatController extends State<NewPrivateChat> {
   final TextEditingController controller = TextEditingController();
+  final TextEditingController initialMessageController =
+      TextEditingController();
   final FocusNode textFieldFocus = FocusNode();
 
   Future<List<Profile>>? searchResponse;
@@ -40,6 +42,15 @@ class NewPrivateChatController extends State<NewPrivateChat> {
   Timer? _searchCoolDown;
 
   static const Duration _coolDown = Duration(milliseconds: 500);
+
+  @override
+  void dispose() {
+    controller.dispose();
+    initialMessageController.dispose();
+    textFieldFocus.dispose();
+    _searchCoolDown?.cancel();
+    super.dispose();
+  }
 
   bool get looksLikeMxid {
     final text = controller.text.trim();
@@ -76,6 +87,7 @@ class NewPrivateChatController extends State<NewPrivateChat> {
       return;
     }
     final mxid = controller.text.trim();
+    final msg = initialMessageController.text.trim();
     setState(() {
       isSendingRequest = true;
       sendRequestError = null;
@@ -84,7 +96,10 @@ class NewPrivateChatController extends State<NewPrivateChat> {
     try {
       final matrixClient = Matrix.of(context).client;
       final knownRoomIds = matrixClient.rooms.map((r) => r.id).toSet();
-      await TrustworkApiService.instance.createContactRequest(mxid);
+      await TrustworkApiService.instance.createContactRequest(
+        mxid,
+        initialMessage: msg.isEmpty ? null : msg,
+      );
       if (!mounted) return;
       setState(() => isSendingRequest = false);
       await _navigateToRequestRoom(matrixClient, mxid, knownRoomIds);
@@ -130,6 +145,78 @@ class NewPrivateChatController extends State<NewPrivateChat> {
       context.go('/rooms/$roomId');
     } else {
       context.go('/rooms');
+    }
+  }
+
+  Future<void> callToConnect() async {
+    if (!looksLikeMxid) {
+      setState(() => sendRequestError = L10n.of(context).invalidMxid);
+      return;
+    }
+    final mxid = controller.text.trim();
+    final msg = initialMessageController.text.trim();
+    setState(() {
+      isSendingRequest = true;
+      sendRequestError = null;
+      sendRequestStatus = null;
+    });
+    try {
+      final matrixClient = Matrix.of(context).client;
+      final outgoing = await TrustworkApiService.instance.createContactRequest(
+        mxid,
+        initialMessage: msg.isEmpty ? null : msg,
+      );
+      if (!mounted) return;
+      final matrixRoomId = outgoing.matrixRoomId;
+      if (matrixRoomId == null) {
+        setState(() {
+          sendRequestError = 'No room ID returned — request sent, try calling from chat.';
+          isSendingRequest = false;
+        });
+        return;
+      }
+      // Wait for the delivery room to appear in the client (it may arrive on
+      // the next sync after the backend joins us).
+      var room = matrixClient.getRoomById(matrixRoomId);
+      if (room == null) {
+        await for (final _ in matrixClient.onSync.stream.timeout(
+          const Duration(seconds: 10),
+          onTimeout: (sink) => sink.close(),
+        )) {
+          room = matrixClient.getRoomById(matrixRoomId);
+          if (room != null) break;
+        }
+      }
+      if (!mounted) return;
+      if (room == null) {
+        setState(() {
+          sendRequestError = 'Room not available — request sent, try calling from the chat.';
+          isSendingRequest = false;
+        });
+        return;
+      }
+      setState(() => isSendingRequest = false);
+      final voipPlugin = Matrix.of(context).voipPlugin;
+      if (voipPlugin == null) return;
+      await voipPlugin.voip.inviteToCall(room, CallType.kVoice);
+      if (!mounted) return;
+      context.go('/rooms/$matrixRoomId');
+    } on DioException catch (e) {
+      if (!mounted) return;
+      if (e.response?.statusCode == 409) {
+        context.go('/rooms/contacts/requests');
+        return;
+      }
+      setState(() {
+        sendRequestError = TrustworkApiService.friendlyError(e);
+        isSendingRequest = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        sendRequestError = e.toString();
+        isSendingRequest = false;
+      });
     }
   }
 

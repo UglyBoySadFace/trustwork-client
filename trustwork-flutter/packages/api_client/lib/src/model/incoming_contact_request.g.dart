@@ -17,6 +17,8 @@ class _$IncomingContactRequest extends IncomingContactRequest {
   final ContactProfile requester;
   @override
   final SharingPreferences requesterSharingPreferences;
+  @override
+  final String? initialMessage;
 
   factory _$IncomingContactRequest(
           [void Function(IncomingContactRequestBuilder)? updates]) =>
@@ -27,7 +29,8 @@ class _$IncomingContactRequest extends IncomingContactRequest {
       required this.status,
       required this.createdAt,
       required this.requester,
-      required this.requesterSharingPreferences})
+      required this.requesterSharingPreferences,
+      this.initialMessage})
       : super._();
   @override
   IncomingContactRequest rebuild(
@@ -46,7 +49,8 @@ class _$IncomingContactRequest extends IncomingContactRequest {
         status == other.status &&
         createdAt == other.createdAt &&
         requester == other.requester &&
-        requesterSharingPreferences == other.requesterSharingPreferences;
+        requesterSharingPreferences == other.requesterSharingPreferences &&
+        initialMessage == other.initialMessage;
   }
 
   @override
@@ -57,6 +61,7 @@ class _$IncomingContactRequest extends IncomingContactRequest {
     _$hash = $jc(_$hash, createdAt.hashCode);
     _$hash = $jc(_$hash, requester.hashCode);
     _$hash = $jc(_$hash, requesterSharingPreferences.hashCode);
+    _$hash = $jc(_$hash, initialMessage.hashCode);
     _$hash = $jf(_$hash);
     return _$hash;
   }
@@ -68,7 +73,8 @@ class _$IncomingContactRequest extends IncomingContactRequest {
           ..add('status', status)
           ..add('createdAt', createdAt)
           ..add('requester', requester)
-          ..add('requesterSharingPreferences', requesterSharingPreferences))
+          ..add('requesterSharingPreferences', requesterSharingPreferences)
+          ..add('initialMessage', initialMessage))
         .toString();
   }
 }
@@ -102,6 +108,11 @@ class IncomingContactRequestBuilder
           SharingPreferencesBuilder? requesterSharingPreferences) =>
       _$this._requesterSharingPreferences = requesterSharingPreferences;
 
+  String? _initialMessage;
+  String? get initialMessage => _$this._initialMessage;
+  set initialMessage(String? initialMessage) =>
+      _$this._initialMessage = initialMessage;
+
   IncomingContactRequestBuilder() {
     IncomingContactRequest._defaults(this);
   }
@@ -114,6 +125,7 @@ class IncomingContactRequestBuilder
       _createdAt = $v.createdAt;
       _requester = $v.requester.toBuilder();
       _requesterSharingPreferences = $v.requesterSharingPreferences.toBuilder();
+      _initialMessage = $v.initialMessage;
       _$v = null;
     }
     return this;
@@ -145,6 +157,7 @@ class IncomingContactRequestBuilder
                 createdAt, r'IncomingContactRequest', 'createdAt'),
             requester: requester.build(),
             requesterSharingPreferences: requesterSharingPreferences.build(),
+            initialMessage: initialMessage,
           );
     } catch (_) {
       late String _$failedField;

@@ -9,12 +9,15 @@ part of 'contact_request_create.dart';
 class _$ContactRequestCreate extends ContactRequestCreate {
   @override
   final String targetMatrixId;
+  @override
+  final String? initialMessage;
 
   factory _$ContactRequestCreate(
           [void Function(ContactRequestCreateBuilder)? updates]) =>
       (ContactRequestCreateBuilder()..update(updates))._build();
 
-  _$ContactRequestCreate._({required this.targetMatrixId}) : super._();
+  _$ContactRequestCreate._({required this.targetMatrixId, this.initialMessage})
+      : super._();
   @override
   ContactRequestCreate rebuild(
           void Function(ContactRequestCreateBuilder) updates) =>
@@ -28,13 +31,15 @@ class _$ContactRequestCreate extends ContactRequestCreate {
   bool operator ==(Object other) {
     if (identical(other, this)) return true;
     return other is ContactRequestCreate &&
-        targetMatrixId == other.targetMatrixId;
+        targetMatrixId == other.targetMatrixId &&
+        initialMessage == other.initialMessage;
   }
 
   @override
   int get hashCode {
     var _$hash = 0;
     _$hash = $jc(_$hash, targetMatrixId.hashCode);
+    _$hash = $jc(_$hash, initialMessage.hashCode);
     _$hash = $jf(_$hash);
     return _$hash;
   }
@@ -42,7 +47,8 @@ class _$ContactRequestCreate extends ContactRequestCreate {
   @override
   String toString() {
     return (newBuiltValueToStringHelper(r'ContactRequestCreate')
-          ..add('targetMatrixId', targetMatrixId))
+          ..add('targetMatrixId', targetMatrixId)
+          ..add('initialMessage', initialMessage))
         .toString();
   }
 }
@@ -56,6 +62,11 @@ class ContactRequestCreateBuilder
   set targetMatrixId(String? targetMatrixId) =>
       _$this._targetMatrixId = targetMatrixId;
 
+  String? _initialMessage;
+  String? get initialMessage => _$this._initialMessage;
+  set initialMessage(String? initialMessage) =>
+      _$this._initialMessage = initialMessage;
+
   ContactRequestCreateBuilder() {
     ContactRequestCreate._defaults(this);
   }
@@ -64,6 +75,7 @@ class ContactRequestCreateBuilder
     final $v = _$v;
     if ($v != null) {
       _targetMatrixId = $v.targetMatrixId;
+      _initialMessage = $v.initialMessage;
       _$v = null;
     }
     return this;
@@ -87,6 +99,7 @@ class ContactRequestCreateBuilder
         _$ContactRequestCreate._(
           targetMatrixId: BuiltValueNullFieldError.checkNotNull(
               targetMatrixId, r'ContactRequestCreate', 'targetMatrixId'),
+          initialMessage: initialMessage,
         );
     replace(_$result);
     return _$result;

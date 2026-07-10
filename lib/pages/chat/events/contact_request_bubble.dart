@@ -5,9 +5,12 @@ import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import 'package:matrix/matrix.dart';
 
+import 'package:fluffychat/l10n/l10n.dart';
 import 'package:fluffychat/pages/contact_requests/contact_request_data_sheet.dart';
 import 'package:fluffychat/utils/trustwork_api_service.dart';
 import 'package:fluffychat/widgets/matrix.dart';
+
+const _eventTypeAccepted = 'com.trustwork.contact_accepted';
 
 class ContactRequestBubble extends StatefulWidget {
   final Event event;
@@ -22,6 +25,8 @@ class _ContactRequestBubbleState extends State<ContactRequestBubble> {
   bool _loading = false;
   bool _loadingSheet = false;
   String? _resolvedStatus;
+  bool _accepted = false;
+  StreamSubscription<Event>? _acceptanceSub;
 
   bool get _isSender =>
       widget.event.senderId == widget.event.room.client.userID;
@@ -35,6 +40,36 @@ class _ContactRequestBubbleState extends State<ContactRequestBubble> {
 
   String get _targetMatrixId =>
       widget.event.content.tryGet<String>('target_matrix_id') ?? '';
+
+  String? get _initialMessage =>
+      widget.event.content.tryGet<String>('initial_message');
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_isSender && !_accepted) {
+      _accepted = Matrix.of(context)
+          .contactsCache
+          .isContact(_targetMatrixId);
+    }
+    if (_acceptanceSub != null) return;
+    _acceptanceSub = widget.event.room.client.onTimelineEvent.stream
+        .where(
+          (e) =>
+              e.roomId == widget.event.room.id &&
+              e.type == _eventTypeAccepted,
+        )
+        .listen((_) {
+          if (!mounted) return;
+          setState(() => _accepted = true);
+        });
+  }
+
+  @override
+  void dispose() {
+    _acceptanceSub?.cancel();
+    super.dispose();
+  }
 
   Future<void> _act(String outcome, Future<void> Function() call) async {
     setState(() => _loading = true);
@@ -52,6 +87,13 @@ class _ContactRequestBubbleState extends State<ContactRequestBubble> {
         // Mark as a DM so the call button and other DM affordances appear.
         unawaited(
           widget.event.room.addToDirectChat(widget.event.senderId),
+        );
+        // Notify the requester's side via a room event (fire-and-forget;
+        // may fail silently if the room has restricted power levels).
+        unawaited(
+          widget.event.room
+              .sendEvent({}, type: _eventTypeAccepted)
+              .catchError((_) => ''),
         );
       }
     } on DioException catch (e) {
@@ -87,6 +129,7 @@ class _ContactRequestBubbleState extends State<ContactRequestBubble> {
           requesterDisplayName: _requesterDisplayName,
           requesterMatrixId: widget.event.senderId,
           sharingPreferences: request.requesterSharingPreferences,
+          room: widget.event.room,
         ),
       );
     } on DioException catch (e) {
@@ -109,8 +152,12 @@ class _ContactRequestBubbleState extends State<ContactRequestBubble> {
 
     if (_isSender) {
       body = Text(
-        'Waiting for $_targetMatrixId to respond.',
-        style: theme.textTheme.bodySmall,
+        _accepted
+            ? L10n.of(context).connectionRequestAccepted
+            : 'Waiting for $_targetMatrixId to respond.',
+        style: theme.textTheme.bodySmall?.copyWith(
+          color: _accepted ? theme.colorScheme.primary : null,
+        ),
       );
     } else if (resolved != null) {
       final label = switch (resolved) {
@@ -194,6 +241,29 @@ class _ContactRequestBubbleState extends State<ContactRequestBubble> {
                   ),
                 ],
               ),
+              if (!_isSender && _initialMessage != null && _initialMessage!.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      Icons.chat_bubble_outline,
+                      size: 14,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        _initialMessage!,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
               const SizedBox(height: 12),
               body,
             ],

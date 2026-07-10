@@ -18,6 +18,7 @@ part 'incoming_contact_request.g.dart';
 /// * [createdAt] 
 /// * [requester] 
 /// * [requesterSharingPreferences] 
+/// * [initialMessage] 
 @BuiltValue()
 abstract class IncomingContactRequest implements Built<IncomingContactRequest, IncomingContactRequestBuilder> {
   @BuiltValueField(wireName: r'id')
@@ -34,6 +35,9 @@ abstract class IncomingContactRequest implements Built<IncomingContactRequest, I
 
   @BuiltValueField(wireName: r'requester_sharing_preferences')
   SharingPreferences get requesterSharingPreferences;
+
+  @BuiltValueField(wireName: r'initial_message')
+  String? get initialMessage;
 
   IncomingContactRequest._();
 
@@ -83,6 +87,13 @@ class _$IncomingContactRequestSerializer implements PrimitiveSerializer<Incoming
       object.requesterSharingPreferences,
       specifiedType: const FullType(SharingPreferences),
     );
+    if (object.initialMessage != null) {
+      yield r'initial_message';
+      yield serializers.serialize(
+        object.initialMessage,
+        specifiedType: const FullType.nullable(String),
+      );
+    }
   }
 
   @override
@@ -140,6 +151,14 @@ class _$IncomingContactRequestSerializer implements PrimitiveSerializer<Incoming
             specifiedType: const FullType(SharingPreferences),
           ) as SharingPreferences;
           result.requesterSharingPreferences.replace(valueDes);
+          break;
+        case r'initial_message':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType.nullable(String),
+          ) as String?;
+          if (valueDes == null) continue;
+          result.initialMessage = valueDes;
           break;
         default:
           unhandled.add(key);

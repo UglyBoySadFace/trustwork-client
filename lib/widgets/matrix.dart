@@ -23,8 +23,6 @@ import 'package:fluffychat/pages/onboarding/onboarding_flow_coordinator.dart';
 import 'package:fluffychat/utils/client_manager.dart';
 import 'package:fluffychat/utils/contacts/contacts_cache.dart';
 import 'package:fluffychat/utils/data_sharing/data_sharing_service.dart';
-import 'package:fluffychat/utils/data_sharing/shareable_field.dart';
-import 'package:fluffychat/utils/data_sharing/sharing_preferences_cache.dart';
 import 'package:fluffychat/utils/full_screen_intent_helper.dart';
 import 'package:fluffychat/utils/init_with_restore.dart';
 import 'package:fluffychat/utils/matrix_sdk_extensions/matrix_file_extension.dart';
@@ -193,6 +191,8 @@ class MatrixState extends State<Matrix> with WidgetsBindingObserver {
   final dataSharingServices = <String, DataSharingService>{};
   final _incomingDataReqSubs =
       <String, StreamSubscription<IncomingDataRequest>>{};
+  final _roomLeaveSubs = <String, StreamSubscription>{};
+  final _contactAcceptedSubs = <String, StreamSubscription>{};
   final contactsCache = ContactsCache();
   final incomingContactRequestCount = ValueNotifier<int>(0);
   /// Display name sourced from the Trustwork middleware (BankID). Populated on
@@ -265,7 +265,7 @@ class MatrixState extends State<Matrix> with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     contactsCache.loadFromStore(store);
     if (widget.clients.any((c) => c.isLogged())) {
-      unawaited(contactsCache.refresh(store));
+      unawaited(_refreshContactsAndMarkDms(client));
       unawaited(_syncDisplayName());
     }
     initMatrix();
@@ -339,7 +339,7 @@ class MatrixState extends State<Matrix> with WidgetsBindingObserver {
         });
     onLoginStateChanged[name] ??= c.onLoginStateChanged.stream.listen((state) {
       if (state == LoginState.loggedIn) {
-        unawaited(contactsCache.refresh(store));
+        unawaited(_refreshContactsAndMarkDms(c));
       }
       final loggedInWithMultipleClients = widget.clients.length > 1;
       if (state == LoginState.loggedOut) {
@@ -370,6 +370,16 @@ class MatrixState extends State<Matrix> with WidgetsBindingObserver {
     _incomingDataReqSubs[name] ??= dataSharingServices[name]!
         .incomingRequests
         .listen((req) => _autoApproveDataRequest(name, req));
+    _roomLeaveSubs[name] ??= c.onRoomState.stream
+        .where(
+          (update) =>
+              update.state.stateKey == c.userID &&
+              update.state.content['membership'] == 'leave',
+        )
+        .listen((_) => unawaited(_refreshContactsAndMarkDms(c)));
+    _contactAcceptedSubs[name] ??= c.onTimelineEvent.stream
+        .where((e) => e.type == 'com.trustwork.contact_accepted')
+        .listen((_) => unawaited(_refreshContactsAndMarkDms(c)));
     if (PlatformInfos.isWeb || PlatformInfos.isLinux) {
       c.onSync.stream.first.then((s) {
         html.Notification.requestPermission();
@@ -391,6 +401,10 @@ class MatrixState extends State<Matrix> with WidgetsBindingObserver {
     onNotification.remove(name);
     _incomingDataReqSubs[name]?.cancel();
     _incomingDataReqSubs.remove(name);
+    _roomLeaveSubs[name]?.cancel();
+    _roomLeaveSubs.remove(name);
+    _contactAcceptedSubs[name]?.cancel();
+    _contactAcceptedSubs.remove(name);
     dataSharingServices[name]?.dispose();
     dataSharingServices.remove(name);
   }
@@ -498,36 +512,47 @@ class MatrixState extends State<Matrix> with WidgetsBindingObserver {
     }
   }
 
-  // Auto-approve data-sharing requests that arrive outside of an active call.
-  // Requests from active call peers are handled by the dialer UI instead.
+  // If there is an active call with the requester, the dialer UI handles the
+  // prompt. Otherwise, ChatController handles it when the user opens the room.
+  // DataSharingService buffers lastIncomingRequest for late subscribers.
   void _autoApproveDataRequest(String clientName, IncomingDataRequest req) {
-    final service = dataSharingServices[clientName];
-    if (service == null) return;
-
     final c = getClientByName(clientName);
     if (c == null) return;
-
     final hasCallWithRequester = voipPlugin?.voip.calls.keys.any((key) {
       final room = c.getRoomById(key.roomId);
       return room?.directChatMatrixID == req.fromMatrixId;
     }) ?? false;
     if (hasCallWithRequester) return;
-
-    final prefs = SharingPreferencesCache.read(store);
-    final approved = prefs == null
-        ? <ShareableField>{}
-        : req.fields.where((f) => prefs[f] == true).toSet();
-
-    if (approved.isEmpty) {
-      unawaited(service.decline(req));
-      return;
-    }
-    unawaited(service.approve(request: req, approvedFields: approved));
+    // Non-call case: ChatController handles it when the user opens the room.
   }
 
   void createVoipPlugin() {
     voipPlugin?.dispose();
     voipPlugin = VoipPlugin(this);
+  }
+
+  Future<void> _refreshContactsAndMarkDms(Client c) async {
+    await contactsCache.refresh(store);
+    _markContactRoomsAsDm(c);
+  }
+
+  /// After refreshing the contacts cache, mark any 1:1 rooms with accepted
+  /// contacts as DM rooms on this client too (handles the requester's side
+  /// not calling addToDirectChat at acceptance time).
+  void _markContactRoomsAsDm(Client c) {
+    for (final room in c.rooms) {
+      if (room.isDirectChat) continue;
+      final participants = room.getParticipants();
+      if (participants.length != 2) continue;
+      final otherId = participants
+          .where((m) => m.id != c.userID)
+          .map((m) => m.id)
+          .firstOrNull;
+      if (otherId == null) continue;
+      if (contactsCache.isContact(otherId)) {
+        unawaited(room.addToDirectChat(otherId));
+      }
+    }
   }
 
   Future<void> refreshIncomingRequestCount() async {
@@ -556,7 +581,7 @@ class MatrixState extends State<Matrix> with WidgetsBindingObserver {
       }
     }
     if (state == AppLifecycleState.resumed) {
-      unawaited(contactsCache.refresh(store));
+      unawaited(_refreshContactsAndMarkDms(client));
     }
   }
 

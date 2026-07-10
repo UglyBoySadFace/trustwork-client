@@ -17,5 +17,10 @@ void main() {
       // TODO
     });
 
+    // int ttlMinutes
+    test('to test the property `ttlMinutes`', () async {
+      // TODO
+    });
+
   });
 }

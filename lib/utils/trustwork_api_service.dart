@@ -52,13 +52,18 @@ class TrustworkApiService {
       <String, String>{'Authorization': 'Bearer $token'};
 
   /// Sends a contact request to the user behind [targetMatrixId].
+  /// [initialMessage] is an optional greeting (max 2000 chars) shown to the
+  /// recipient before they decide. Stored plaintext, not E2EE.
   Future<OutgoingContactRequest> createContactRequest(
-    String targetMatrixId,
-  ) async {
+    String targetMatrixId, {
+    String? initialMessage,
+  }) async {
     final response = await authedRequest(
       (token) => contacts.createContactRequestContactsRequestsPost(
         contactRequestCreate: ContactRequestCreate(
-          (b) => b..targetMatrixId = targetMatrixId,
+          (b) => b
+            ..targetMatrixId = targetMatrixId
+            ..initialMessage = initialMessage,
         ),
         headers: _authHeader(token),
       ),

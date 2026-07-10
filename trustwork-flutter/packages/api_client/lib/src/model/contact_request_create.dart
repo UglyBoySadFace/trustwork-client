@@ -12,10 +12,14 @@ part 'contact_request_create.g.dart';
 ///
 /// Properties:
 /// * [targetMatrixId] 
+/// * [initialMessage] 
 @BuiltValue()
 abstract class ContactRequestCreate implements Built<ContactRequestCreate, ContactRequestCreateBuilder> {
   @BuiltValueField(wireName: r'target_matrix_id')
   String get targetMatrixId;
+
+  @BuiltValueField(wireName: r'initial_message')
+  String? get initialMessage;
 
   ContactRequestCreate._();
 
@@ -45,6 +49,13 @@ class _$ContactRequestCreateSerializer implements PrimitiveSerializer<ContactReq
       object.targetMatrixId,
       specifiedType: const FullType(String),
     );
+    if (object.initialMessage != null) {
+      yield r'initial_message';
+      yield serializers.serialize(
+        object.initialMessage,
+        specifiedType: const FullType.nullable(String),
+      );
+    }
   }
 
   @override
@@ -74,6 +85,14 @@ class _$ContactRequestCreateSerializer implements PrimitiveSerializer<ContactReq
             specifiedType: const FullType(String),
           ) as String;
           result.targetMatrixId = valueDes;
+          break;
+        case r'initial_message':
+          final valueDes = serializers.deserialize(
+            value,
+            specifiedType: const FullType.nullable(String),
+          ) as String?;
+          if (valueDes == null) continue;
+          result.initialMessage = valueDes;
           break;
         default:
           unhandled.add(key);

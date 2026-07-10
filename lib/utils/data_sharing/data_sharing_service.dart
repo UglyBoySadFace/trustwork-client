@@ -80,9 +80,22 @@ class DataSharingService {
   final StreamController<ProactiveShareData> _proactiveShares =
       StreamController<ProactiveShareData>.broadcast();
 
+  // Separate stream for completed data requests (both within-timeout and late
+  // unsolicited), so DataRequestBubble can display the result without
+  // interfering with the dialer's proactive-share listener.
+  final StreamController<ProactiveShareData> _requestApprovals =
+      StreamController<ProactiveShareData>.broadcast();
+
   // Cached so that late subscribers (e.g. the dialer widget, which opens after
   // the to-device event is already processed) can still get the data.
   ProactiveShareData? _lastProactiveShare;
+
+  ProactiveShareData? _lastRequestApproval;
+
+  // Buffers the last unhandled incoming request so ChatController can replay it
+  // when the user navigates into the room after the to-device event fires.
+  IncomingDataRequest? _lastIncomingRequest;
+  IncomingDataRequest? get lastIncomingRequest => _lastIncomingRequest;
 
   /// Caller-side stream of inbound requests during ringing.
   Stream<IncomingDataRequest> get incomingRequests => _incoming.stream;
@@ -90,9 +103,21 @@ class DataSharingService {
   /// Callee-side stream of data the caller pushed without being asked.
   Stream<ProactiveShareData> get proactiveShares => _proactiveShares.stream;
 
+  /// Emits when a data-request the callee sent is approved (either within the
+  /// 30 s timeout window or as a late unsolicited response).
+  Stream<ProactiveShareData> get requestApprovals => _requestApprovals.stream;
+
+  /// The most recent approval of a callee-initiated request, or null.
+  ProactiveShareData? get lastRequestApproval => _lastRequestApproval;
+
+  void clearLastRequestApproval() => _lastRequestApproval = null;
+
   /// The most recent proactive share received in this session, or null if none.
   /// Use this to replay the share to a subscriber that registered late.
   ProactiveShareData? get lastProactiveShare => _lastProactiveShare;
+
+  /// Clears the buffered incoming request after it has been handled.
+  void clearLastIncomingRequest() => _lastIncomingRequest = null;
 
   /// Callee-side: ask [callerMatrixId] for [fields]. Resolves when the caller
   /// responds, declines, or [timeout] elapses.
@@ -230,9 +255,15 @@ class DataSharingService {
       return;
     }
     final client = _client!;
-    final deviceKeys =
+    var deviceKeys =
         client.userDeviceKeys[matrixId]?.deviceKeys.values.toList() ??
         <DeviceKeys>[];
+    if (deviceKeys.isEmpty) {
+      await client.updateUserDeviceKeys(additionalUsers: {matrixId});
+      deviceKeys =
+          client.userDeviceKeys[matrixId]?.deviceKeys.values.toList() ??
+          <DeviceKeys>[];
+    }
     if (deviceKeys.isEmpty) {
       throw StateError('No known devices for $matrixId');
     }
@@ -303,13 +334,13 @@ class DataSharingService {
         Logs().i(
           '$_logTag incoming request request_id=$requestId matrix_id=${event.sender} fields=${fields.map((f) => f.wireId).toList()}',
         );
-        _incoming.add(
-          IncomingDataRequest(
-            requestId: requestId,
-            fromMatrixId: event.sender,
-            fields: fields,
-          ),
+        final incoming = IncomingDataRequest(
+          requestId: requestId,
+          fromMatrixId: event.sender,
+          fields: fields,
         );
+        _lastIncomingRequest = incoming;
+        _incoming.add(incoming);
         break;
       case eventTypeResponse:
         final pending = _pending[requestId];
@@ -362,6 +393,10 @@ class DataSharingService {
           Logs().i(
             '$_logTag fetch succeeded request_id=$requestId matrix_id=${event.sender}',
           );
+          final approval =
+              ProactiveShareData(fromMatrixId: event.sender, data: data);
+          _lastRequestApproval = approval;
+          _requestApprovals.add(approval);
           _completeIfNeeded(pending.completer, DataSharingApproved(data));
         } catch (e, s) {
           Logs().w(
@@ -415,6 +450,8 @@ class DataSharingService {
       final share = ProactiveShareData(fromMatrixId: senderMatrixId, data: data);
       _lastProactiveShare = share;
       _proactiveShares.add(share);
+      _lastRequestApproval = share;
+      _requestApprovals.add(share);
     } catch (e, s) {
       Logs().w(
         '$_logTag fetch failed for unsolicited response request_id=$requestId',
@@ -443,8 +480,11 @@ class DataSharingService {
     _pending.clear();
     _seenIds.clear();
     _lastProactiveShare = null;
+    _lastIncomingRequest = null;
+    _lastRequestApproval = null;
     _incoming.close();
     _proactiveShares.close();
+    _requestApprovals.close();
   }
 }
 

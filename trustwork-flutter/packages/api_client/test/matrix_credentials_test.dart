@@ -17,5 +17,10 @@ void main() {
       // TODO
     });
 
+    // String matrixPassword
+    test('to test the property `matrixPassword`', () async {
+      // TODO
+    });
+
   });
 }

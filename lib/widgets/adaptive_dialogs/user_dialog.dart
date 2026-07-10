@@ -186,8 +186,10 @@ class UserDialog extends StatelessWidget {
                     : L10n.of(context).sendAMessage,
               ),
             )
-          else
+          else ...[
             _SendRequestAction(userId: profile.userId),
+            _CallToConnectAction(userId: profile.userId),
+          ],
           AdaptiveDialogAction(
             bigButtons: true,
             borderRadius: AdaptiveDialogAction.centerRadius,
@@ -216,6 +218,85 @@ class UserDialog extends StatelessWidget {
   }
 }
 
+/// Shows a bottom sheet asking for an optional greeting message.
+/// Returns the trimmed text, or null if the user skipped/dismissed.
+Future<String?> _askForInitialMessage(BuildContext context) async {
+  final l10n = L10n.of(context);
+  final msgCtrl = TextEditingController();
+  final result = await showModalBottomSheet<String?>(
+    context: context,
+    isScrollControlled: true,
+    useSafeArea: true,
+    builder: (ctx) => Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.viewInsetsOf(ctx).bottom,
+        left: 16,
+        right: 16,
+        top: 16,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            l10n.addAMessage,
+            style: Theme.of(ctx).textTheme.titleMedium,
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: msgCtrl,
+            autofocus: true,
+            maxLength: 2000,
+            maxLines: 4,
+            minLines: 2,
+            textInputAction: TextInputAction.newline,
+            decoration: InputDecoration(
+              hintText: l10n.initialMessageHint,
+              border: const OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  child: Text(l10n.skip),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: FilledButton(
+                  onPressed: () =>
+                      Navigator.of(ctx).pop(msgCtrl.text.trim()),
+                  child: Text(l10n.sendContactRequest),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+        ],
+      ),
+    ),
+  );
+  msgCtrl.dispose();
+  return result;
+}
+
+String? _findNewRoom(
+  Client client,
+  String targetMxid,
+  Set<String> knownRoomIds,
+) {
+  for (final room in client.rooms) {
+    if (knownRoomIds.contains(room.id)) continue;
+    if (room.getParticipants().any((m) => m.id == targetMxid)) {
+      return room.id;
+    }
+  }
+  return null;
+}
+
 class _SendRequestAction extends StatefulWidget {
   final String userId;
 
@@ -229,12 +310,17 @@ class _SendRequestActionState extends State<_SendRequestAction> {
   bool _sending = false;
 
   Future<void> _send() async {
+    final message = await _askForInitialMessage(context);
+    if (!mounted) return;
     final router = GoRouter.of(context);
     setState(() => _sending = true);
     try {
       final matrixClient = Matrix.of(context).client;
       final knownRoomIds = matrixClient.rooms.map((r) => r.id).toSet();
-      await TrustworkApiService.instance.createContactRequest(widget.userId);
+      await TrustworkApiService.instance.createContactRequest(
+        widget.userId,
+        initialMessage: (message == null || message.isEmpty) ? null : message,
+      );
       if (!mounted) return;
       Navigator.of(context).pop();
       await _navigateToRequestRoom(router, matrixClient, widget.userId, knownRoomIds);
@@ -284,20 +370,6 @@ class _SendRequestActionState extends State<_SendRequestAction> {
     }
   }
 
-  static String? _findNewRoom(
-    Client client,
-    String targetMxid,
-    Set<String> knownRoomIds,
-  ) {
-    for (final room in client.rooms) {
-      if (knownRoomIds.contains(room.id)) continue;
-      if (room.getParticipants().any((m) => m.id == targetMxid)) {
-        return room.id;
-      }
-    }
-    return null;
-  }
-
   @override
   Widget build(BuildContext context) => AdaptiveDialogAction(
     borderRadius: AdaptiveDialogAction.topRadius,
@@ -309,5 +381,101 @@ class _SendRequestActionState extends State<_SendRequestAction> {
             child: CircularProgressIndicator.adaptive(strokeWidth: 2),
           )
         : Text(L10n.of(context).sendContactRequest),
+  );
+}
+
+class _CallToConnectAction extends StatefulWidget {
+  final String userId;
+
+  const _CallToConnectAction({required this.userId});
+
+  @override
+  State<_CallToConnectAction> createState() => _CallToConnectActionState();
+}
+
+class _CallToConnectActionState extends State<_CallToConnectAction> {
+  bool _calling = false;
+
+  Future<void> _call() async {
+    final message = await _askForInitialMessage(context);
+    if (!mounted) return;
+    final router = GoRouter.of(context);
+    setState(() => _calling = true);
+    try {
+      final matrixClient = Matrix.of(context).client;
+      final outgoing = await TrustworkApiService.instance.createContactRequest(
+        widget.userId,
+        initialMessage: (message == null || message.isEmpty) ? null : message,
+      );
+      if (!mounted) return;
+      final matrixRoomId = outgoing.matrixRoomId;
+      if (matrixRoomId == null) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No room ID returned — request sent.')),
+        );
+        return;
+      }
+      // Wait for the delivery room to arrive via sync.
+      var room = matrixClient.getRoomById(matrixRoomId);
+      if (room == null) {
+        await for (final _ in matrixClient.onSync.stream.timeout(
+          const Duration(seconds: 10),
+          onTimeout: (sink) => sink.close(),
+        )) {
+          room = matrixClient.getRoomById(matrixRoomId);
+          if (room != null) break;
+        }
+      }
+      if (!mounted) return;
+      if (room == null) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Room not available — request sent.')),
+        );
+        return;
+      }
+      final voipPlugin = Matrix.of(context).voipPlugin;
+      if (voipPlugin == null) {
+        Navigator.of(context).pop();
+        return;
+      }
+      await voipPlugin.voip.inviteToCall(room, CallType.kVoice);
+      if (!mounted) return;
+      Navigator.of(context).pop();
+      router.go('/rooms/$matrixRoomId');
+    } on DioException catch (e) {
+      if (!mounted) return;
+      if (e.response?.statusCode == 409) {
+        Navigator.of(context).pop();
+        router.go('/rooms/contacts/requests');
+        return;
+      }
+      Navigator.of(context).pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(TrustworkApiService.friendlyError(e))),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.of(context).pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString())),
+      );
+    } finally {
+      if (mounted) setState(() => _calling = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => AdaptiveDialogAction(
+    borderRadius: AdaptiveDialogAction.centerRadius,
+    bigButtons: true,
+    onPressed: _calling ? null : _call,
+    child: _calling
+        ? const SizedBox.square(
+            dimension: 20,
+            child: CircularProgressIndicator.adaptive(strokeWidth: 2),
+          )
+        : Text(L10n.of(context).callToConnect),
   );
 }

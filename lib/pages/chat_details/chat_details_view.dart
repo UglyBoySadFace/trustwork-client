@@ -362,8 +362,10 @@ class ChatDetailsView extends StatelessWidget {
                               );
                               if (confirmed != true) return;
                               try {
+                                final mxid = room.directChatMatrixID!;
+                                await room.removeFromDirectChat();
                                 await TrustworkApiService.instance
-                                    .removeContact(room.directChatMatrixID!);
+                                    .removeContact(mxid);
                                 if (!context.mounted) return;
                                 await Matrix.of(context)
                                     .contactsCache

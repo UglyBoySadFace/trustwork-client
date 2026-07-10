@@ -37,5 +37,10 @@ void main() {
       // TODO
     });
 
+    // String matrixRoomId
+    test('to test the property `matrixRoomId`', () async {
+      // TODO
+    });
+
   });
 }

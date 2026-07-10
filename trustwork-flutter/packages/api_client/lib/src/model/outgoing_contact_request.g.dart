@@ -19,6 +19,8 @@ class _$OutgoingContactRequest extends OutgoingContactRequest {
   final DateTime? respondedAt;
   @override
   final ContactProfile? target;
+  @override
+  final String? matrixRoomId;
 
   factory _$OutgoingContactRequest(
           [void Function(OutgoingContactRequestBuilder)? updates]) =>
@@ -30,7 +32,8 @@ class _$OutgoingContactRequest extends OutgoingContactRequest {
       required this.targetMatrixId,
       required this.createdAt,
       this.respondedAt,
-      this.target})
+      this.target,
+      this.matrixRoomId})
       : super._();
   @override
   OutgoingContactRequest rebuild(
@@ -50,7 +53,8 @@ class _$OutgoingContactRequest extends OutgoingContactRequest {
         targetMatrixId == other.targetMatrixId &&
         createdAt == other.createdAt &&
         respondedAt == other.respondedAt &&
-        target == other.target;
+        target == other.target &&
+        matrixRoomId == other.matrixRoomId;
   }
 
   @override
@@ -62,6 +66,7 @@ class _$OutgoingContactRequest extends OutgoingContactRequest {
     _$hash = $jc(_$hash, createdAt.hashCode);
     _$hash = $jc(_$hash, respondedAt.hashCode);
     _$hash = $jc(_$hash, target.hashCode);
+    _$hash = $jc(_$hash, matrixRoomId.hashCode);
     _$hash = $jf(_$hash);
     return _$hash;
   }
@@ -74,7 +79,8 @@ class _$OutgoingContactRequest extends OutgoingContactRequest {
           ..add('targetMatrixId', targetMatrixId)
           ..add('createdAt', createdAt)
           ..add('respondedAt', respondedAt)
-          ..add('target', target))
+          ..add('target', target)
+          ..add('matrixRoomId', matrixRoomId))
         .toString();
   }
 }
@@ -109,6 +115,10 @@ class OutgoingContactRequestBuilder
       _$this._target ??= ContactProfileBuilder();
   set target(ContactProfileBuilder? target) => _$this._target = target;
 
+  String? _matrixRoomId;
+  String? get matrixRoomId => _$this._matrixRoomId;
+  set matrixRoomId(String? matrixRoomId) => _$this._matrixRoomId = matrixRoomId;
+
   OutgoingContactRequestBuilder() {
     OutgoingContactRequest._defaults(this);
   }
@@ -122,6 +132,7 @@ class OutgoingContactRequestBuilder
       _createdAt = $v.createdAt;
       _respondedAt = $v.respondedAt;
       _target = $v.target?.toBuilder();
+      _matrixRoomId = $v.matrixRoomId;
       _$v = null;
     }
     return this;
@@ -155,6 +166,7 @@ class OutgoingContactRequestBuilder
                 createdAt, r'OutgoingContactRequest', 'createdAt'),
             respondedAt: respondedAt,
             target: _target?.build(),
+            matrixRoomId: matrixRoomId,
           );
     } catch (_) {
       late String _$failedField;
