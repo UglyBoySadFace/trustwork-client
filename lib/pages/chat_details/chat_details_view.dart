@@ -9,6 +9,7 @@ import 'package:fluffychat/l10n/l10n.dart';
 import 'package:fluffychat/pages/chat_details/chat_details.dart';
 import 'package:fluffychat/pages/chat_details/participant_list_item.dart';
 import 'package:fluffychat/utils/fluffy_share.dart';
+import 'package:fluffychat/utils/groups/groups_service.dart';
 import 'package:fluffychat/utils/matrix_sdk_extensions/matrix_locals.dart';
 import 'package:fluffychat/utils/trustwork_api_service.dart';
 import 'package:fluffychat/widgets/avatar.dart';
@@ -308,7 +309,25 @@ class ChatDetailsView extends StatelessWidget {
                             ),
                           ),
                         ),
-                        if (!room.isDirectChat && room.canInvite)
+                        if (GroupsService.instance.findByMatrixRoomId(
+                              room.id,
+                            ) !=
+                            null)
+                          ListTile(
+                            title: Text(L10n.of(context).manageGroup),
+                            leading: CircleAvatar(
+                              backgroundColor:
+                                  theme.colorScheme.primaryContainer,
+                              foregroundColor:
+                                  theme.colorScheme.onPrimaryContainer,
+                              radius: Avatar.defaultSize / 2,
+                              child: const Icon(Icons.manage_accounts_outlined),
+                            ),
+                            trailing: const Icon(Icons.chevron_right_outlined),
+                            onTap: () =>
+                                context.go('/rooms/${room.id}/group-manage'),
+                          )
+                        else if (!room.isDirectChat && room.canInvite)
                           ListTile(
                             title: Text(L10n.of(context).inviteContact),
                             leading: CircleAvatar(

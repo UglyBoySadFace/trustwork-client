@@ -3650,5 +3650,23 @@
       "totalMembers": {"type": "int"},
       "unknownCount": {"type": "int"}
     }
-  }
+  },
+  "manageGroup": "Manage group",
+  "@manageGroup": {},
+  "leaveGroup": "Leave group",
+  "@leaveGroup": {},
+  "leaveGroupConfirmation": "Are you sure you want to leave this group?",
+  "@leaveGroupConfirmation": {},
+  "addGroupMember": "Add member",
+  "@addGroupMember": {},
+  "removeMemberConfirmation": "Remove {name} from this group?",
+  "@removeMemberConfirmation": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "notInYourContacts": "This person is not in your contacts.",
+  "@notInYourContacts": {},
+  "noContactsToAdd": "All of your contacts are already in this group.",
+  "@noContactsToAdd": {}
 }

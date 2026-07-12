@@ -178,6 +178,17 @@ class TrustworkApiService {
     return response.data!;
   }
 
+  /// Full group detail including the member list (joined/invited only).
+  Future<GroupDetail> getGroupDetail(int groupId) async {
+    final response = await authedRequest(
+      (token) => groups.getGroupGroupsGroupIdGet(
+        groupId: groupId,
+        headers: _authHeader(token),
+      ),
+    );
+    return response.data!;
+  }
+
   /// Preview shown to an invitee before joining (group name, admin, members).
   Future<GroupInvitePreview> getGroupInvitePreview(int groupId) async {
     final response = await authedRequest(
