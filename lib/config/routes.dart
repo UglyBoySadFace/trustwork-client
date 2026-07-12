@@ -21,6 +21,7 @@ import 'package:fluffychat/pages/contact_requests/contact_requests_page.dart';
 import 'package:fluffychat/pages/device_settings/device_settings.dart';
 import 'package:fluffychat/pages/group_invite/group_invite_page.dart';
 import 'package:fluffychat/pages/group_manage/group_manage_page.dart';
+import 'package:fluffychat/pages/group_suggestions/group_suggestions_page.dart';
 import 'package:fluffychat/pages/intro/intro_page.dart';
 import 'package:fluffychat/pages/invitation_selection/invitation_selection.dart';
 import 'package:fluffychat/pages/login/login.dart';
@@ -531,6 +532,17 @@ abstract class AppRoutes {
                     context,
                     state,
                     GroupManagePage(roomId: state.pathParameters['roomid']!),
+                  ),
+                  redirect: loggedOutRedirect,
+                ),
+                GoRoute(
+                  path: 'group-suggestions',
+                  pageBuilder: (context, state) => defaultPageBuilder(
+                    context,
+                    state,
+                    GroupSuggestionsPage(
+                      roomId: state.pathParameters['roomid']!,
+                    ),
                   ),
                   redirect: loggedOutRedirect,
                 ),

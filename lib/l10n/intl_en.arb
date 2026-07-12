@@ -3668,5 +3668,49 @@
   "notInYourContacts": "This person is not in your contacts.",
   "@notInYourContacts": {},
   "noContactsToAdd": "All of your contacts are already in this group.",
-  "@noContactsToAdd": {}
+  "@noContactsToAdd": {},
+  "suggestAMember": "Suggest a member",
+  "@suggestAMember": {},
+  "suggest": "Suggest",
+  "@suggest": {},
+  "suggestionMessageHint": "Message (optional)",
+  "@suggestionMessageHint": {},
+  "suggestionSent": "Suggestion sent to the admin.",
+  "@suggestionSent": {},
+  "memberSuggestions": "Member suggestions",
+  "@memberSuggestions": {},
+  "noPendingSuggestions": "No pending member suggestions.",
+  "@noPendingSuggestions": {},
+  "invitationSent": "Invitation sent.",
+  "@invitationSent": {},
+  "suggestionBodyKnown": "{suggester} wants to add {suggested} to a group chat called {name}.",
+  "@suggestionBodyKnown": {
+    "placeholders": {
+      "suggester": {"type": "String"},
+      "suggested": {"type": "String"},
+      "name": {"type": "String"}
+    }
+  },
+  "suggestionBodyUnknown": "{suggester} wants to add this person to a group chat called {name}. You haven't yet connected with them via Trustwork.",
+  "@suggestionBodyUnknown": {
+    "placeholders": {
+      "suggester": {"type": "String"},
+      "name": {"type": "String"}
+    }
+  },
+  "suggestionWrites": "{suggester} writes: \"{message}\".",
+  "@suggestionWrites": {
+    "placeholders": {
+      "suggester": {"type": "String"},
+      "message": {"type": "String"}
+    }
+  },
+  "suggestionAdminMustInviteKnown": "Since you're the admin of the chat you must send the invitation. Do you want to invite {suggested}?",
+  "@suggestionAdminMustInviteKnown": {
+    "placeholders": {
+      "suggested": {"type": "String"}
+    }
+  },
+  "suggestionAdminMustInviteUnknown": "Since you're the admin of the chat you must send the invitation. Do you want to invite them?",
+  "@suggestionAdminMustInviteUnknown": {}
 }

@@ -28,6 +28,7 @@ class _GroupManagePageState extends State<GroupManagePage> {
   bool busy = false;
   String? error;
   int? _groupId;
+  List<MemberSuggestion> pendingSuggestions = [];
 
   @override
   void initState() {
@@ -35,10 +36,15 @@ class _GroupManagePageState extends State<GroupManagePage> {
     _load();
   }
 
+  /// The room is not a known Trustwork group — shouldn't happen with correct
+  /// routing. Resolved to a localized error in build (L10n is unavailable in
+  /// initState).
+  bool _groupMissing = false;
+
   Future<void> _load() async {
     final group = GroupsService.instance.findByMatrixRoomId(widget.roomId);
     if (group == null) {
-      setState(() => error = L10n.of(context).oopsSomethingWentWrong);
+      setState(() => _groupMissing = true);
       return;
     }
     _groupId = group.id;
@@ -53,7 +59,24 @@ class _GroupManagePageState extends State<GroupManagePage> {
         groupId,
       );
       if (!mounted) return;
-      setState(() => detail = result);
+      var suggestions = <MemberSuggestion>[];
+      if (result.admin.matrixUserId == Matrix.of(context).client.userID) {
+        try {
+          final fetched = await TrustworkApiService.instance.listSuggestions(
+            groupId,
+          );
+          suggestions = fetched
+              .where((s) => s.status == 'pending')
+              .toList();
+        } on DioException catch (_) {
+          // Suggestions are secondary — don't block the member list on them.
+        }
+      }
+      if (!mounted) return;
+      setState(() {
+        detail = result;
+        pendingSuggestions = suggestions;
+      });
     } on DioException catch (e) {
       if (!mounted) return;
       if (e.response?.statusCode == 403) {
@@ -178,6 +201,149 @@ class _GroupManagePageState extends State<GroupManagePage> {
     }
   }
 
+  Future<void> _showSuggestSheet() async {
+    final groupId = _groupId;
+    final detail = this.detail;
+    if (groupId == null || detail == null) return;
+    final memberIds = detail.members
+        .map((m) => m.matrixUserId)
+        .whereType<String>()
+        .toSet();
+    final candidates =
+        Matrix.of(context)
+            .contactsCache
+            .entries
+            .where((c) => !memberIds.contains(c.key))
+            .toList()
+          ..sort((a, b) => a.value.compareTo(b.value));
+    final messageController = TextEditingController();
+    String? selectedMxid;
+    String? sheetError;
+    var submitting = false;
+    final sent = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheetState) => Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(ctx).viewInsets.bottom,
+          ),
+          child: SafeArea(
+            child: candidates.isEmpty
+                ? Padding(
+                    padding: const EdgeInsets.all(24.0),
+                    child: Text(L10n.of(ctx).noContactsToAdd),
+                  )
+                : Column(
+                    mainAxisSize: .min,
+                    children: [
+                      ListTile(
+                        title: Text(
+                          L10n.of(ctx).suggestAMember,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      Flexible(
+                        child: ListView(
+                          shrinkWrap: true,
+                          children: [
+                            for (final contact in candidates)
+                              ListTile(
+                                title: Text(contact.value),
+                                subtitle: Text(contact.key),
+                                selected: selectedMxid == contact.key,
+                                trailing: selectedMxid == contact.key
+                                    ? const Icon(Icons.check_circle_outlined)
+                                    : null,
+                                onTap: submitting
+                                    ? null
+                                    : () => setSheetState(
+                                        () => selectedMxid = contact.key,
+                                      ),
+                              ),
+                          ],
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16.0,
+                          vertical: 8.0,
+                        ),
+                        child: TextField(
+                          controller: messageController,
+                          readOnly: submitting,
+                          decoration: InputDecoration(
+                            labelText: L10n.of(ctx).suggestionMessageHint,
+                          ),
+                        ),
+                      ),
+                      if (sheetError != null)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16.0,
+                          ),
+                          child: Text(
+                            sheetError!,
+                            style: TextStyle(
+                              color: Theme.of(ctx).colorScheme.error,
+                            ),
+                          ),
+                        ),
+                      Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: SizedBox(
+                          width: double.infinity,
+                          child: FilledButton(
+                            onPressed: selectedMxid == null || submitting
+                                ? null
+                                : () async {
+                                    setSheetState(() {
+                                      submitting = true;
+                                      sheetError = null;
+                                    });
+                                    try {
+                                      final message = messageController.text
+                                          .trim();
+                                      await TrustworkApiService.instance
+                                          .suggestMember(
+                                            groupId,
+                                            selectedMxid!,
+                                            message: message.isEmpty
+                                                ? null
+                                                : message,
+                                          );
+                                      if (ctx.mounted) {
+                                        Navigator.of(ctx).pop(true);
+                                      }
+                                    } on DioException catch (e) {
+                                      setSheetState(() {
+                                        submitting = false;
+                                        sheetError =
+                                            TrustworkApiService.friendlyError(
+                                              e,
+                                            );
+                                      });
+                                    }
+                                  },
+                            child: submitting
+                                ? const LinearProgressIndicator()
+                                : Text(L10n.of(ctx).suggest),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+          ),
+        ),
+      ),
+    );
+    if (sent == true && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(L10n.of(context).suggestionSent)),
+      );
+    }
+  }
+
   Future<void> _leaveGroup() async {
     final groupId = _groupId;
     if (groupId == null) return;
@@ -224,7 +390,9 @@ class _GroupManagePageState extends State<GroupManagePage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final detail = this.detail;
-    final error = this.error;
+    final error = _groupMissing
+        ? L10n.of(context).oopsSomethingWentWrong
+        : this.error;
     final visibleMembers = detail?.members
         .where((m) => m.status == 'joined' || m.status == 'invited')
         .toList();
@@ -285,7 +453,7 @@ class _GroupManagePageState extends State<GroupManagePage> {
                           )
                         : null,
                   ),
-                if (_isAdmin)
+                if (_isAdmin) ...[
                   ListTile(
                     leading: CircleAvatar(
                       backgroundColor: theme.colorScheme.primaryContainer,
@@ -294,6 +462,34 @@ class _GroupManagePageState extends State<GroupManagePage> {
                     ),
                     title: Text(L10n.of(context).addGroupMember),
                     onTap: busy ? null : _addMember,
+                  ),
+                  ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: theme.colorScheme.primaryContainer,
+                      foregroundColor: theme.colorScheme.onPrimaryContainer,
+                      child: const Icon(Icons.how_to_vote_outlined),
+                    ),
+                    title: Text(L10n.of(context).memberSuggestions),
+                    trailing: pendingSuggestions.isEmpty
+                        ? const Icon(Icons.chevron_right_outlined)
+                        : Badge(
+                            label: Text('${pendingSuggestions.length}'),
+                          ),
+                    onTap: busy
+                        ? null
+                        : () => context.go(
+                            '/rooms/${widget.roomId}/group-suggestions',
+                          ),
+                  ),
+                ] else if (detail.myStatus == 'joined')
+                  ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: theme.colorScheme.primaryContainer,
+                      foregroundColor: theme.colorScheme.onPrimaryContainer,
+                      child: const Icon(Icons.person_add_outlined),
+                    ),
+                    title: Text(L10n.of(context).suggestAMember),
+                    onTap: busy ? null : _showSuggestSheet,
                   ),
                 Divider(color: theme.dividerColor),
                 ListTile(
