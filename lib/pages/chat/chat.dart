@@ -26,6 +26,7 @@ import 'package:fluffychat/pages/chat_details/chat_details.dart';
 import 'package:fluffychat/utils/adaptive_bottom_sheet.dart';
 import 'package:fluffychat/utils/error_reporter.dart';
 import 'package:fluffychat/utils/file_selector.dart';
+import 'package:fluffychat/utils/groups/groups_service.dart';
 import 'package:fluffychat/utils/matrix_sdk_extensions/event_extension.dart';
 import 'package:fluffychat/utils/matrix_sdk_extensions/filtered_timeline_extension.dart';
 import 'package:fluffychat/utils/matrix_sdk_extensions/matrix_locals.dart';
@@ -384,6 +385,7 @@ class ChatController extends State<ChatPageWithRoom>
 
   @override
   void initState() {
+    _checkGroupInvite();
     inputFocus = FocusNode(onKeyEvent: _customEnterKeyHandling);
 
     scrollController.addListener(_updateScrollController);
@@ -406,6 +408,17 @@ class ChatController extends State<ChatPageWithRoom>
         : '';
     WidgetsBinding.instance.addObserver(this);
     _tryLoadTimeline();
+  }
+
+  /// If this room is a pending Trustwork group invite, show the join/decline
+  /// prompt instead of the chat.
+  void _checkGroupInvite() {
+    final group = GroupsService.instance.findByMatrixRoomId(widget.room.id);
+    if (group == null || group.myStatus != 'invited') return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      context.go('/rooms/group-invite/${group.id}');
+    });
   }
 
   final Set<String> expandedEventIds = {};

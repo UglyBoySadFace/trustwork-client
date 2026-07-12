@@ -3621,5 +3621,34 @@
   "noContactsForGroup": "You have no accepted contacts yet. Add contacts first before creating a group.",
   "@noContactsForGroup": {},
   "selectAtLeastOneContact": "Select at least one contact.",
-  "@selectAtLeastOneContact": {}
+  "@selectAtLeastOneContact": {},
+  "groupInvitation": "Group invitation",
+  "@groupInvitation": {},
+  "groupInviteBodySuggested": "{suggestedBy} thinks you might be interested in joining a group chat called {name}. {admin} now invites you to join. There are {totalMembers} people in the chat in total. By joining you'll share your data with {unknownCount} people in the chat you don't know yet. Also, later {admin} might add new members whom you haven't connected with yet and with whom you'll automatically share your data. Do you want to join the chat?",
+  "@groupInviteBodySuggested": {
+    "placeholders": {
+      "suggestedBy": {"type": "String"},
+      "name": {"type": "String"},
+      "admin": {"type": "String"},
+      "totalMembers": {"type": "int"},
+      "unknownCount": {"type": "int"}
+    }
+  },
+  "groupInviteBodyAllKnown": "{admin} invites you to a group chat called {name}. There are {totalMembers} people invited to the chat in total and you know all of them. Later on {admin} might add new members whom you haven't connected with yet and with whom you'll automatically share your data. Do you want to join the chat?",
+  "@groupInviteBodyAllKnown": {
+    "placeholders": {
+      "admin": {"type": "String"},
+      "name": {"type": "String"},
+      "totalMembers": {"type": "int"}
+    }
+  },
+  "groupInviteBodyUnknown": "{admin} invites you to a group chat called {name}. There are {totalMembers} people invited to the chat in total. By joining you'll share your data with {unknownCount} people in the chat you don't know yet. Also, later {admin} might add new members whom you haven't connected with yet and with whom you'll automatically share your data. Do you want to join the chat?",
+  "@groupInviteBodyUnknown": {
+    "placeholders": {
+      "admin": {"type": "String"},
+      "name": {"type": "String"},
+      "totalMembers": {"type": "int"},
+      "unknownCount": {"type": "int"}
+    }
+  }
 }
