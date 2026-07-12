@@ -3613,5 +3613,13 @@
   "callToConnect": "Call to connect",
   "@callToConnect": {},
   "callToConnectHint": "Place a call — answering connects you",
-  "@callToConnectHint": {}
+  "@callToConnectHint": {},
+  "groupMembers": "Members",
+  "@groupMembers": {},
+  "groupMembersHint": "Tap to select contacts",
+  "@groupMembersHint": {},
+  "noContactsForGroup": "You have no accepted contacts yet. Add contacts first before creating a group.",
+  "@noContactsForGroup": {},
+  "selectAtLeastOneContact": "Select at least one contact.",
+  "@selectAtLeastOneContact": {}
 }

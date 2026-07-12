@@ -18,6 +18,7 @@ class NewGroupView extends StatelessWidget {
 
     final avatar = controller.avatar;
     final error = controller.error;
+    final isSpace = controller.createGroupType == CreateGroupType.space;
     return Scaffold(
       appBar: AppBar(
         leading: Center(
@@ -26,9 +27,7 @@ class NewGroupView extends StatelessWidget {
           ),
         ),
         title: Text(
-          controller.createGroupType == CreateGroupType.space
-              ? L10n.of(context).newSpace
-              : L10n.of(context).createGroup,
+          isSpace ? L10n.of(context).newSpace : L10n.of(context).createGroup,
         ),
       ),
       body: MaxWidthBody(
@@ -53,25 +52,27 @@ class NewGroupView extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 16),
-            InkWell(
-              borderRadius: BorderRadius.circular(90),
-              onTap: controller.loading ? null : controller.selectPhoto,
-              child: CircleAvatar(
-                radius: Avatar.defaultSize,
-                child: avatar == null
-                    ? const Icon(Icons.add_a_photo_outlined)
-                    : ClipRRect(
-                        borderRadius: BorderRadius.circular(90),
-                        child: Image.memory(
-                          avatar,
-                          width: Avatar.defaultSize * 2,
-                          height: Avatar.defaultSize * 2,
-                          fit: BoxFit.cover,
+            if (isSpace) ...[
+              InkWell(
+                borderRadius: BorderRadius.circular(90),
+                onTap: controller.loading ? null : controller.selectPhoto,
+                child: CircleAvatar(
+                  radius: Avatar.defaultSize,
+                  child: avatar == null
+                      ? const Icon(Icons.add_a_photo_outlined)
+                      : ClipRRect(
+                          borderRadius: BorderRadius.circular(90),
+                          child: Image.memory(
+                            avatar,
+                            width: Avatar.defaultSize * 2,
+                            height: Avatar.defaultSize * 2,
+                            fit: BoxFit.cover,
+                          ),
                         ),
-                      ),
+                ),
               ),
-            ),
-            const SizedBox(height: 32),
+              const SizedBox(height: 32),
+            ],
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24.0),
               child: TextField(
@@ -81,78 +82,77 @@ class NewGroupView extends StatelessWidget {
                 readOnly: controller.loading,
                 decoration: InputDecoration(
                   prefixIcon: const Icon(Icons.people_outlined),
-                  labelText: controller.createGroupType == CreateGroupType.space
+                  labelText: isSpace
                       ? L10n.of(context).spaceName
                       : L10n.of(context).groupName,
                 ),
               ),
             ),
             const SizedBox(height: 16),
-            SwitchListTile.adaptive(
-              contentPadding: const EdgeInsets.symmetric(horizontal: 32),
-              secondary: const Icon(Icons.public_outlined),
-              title: Text(
-                controller.createGroupType == CreateGroupType.space
-                    ? L10n.of(context).spaceIsPublic
-                    : L10n.of(context).groupIsPublic,
+            if (isSpace) ...[
+              SwitchListTile.adaptive(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 32),
+                secondary: const Icon(Icons.public_outlined),
+                title: Text(L10n.of(context).spaceIsPublic),
+                value: controller.publicGroup,
+                onChanged: controller.loading
+                    ? null
+                    : controller.setPublicGroup,
               ),
-              value: controller.publicGroup,
-              onChanged: controller.loading ? null : controller.setPublicGroup,
-            ),
-            AnimatedSize(
-              duration: FluffyThemes.animationDuration,
-              curve: FluffyThemes.animationCurve,
-              child: controller.publicGroup
-                  ? SwitchListTile.adaptive(
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 32,
-                      ),
-                      secondary: const Icon(Icons.search_outlined),
-                      title: Text(L10n.of(context).groupCanBeFoundViaSearch),
-                      value: controller.groupCanBeFound,
-                      onChanged: controller.loading
-                          ? null
-                          : controller.setGroupCanBeFound,
-                    )
-                  : const SizedBox.shrink(),
-            ),
-            AnimatedSize(
-              duration: FluffyThemes.animationDuration,
-              curve: FluffyThemes.animationCurve,
-              child: controller.createGroupType == CreateGroupType.space
-                  ? const SizedBox.shrink()
-                  : SwitchListTile.adaptive(
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 32,
-                      ),
-                      secondary: Icon(
-                        Icons.lock_outlined,
-                        color: theme.colorScheme.onSurface,
-                      ),
-                      title: Text(
-                        L10n.of(context).enableEncryption,
-                        style: TextStyle(color: theme.colorScheme.onSurface),
-                      ),
-                      value: !controller.publicGroup,
-                      onChanged: null,
-                    ),
-            ),
-            AnimatedSize(
-              duration: FluffyThemes.animationDuration,
-              curve: FluffyThemes.animationCurve,
-              child: controller.createGroupType == CreateGroupType.space
-                  ? ListTile(
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 32,
-                      ),
-                      trailing: const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 16.0),
-                        child: Icon(Icons.info_outlined),
-                      ),
-                      subtitle: Text(L10n.of(context).newSpaceDescription),
-                    )
-                  : const SizedBox.shrink(),
-            ),
+              AnimatedSize(
+                duration: FluffyThemes.animationDuration,
+                curve: FluffyThemes.animationCurve,
+                child: controller.publicGroup
+                    ? SwitchListTile.adaptive(
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 32,
+                        ),
+                        secondary: const Icon(Icons.search_outlined),
+                        title: Text(L10n.of(context).groupCanBeFoundViaSearch),
+                        value: controller.groupCanBeFound,
+                        onChanged: controller.loading
+                            ? null
+                            : controller.setGroupCanBeFound,
+                      )
+                    : const SizedBox.shrink(),
+              ),
+              ListTile(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 32),
+                trailing: const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16.0),
+                  child: Icon(Icons.info_outlined),
+                ),
+                subtitle: Text(L10n.of(context).newSpaceDescription),
+              ),
+            ] else ...[
+              const Divider(height: 1),
+              ListTile(
+                title: Text(L10n.of(context).groupMembers),
+                subtitle: Text(L10n.of(context).groupMembersHint),
+              ),
+              if (controller.contacts.isEmpty)
+                ListTile(
+                  leading: Icon(
+                    Icons.person_off_outlined,
+                    color: theme.colorScheme.error,
+                  ),
+                  title: Text(
+                    L10n.of(context).noContactsForGroup,
+                    style: TextStyle(color: theme.colorScheme.error),
+                  ),
+                )
+              else
+                for (final contact in controller.contacts)
+                  CheckboxListTile.adaptive(
+                    value: controller.selectedMxids.contains(contact.key),
+                    onChanged: controller.loading
+                        ? null
+                        : (_) => controller.toggleContact(contact.key),
+                    title: Text(contact.value),
+                    subtitle: Text(contact.key),
+                  ),
+              const Divider(height: 1),
+            ],
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: SizedBox(
@@ -164,9 +164,9 @@ class NewGroupView extends StatelessWidget {
                   child: controller.loading
                       ? const LinearProgressIndicator()
                       : Text(
-                          controller.createGroupType == CreateGroupType.space
+                          isSpace
                               ? L10n.of(context).createNewSpace
-                              : L10n.of(context).createGroupAndInviteUsers,
+                              : L10n.of(context).createGroup,
                         ),
                 ),
               ),
