@@ -6,8 +6,9 @@ import 'package:fluffychat/pages/chat_search/chat_search_files_tab.dart';
 import 'package:fluffychat/pages/chat_search/chat_search_images_tab.dart';
 import 'package:fluffychat/pages/chat_search/chat_search_message_tab.dart';
 import 'package:fluffychat/pages/chat_search/chat_search_page.dart';
-import 'package:fluffychat/utils/matrix_sdk_extensions/matrix_locals.dart';
+import 'package:fluffychat/utils/contact_request_room_title.dart';
 import 'package:fluffychat/widgets/layouts/max_width_body.dart';
+import 'package:fluffychat/widgets/matrix.dart';
 
 class ChatSearchView extends StatelessWidget {
   final ChatSearchController controller;
@@ -37,7 +38,11 @@ class ChatSearchView extends StatelessWidget {
         titleSpacing: 0,
         title: Text(
           L10n.of(context).searchIn(
-            room.getLocalizedDisplayname(MatrixLocals(L10n.of(context))),
+            contactRequestRoomTitle(
+              room,
+              Matrix.of(context).contactsCache,
+              L10n.of(context),
+            ),
           ),
         ),
       ),

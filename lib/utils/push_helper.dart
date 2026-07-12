@@ -17,6 +17,8 @@ import 'package:fluffychat/config/setting_keys.dart';
 import 'package:fluffychat/l10n/l10n.dart';
 import 'package:fluffychat/utils/client_download_content_extension.dart';
 import 'package:fluffychat/utils/client_manager.dart';
+import 'package:fluffychat/utils/contact_request_room_title.dart';
+import 'package:fluffychat/utils/contacts/contacts_cache.dart';
 import 'package:fluffychat/utils/matrix_sdk_extensions/matrix_locals.dart';
 import 'package:fluffychat/utils/notification_background_handler.dart';
 import 'package:fluffychat/utils/platform_infos.dart';
@@ -185,6 +187,9 @@ Future<void> _tryPushHelper(
   }
   Logs().v('Push helper got notification event of type ${event.type}.');
 
+  // Middleware-sourced names for callers/senders — Matrix profiles are blank.
+  final contactsCache = ContactsCache()..loadFromStore(await AppSettings.init());
+
   if (event.type.startsWith('m.call')) {
     // make sure bg sync is on (needed to update hold, unhold events)
     // prevent over write from app life cycle change
@@ -211,7 +216,7 @@ Future<void> _tryPushHelper(
       return;
     }
     final callId = (event.content['call_id'] as String?) ?? event.eventId;
-    final callerName = event.senderFromMemoryOrFallback.calcDisplayname();
+    final callerName = contactsCache.label(event.senderId);
     await FlutterCallkitIncoming.showCallkitIncoming(
       fci.CallKitParams(
         id: callId,
@@ -305,7 +310,7 @@ Future<void> _tryPushHelper(
 
   final id = notification.roomId.hashCode;
 
-  final senderName = event.senderFromMemoryOrFallback.calcDisplayname();
+  final senderName = contactsCache.label(event.senderId);
   // Show notification
 
   final newMessage = Message(
@@ -327,7 +332,7 @@ Future<void> _tryPushHelper(
       : null;
   messagingStyleInformation?.messages?.add(newMessage);
 
-  final roomName = event.room.getLocalizedDisplayname(MatrixLocals(l10n));
+  final roomName = contactRequestRoomTitle(event.room, contactsCache, l10n);
 
   final notificationGroupId = event.room.isDirectChat
       ? 'directChats'
@@ -413,7 +418,7 @@ Future<void> _tryPushHelper(
     iOS: iOSPlatformChannelSpecifics,
   );
 
-  final title = event.room.getLocalizedDisplayname(MatrixLocals(l10n));
+  final title = contactRequestRoomTitle(event.room, contactsCache, l10n);
 
   if (PlatformInfos.isAndroid && messagingStyleInformation == null) {
     await _setShortcut(event, l10n, title, roomAvatarFile);

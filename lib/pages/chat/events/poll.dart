@@ -10,6 +10,7 @@ import 'package:fluffychat/l10n/l10n.dart';
 import 'package:fluffychat/utils/url_launcher.dart';
 import 'package:fluffychat/widgets/avatar.dart';
 import 'package:fluffychat/widgets/future_loading_dialog.dart';
+import 'package:fluffychat/widgets/matrix.dart';
 
 class PollWidget extends StatelessWidget {
   final Event event;
@@ -159,9 +160,9 @@ class PollWidget extends StatelessWidget {
                                     ),
                                     child: Avatar(
                                       mxContent: user?.avatarUrl,
-                                      name:
-                                          user?.calcDisplayname() ??
-                                          userId.localpart,
+                                      name: Matrix.of(
+                                        context,
+                                      ).contactsCache.label(userId),
                                       size:
                                           12 * AppSettings.fontSizeFactor.value,
                                     ),

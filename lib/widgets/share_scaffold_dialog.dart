@@ -7,7 +7,7 @@ import 'package:matrix/matrix.dart';
 import 'package:fluffychat/config/app_config.dart';
 import 'package:fluffychat/config/themes.dart';
 import 'package:fluffychat/l10n/l10n.dart';
-import 'package:fluffychat/utils/matrix_sdk_extensions/matrix_locals.dart';
+import 'package:fluffychat/utils/contact_request_room_title.dart';
 import 'package:fluffychat/widgets/avatar.dart';
 import 'package:fluffychat/widgets/matrix.dart';
 
@@ -118,8 +118,10 @@ class _ShareScaffoldDialogState extends State<ShareScaffoldDialog> {
             itemCount: rooms.length,
             itemBuilder: (context, i) {
               final room = rooms[i];
-              final displayname = room.getLocalizedDisplayname(
-                MatrixLocals(L10n.of(context)),
+              final displayname = contactRequestRoomTitle(
+                room,
+                Matrix.of(context).contactsCache,
+                L10n.of(context),
               );
               final value = selectedRoomId == room.id;
               final filterOut = !displayname.toLowerCase().contains(filter);

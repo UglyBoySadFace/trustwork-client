@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:matrix/matrix.dart';
 
 import 'package:fluffychat/l10n/l10n.dart';
+import 'package:fluffychat/widgets/matrix.dart';
 import 'package:fluffychat/widgets/permission_slider_dialog.dart';
 import 'adaptive_dialogs/show_ok_cancel_alert_dialog.dart';
 import 'adaptive_dialogs/show_text_input_dialog.dart';
@@ -16,7 +17,7 @@ void showMemberActionsPopupMenu({
   void Function()? onMention,
 }) async {
   final theme = Theme.of(context);
-  final displayname = user.calcDisplayname();
+  final displayname = Matrix.of(context).contactsCache.label(user.id);
   final isMe = user.room.client.userID == user.id;
 
   final overlay = Overlay.of(context).context.findRenderObject() as RenderBox;

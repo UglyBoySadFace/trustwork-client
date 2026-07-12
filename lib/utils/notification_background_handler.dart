@@ -11,7 +11,8 @@ import 'package:matrix/matrix.dart';
 import 'package:fluffychat/l10n/l10n.dart';
 import 'package:fluffychat/utils/client_download_content_extension.dart';
 import 'package:fluffychat/utils/client_manager.dart';
-import 'package:fluffychat/utils/matrix_sdk_extensions/matrix_locals.dart';
+import 'package:fluffychat/utils/contact_request_room_title.dart';
+import 'package:fluffychat/utils/contacts/contacts_cache.dart';
 import 'package:fluffychat/utils/platform_infos.dart';
 import 'package:fluffychat/utils/push_helper.dart';
 import '../config/app_config.dart';
@@ -213,9 +214,11 @@ Future<void> notificationTap(
               ),
             );
 
+            final contactsCache = ContactsCache()
+              ..loadFromStore(await AppSettings.init());
             await FlutterLocalNotificationsPlugin().show(
               id: room.id.hashCode,
-              title: room.getLocalizedDisplayname(MatrixLocals(l10n)),
+              title: contactRequestRoomTitle(room, contactsCache, l10n),
               body: input,
               notificationDetails: NotificationDetails(
                 android: AndroidNotificationDetails(

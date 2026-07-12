@@ -3,6 +3,7 @@ import 'package:flutter/widgets.dart';
 import 'package:matrix/matrix.dart';
 
 import 'package:fluffychat/l10n/l10n.dart';
+import 'package:fluffychat/widgets/matrix.dart';
 import '../config/app_config.dart';
 
 extension RoomStatusExtension on Room {
@@ -10,6 +11,7 @@ extension RoomStatusExtension on Room {
     var typingText = '';
     final typingUsers = this.typingUsers;
     typingUsers.removeWhere((User u) => u.id == client.userID);
+    final contactsCache = Matrix.of(context).contactsCache;
 
     if (AppConfig.hideTypingUsernames) {
       typingText = L10n.of(context).isTyping;
@@ -21,16 +23,16 @@ extension RoomStatusExtension on Room {
       if (typingUsers.first.id != directChatMatrixID) {
         typingText = L10n.of(
           context,
-        ).userIsTyping(typingUsers.first.calcDisplayname());
+        ).userIsTyping(contactsCache.label(typingUsers.first.id));
       }
     } else if (typingUsers.length == 2) {
       typingText = L10n.of(context).userAndUserAreTyping(
-        typingUsers.first.calcDisplayname(),
-        typingUsers[1].calcDisplayname(),
+        contactsCache.label(typingUsers.first.id),
+        contactsCache.label(typingUsers[1].id),
       );
     } else if (typingUsers.length > 2) {
       typingText = L10n.of(context).userAndOthersAreTyping(
-        typingUsers.first.calcDisplayname(),
+        contactsCache.label(typingUsers.first.id),
         (typingUsers.length - 1),
       );
     }

@@ -12,6 +12,7 @@ import 'package:fluffychat/utils/code_highlight_theme.dart';
 import 'package:fluffychat/utils/event_checkbox_extension.dart';
 import 'package:fluffychat/widgets/avatar.dart';
 import 'package:fluffychat/widgets/future_loading_dialog.dart';
+import 'package:fluffychat/widgets/matrix.dart';
 import 'package:fluffychat/widgets/mxc_image.dart';
 import '../../../utils/url_launcher.dart';
 
@@ -190,7 +191,7 @@ class HtmlMessage extends StatelessWidget {
             return WidgetSpan(
               child: MatrixPill(
                 key: Key('user_pill_$matrixId'),
-                name: user.calcDisplayname(),
+                name: Matrix.of(context).contactsCache.label(matrixId),
                 avatar: user.avatarUrl,
                 uri: href,
                 outerContext: context,

@@ -8,9 +8,9 @@ import 'package:matrix/matrix.dart';
 import 'package:fluffychat/l10n/l10n.dart';
 import 'package:fluffychat/pages/chat_details/chat_details.dart';
 import 'package:fluffychat/pages/chat_details/participant_list_item.dart';
+import 'package:fluffychat/utils/contact_request_room_title.dart';
 import 'package:fluffychat/utils/fluffy_share.dart';
 import 'package:fluffychat/utils/groups/groups_service.dart';
-import 'package:fluffychat/utils/matrix_sdk_extensions/matrix_locals.dart';
 import 'package:fluffychat/utils/trustwork_api_service.dart';
 import 'package:fluffychat/widgets/avatar.dart';
 import 'package:fluffychat/widgets/chat_settings_popup_menu.dart';
@@ -55,8 +55,10 @@ class ChatDetailsView extends StatelessWidget {
             (room.summary.mJoinedMemberCount ?? 0);
         final canRequestMoreMembers = members.length < actualMembersCount;
         final iconColor = theme.textTheme.bodyLarge!.color;
-        final displayname = room.getLocalizedDisplayname(
-          MatrixLocals(L10n.of(context)),
+        final displayname = contactRequestRoomTitle(
+          room,
+          Matrix.of(context).contactsCache,
+          L10n.of(context),
         );
         return Scaffold(
           appBar: AppBar(
