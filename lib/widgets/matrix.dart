@@ -24,6 +24,7 @@ import 'package:fluffychat/utils/client_manager.dart';
 import 'package:fluffychat/utils/contacts/contacts_cache.dart';
 import 'package:fluffychat/utils/data_sharing/data_sharing_service.dart';
 import 'package:fluffychat/utils/full_screen_intent_helper.dart';
+import 'package:fluffychat/utils/groups/groups_service.dart';
 import 'package:fluffychat/utils/init_with_restore.dart';
 import 'package:fluffychat/utils/matrix_sdk_extensions/matrix_file_extension.dart';
 import 'package:fluffychat/utils/platform_infos.dart';
@@ -532,6 +533,9 @@ class MatrixState extends State<Matrix> with WidgetsBindingObserver {
   }
 
   Future<void> _refreshContactsAndMarkDms(Client c) async {
+    // Best-effort: the groups list is refetched on the next trigger anyway
+    // (login, resume, room leave, contact accepted).
+    unawaited(GroupsService.instance.refresh().catchError((_) {}));
     await contactsCache.refresh(store);
     _markContactRoomsAsDm(c);
   }

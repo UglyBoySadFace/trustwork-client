@@ -85,6 +85,19 @@ Class | Method | HTTP request | Description
 [*EmailAuthApi*](doc/EmailAuthApi.md) | [**emailStartAuthEmailStartPost**](doc/EmailAuthApi.md#emailstartauthemailstartpost) | **POST** /auth/email/start | Email Start
 [*EmailAuthApi*](doc/EmailAuthApi.md) | [**emailVerifyAuthEmailVerifyPost**](doc/EmailAuthApi.md#emailverifyauthemailverifypost) | **POST** /auth/email/verify | Email Verify
 [*EmailAuthApi*](doc/EmailAuthApi.md) | [**emailVerifyLinkAuthEmailVerifyLinkGet**](doc/EmailAuthApi.md#emailverifylinkauthemailverifylinkget) | **GET** /auth/email/verify-link | Email Verify Link
+[*GroupsApi*](doc/GroupsApi.md) | [**addMemberGroupsGroupIdMembersPost**](doc/GroupsApi.md#addmembergroupsgroupidmemberspost) | **POST** /groups/{group_id}/members | Add Member
+[*GroupsApi*](doc/GroupsApi.md) | [**createGroupGroupsPost**](doc/GroupsApi.md#creategroupgroupspost) | **POST** /groups | Create Group
+[*GroupsApi*](doc/GroupsApi.md) | [**declineGroupGroupsGroupIdDeclinePost**](doc/GroupsApi.md#declinegroupgroupsgroupiddeclinepost) | **POST** /groups/{group_id}/decline | Decline Group
+[*GroupsApi*](doc/GroupsApi.md) | [**dismissSuggestionGroupsGroupIdSuggestionsSuggestionIdDismissPost**](doc/GroupsApi.md#dismisssuggestiongroupsgroupidsuggestionssuggestioniddismisspost) | **POST** /groups/{group_id}/suggestions/{suggestion_id}/dismiss | Dismiss Suggestion
+[*GroupsApi*](doc/GroupsApi.md) | [**getGroupGroupsGroupIdGet**](doc/GroupsApi.md#getgroupgroupsgroupidget) | **GET** /groups/{group_id} | Get Group
+[*GroupsApi*](doc/GroupsApi.md) | [**invitePreviewGroupsGroupIdInvitePreviewGet**](doc/GroupsApi.md#invitepreviewgroupsgroupidinvitepreviewget) | **GET** /groups/{group_id}/invite-preview | Invite Preview
+[*GroupsApi*](doc/GroupsApi.md) | [**inviteSuggestedGroupsGroupIdSuggestionsSuggestionIdInvitePost**](doc/GroupsApi.md#invitesuggestedgroupsgroupidsuggestionssuggestionidinvitepost) | **POST** /groups/{group_id}/suggestions/{suggestion_id}/invite | Invite Suggested
+[*GroupsApi*](doc/GroupsApi.md) | [**joinGroupGroupsGroupIdJoinPost**](doc/GroupsApi.md#joingroupgroupsgroupidjoinpost) | **POST** /groups/{group_id}/join | Join Group
+[*GroupsApi*](doc/GroupsApi.md) | [**leaveGroupGroupsGroupIdLeavePost**](doc/GroupsApi.md#leavegroupgroupsgroupidleavepost) | **POST** /groups/{group_id}/leave | Leave Group
+[*GroupsApi*](doc/GroupsApi.md) | [**listGroupsGroupsGet**](doc/GroupsApi.md#listgroupsgroupsget) | **GET** /groups | List Groups
+[*GroupsApi*](doc/GroupsApi.md) | [**listSuggestionsGroupsGroupIdSuggestionsGet**](doc/GroupsApi.md#listsuggestionsgroupsgroupidsuggestionsget) | **GET** /groups/{group_id}/suggestions | List Suggestions
+[*GroupsApi*](doc/GroupsApi.md) | [**removeMemberGroupsGroupIdMembersMatrixUserIdDelete**](doc/GroupsApi.md#removemembergroupsgroupidmembersmatrixuseriddelete) | **DELETE** /groups/{group_id}/members/{matrix_user_id} | Remove Member
+[*GroupsApi*](doc/GroupsApi.md) | [**suggestMemberGroupsGroupIdSuggestionsPost**](doc/GroupsApi.md#suggestmembergroupsgroupidsuggestionspost) | **POST** /groups/{group_id}/suggestions | Suggest Member
 [*HealthApi*](doc/HealthApi.md) | [**healthCheckHealthGet**](doc/HealthApi.md#healthcheckhealthget) | **GET** /health | Health Check
 [*PhoneAuthApi*](doc/PhoneAuthApi.md) | [**phoneCheckAuthPhoneCheckGet**](doc/PhoneAuthApi.md#phonecheckauthphonecheckget) | **GET** /auth/phone/check | Phone Check
 [*SharingApi*](doc/SharingApi.md) | [**approveDataRequestDataSharingApprovePost**](doc/SharingApi.md#approvedatarequestdatasharingapprovepost) | **POST** /data-sharing/approve | Approve Data Request
@@ -110,12 +123,19 @@ Class | Method | HTTP request | Description
  - [EmailStartRequest](doc/EmailStartRequest.md)
  - [EmailStartResponse](doc/EmailStartResponse.md)
  - [EmailVerifyRequest](doc/EmailVerifyRequest.md)
+ - [GroupCreate](doc/GroupCreate.md)
+ - [GroupDetail](doc/GroupDetail.md)
+ - [GroupInvitePreview](doc/GroupInvitePreview.md)
+ - [GroupMember](doc/GroupMember.md)
+ - [GroupSummary](doc/GroupSummary.md)
  - [HTTPValidationError](doc/HTTPValidationError.md)
  - [IncomingContactRequest](doc/IncomingContactRequest.md)
  - [LocationInner](doc/LocationInner.md)
  - [MatchedContact](doc/MatchedContact.md)
  - [MatrixCredentials](doc/MatrixCredentials.md)
  - [MatrixPasswordResponse](doc/MatrixPasswordResponse.md)
+ - [MemberSuggestion](doc/MemberSuggestion.md)
+ - [MemberSuggestionCreate](doc/MemberSuggestionCreate.md)
  - [OutgoingContactRequest](doc/OutgoingContactRequest.md)
  - [PhoneCheckResponse](doc/PhoneCheckResponse.md)
  - [RefreshRequest](doc/RefreshRequest.md)

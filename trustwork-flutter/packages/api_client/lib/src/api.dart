@@ -12,6 +12,7 @@ import 'package:api_client/src/auth/oauth.dart';
 import 'package:api_client/src/api/auth_api.dart';
 import 'package:api_client/src/api/contacts_api.dart';
 import 'package:api_client/src/api/email_auth_api.dart';
+import 'package:api_client/src/api/groups_api.dart';
 import 'package:api_client/src/api/health_api.dart';
 import 'package:api_client/src/api/phone_auth_api.dart';
 import 'package:api_client/src/api/sharing_api.dart';
@@ -87,6 +88,12 @@ class ApiClient {
   /// by doing that all interceptors will not be executed
   EmailAuthApi getEmailAuthApi() {
     return EmailAuthApi(dio, serializers);
+  }
+
+  /// Get GroupsApi instance, base route and serializer can be overridden by a given but be careful,
+  /// by doing that all interceptors will not be executed
+  GroupsApi getGroupsApi() {
+    return GroupsApi(dio, serializers);
   }
 
   /// Get HealthApi instance, base route and serializer can be overridden by a given but be careful,

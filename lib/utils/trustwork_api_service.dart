@@ -47,6 +47,7 @@ class TrustworkApiService {
   TokenApi get token => _apiClient.getTokenApi();
   SharingApi get sharing => _apiClient.getSharingApi();
   ContactsApi get contacts => _apiClient.getContactsApi();
+  GroupsApi get groups => _apiClient.getGroupsApi();
 
   Map<String, String> _authHeader(String token) =>
       <String, String>{'Authorization': 'Bearer $token'};
@@ -153,6 +154,145 @@ class TrustworkApiService {
     );
     return response.data ?? BuiltList();
   }
+
+  /// Groups I belong to or am invited to.
+  Future<BuiltList<GroupSummary>> listGroups() async {
+    final response = await authedRequest(
+      (token) => groups.listGroupsGroupsGet(headers: _authHeader(token)),
+    );
+    return response.data ?? BuiltList();
+  }
+
+  /// Creates a group and invites [memberMxids]. The caller becomes admin.
+  Future<GroupDetail> createGroup(String name, List<String> memberMxids) async {
+    final response = await authedRequest(
+      (token) => groups.createGroupGroupsPost(
+        groupCreate: GroupCreate(
+          (b) => b
+            ..name = name
+            ..memberMatrixIds = ListBuilder(memberMxids),
+        ),
+        headers: _authHeader(token),
+      ),
+    );
+    return response.data!;
+  }
+
+  /// Preview shown to an invitee before joining (group name, admin, members).
+  Future<GroupInvitePreview> getGroupInvitePreview(int groupId) async {
+    final response = await authedRequest(
+      (token) => groups.invitePreviewGroupsGroupIdInvitePreviewGet(
+        groupId: groupId,
+        headers: _authHeader(token),
+      ),
+    );
+    return response.data!;
+  }
+
+  /// Accepts a group invite.
+  Future<GroupDetail> joinGroup(int groupId) async {
+    final response = await authedRequest(
+      (token) => groups.joinGroupGroupsGroupIdJoinPost(
+        groupId: groupId,
+        headers: _authHeader(token),
+      ),
+    );
+    return response.data!;
+  }
+
+  /// Declines a group invite.
+  Future<void> declineGroup(int groupId) => authedRequest(
+    (token) => groups.declineGroupGroupsGroupIdDeclinePost(
+      groupId: groupId,
+      headers: _authHeader(token),
+    ),
+  );
+
+  /// Leaves a group I'm a member of.
+  Future<void> leaveGroup(int groupId) => authedRequest(
+    (token) => groups.leaveGroupGroupsGroupIdLeavePost(
+      groupId: groupId,
+      headers: _authHeader(token),
+    ),
+  );
+
+  /// Directly invites [mxid] into the group (admin only).
+  Future<GroupDetail> addMember(int groupId, String mxid) async {
+    final response = await authedRequest(
+      (token) => groups.addMemberGroupsGroupIdMembersPost(
+        groupId: groupId,
+        memberSuggestionCreate: MemberSuggestionCreate(
+          (b) => b..suggestedMatrixId = mxid,
+        ),
+        headers: _authHeader(token),
+      ),
+    );
+    return response.data!;
+  }
+
+  /// Removes a member from the group (admin only).
+  Future<void> removeMember(int groupId, String mxid) => authedRequest(
+    (token) => groups.removeMemberGroupsGroupIdMembersMatrixUserIdDelete(
+      groupId: groupId,
+      matrixUserId: mxid,
+      headers: _authHeader(token),
+    ),
+  );
+
+  /// Pending member suggestions for the group (admin only).
+  Future<BuiltList<MemberSuggestion>> listSuggestions(int groupId) async {
+    final response = await authedRequest(
+      (token) => groups.listSuggestionsGroupsGroupIdSuggestionsGet(
+        groupId: groupId,
+        headers: _authHeader(token),
+      ),
+    );
+    return response.data ?? BuiltList();
+  }
+
+  /// Suggests [mxid] as a new member, for the admin to approve.
+  Future<MemberSuggestion> suggestMember(
+    int groupId,
+    String mxid, {
+    String? message,
+  }) async {
+    final response = await authedRequest(
+      (token) => groups.suggestMemberGroupsGroupIdSuggestionsPost(
+        groupId: groupId,
+        memberSuggestionCreate: MemberSuggestionCreate(
+          (b) => b
+            ..suggestedMatrixId = mxid
+            ..message = message,
+        ),
+        headers: _authHeader(token),
+      ),
+    );
+    return response.data!;
+  }
+
+  /// Approves a suggestion and invites the suggested user (admin only).
+  Future<GroupDetail> inviteSuggestion(int groupId, int suggestionId) async {
+    final response = await authedRequest(
+      (token) =>
+          groups.inviteSuggestedGroupsGroupIdSuggestionsSuggestionIdInvitePost(
+        groupId: groupId,
+        suggestionId: suggestionId,
+        headers: _authHeader(token),
+      ),
+    );
+    return response.data!;
+  }
+
+  /// Dismisses a suggestion without inviting (admin only).
+  Future<void> dismissSuggestion(int groupId, int suggestionId) =>
+      authedRequest(
+        (token) => groups
+            .dismissSuggestionGroupsGroupIdSuggestionsSuggestionIdDismissPost(
+          groupId: groupId,
+          suggestionId: suggestionId,
+          headers: _authHeader(token),
+        ),
+      );
 
   Future<void> saveTokens(String accessToken, String refreshToken) async {
     await Future.wait([

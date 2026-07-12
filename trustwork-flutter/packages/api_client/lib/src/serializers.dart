@@ -26,12 +26,19 @@ import 'package:api_client/src/model/data_sharing_approve_response.dart';
 import 'package:api_client/src/model/email_start_request.dart';
 import 'package:api_client/src/model/email_start_response.dart';
 import 'package:api_client/src/model/email_verify_request.dart';
+import 'package:api_client/src/model/group_create.dart';
+import 'package:api_client/src/model/group_detail.dart';
+import 'package:api_client/src/model/group_invite_preview.dart';
+import 'package:api_client/src/model/group_member.dart';
+import 'package:api_client/src/model/group_summary.dart';
 import 'package:api_client/src/model/http_validation_error.dart';
 import 'package:api_client/src/model/incoming_contact_request.dart';
 import 'package:api_client/src/model/location_inner.dart';
 import 'package:api_client/src/model/matched_contact.dart';
 import 'package:api_client/src/model/matrix_credentials.dart';
 import 'package:api_client/src/model/matrix_password_response.dart';
+import 'package:api_client/src/model/member_suggestion.dart';
+import 'package:api_client/src/model/member_suggestion_create.dart';
 import 'package:api_client/src/model/outgoing_contact_request.dart';
 import 'package:api_client/src/model/phone_check_response.dart';
 import 'package:api_client/src/model/refresh_request.dart';
@@ -57,12 +64,19 @@ part 'serializers.g.dart';
   EmailStartRequest,
   EmailStartResponse,
   EmailVerifyRequest,
+  GroupCreate,
+  GroupDetail,
+  GroupInvitePreview,
+  GroupMember,
+  GroupSummary,
   HTTPValidationError,
   IncomingContactRequest,
   LocationInner,
   MatchedContact,
   MatrixCredentials,
   MatrixPasswordResponse,
+  MemberSuggestion,
+  MemberSuggestionCreate,
   OutgoingContactRequest,
   PhoneCheckResponse,
   RefreshRequest,
@@ -79,6 +93,10 @@ Serializers serializers = (_$serializers.toBuilder()
         () => ListBuilder<IncomingContactRequest>(),
       )
       ..addBuilderFactory(
+        const FullType(BuiltList, [FullType(GroupSummary)]),
+        () => ListBuilder<GroupSummary>(),
+      )
+      ..addBuilderFactory(
         const FullType(BuiltList, [FullType(OutgoingContactRequest)]),
         () => ListBuilder<OutgoingContactRequest>(),
       )
@@ -89,6 +107,10 @@ Serializers serializers = (_$serializers.toBuilder()
       ..addBuilderFactory(
         const FullType(BuiltList, [FullType(ContactSummary)]),
         () => ListBuilder<ContactSummary>(),
+      )
+      ..addBuilderFactory(
+        const FullType(BuiltList, [FullType(MemberSuggestion)]),
+        () => ListBuilder<MemberSuggestion>(),
       )
       ..addBuilderFactory(
         const FullType(BuiltMap, [FullType(String), FullType(JsonObject)]),

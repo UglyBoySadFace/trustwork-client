@@ -19,12 +19,19 @@ Serializers _$serializers = (Serializers().toBuilder()
       ..add(EmailStartRequest.serializer)
       ..add(EmailStartResponse.serializer)
       ..add(EmailVerifyRequest.serializer)
+      ..add(GroupCreate.serializer)
+      ..add(GroupDetail.serializer)
+      ..add(GroupInvitePreview.serializer)
+      ..add(GroupMember.serializer)
+      ..add(GroupSummary.serializer)
       ..add(HTTPValidationError.serializer)
       ..add(IncomingContactRequest.serializer)
       ..add(LocationInner.serializer)
       ..add(MatchedContact.serializer)
       ..add(MatrixCredentials.serializer)
       ..add(MatrixPasswordResponse.serializer)
+      ..add(MemberSuggestion.serializer)
+      ..add(MemberSuggestionCreate.serializer)
       ..add(OutgoingContactRequest.serializer)
       ..add(PhoneCheckResponse.serializer)
       ..add(RefreshRequest.serializer)
@@ -35,6 +42,9 @@ Serializers _$serializers = (Serializers().toBuilder()
       ..add(UserProfile.serializer)
       ..add(ValidationError.serializer)
       ..addBuilderFactory(
+          const FullType(BuiltList, const [const FullType(GroupMember)]),
+          () => ListBuilder<GroupMember>())
+      ..addBuilderFactory(
           const FullType(BuiltList, const [const FullType(LocationInner)]),
           () => ListBuilder<LocationInner>())
       ..addBuilderFactory(
@@ -43,6 +53,9 @@ Serializers _$serializers = (Serializers().toBuilder()
       ..addBuilderFactory(
           const FullType(BuiltList, const [const FullType(SharableField)]),
           () => ListBuilder<SharableField>())
+      ..addBuilderFactory(
+          const FullType(BuiltList, const [const FullType(String)]),
+          () => ListBuilder<String>())
       ..addBuilderFactory(
           const FullType(BuiltList, const [const FullType(String)]),
           () => ListBuilder<String>())
