@@ -853,9 +853,11 @@ class MyCallingPage extends State<Calling> {
     if (!_isOutgoing) {
       unawaited(_findAndAcceptContactRequest());
     }
-    setState(() {
-      call.answer();
-    });
+    unawaited(
+      call.answer().catchError(
+        (Object e, StackTrace s) => Logs().e('[VOIP] call.answer() failed', e, s),
+      ),
+    );
   }
 
   Future<void> _findAndAcceptContactRequest() async {
@@ -869,13 +871,14 @@ class MyCallingPage extends State<Calling> {
     _stopCallSound();
     UserMediaManager().stopRingingTone();
     unawaited(RingerVibration.stop());
-    setState(() {
-      if (call.isRinging) {
-        call.reject();
-      } else {
-        call.hangup(reason: CallErrorCode.userHangup);
-      }
-    });
+    final future = call.isRinging
+        ? call.reject()
+        : call.hangup(reason: CallErrorCode.userHangup);
+    unawaited(
+      future.catchError(
+        (Object e, StackTrace s) => Logs().e('[VOIP] _hangUp() failed', e, s),
+      ),
+    );
   }
 
   void _muteMic() {

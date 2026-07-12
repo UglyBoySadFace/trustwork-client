@@ -167,23 +167,17 @@ class NewPrivateChatController extends State<NewPrivateChat> {
         initialMessage: msg.isEmpty ? null : msg,
       );
       if (!mounted) return;
-      final matrixRoomId = outgoing.matrixRoomId;
-      if (matrixRoomId == null) {
-        setState(() {
-          sendRequestError = 'No room ID returned — request sent, try calling from chat.';
-          isSendingRequest = false;
-        });
-        return;
-      }
-      // Wait for the delivery room to appear in the client (it may arrive on
-      // the next sync after the backend joins us).
-      var room = matrixClient.getRoomById(matrixRoomId);
+      // The backend creates a contact-request room where the caller is not a
+      // member. Use a 1:1 DM room for the call instead.
+      final callRoomId = await matrixClient.startDirectChat(mxid);
+      if (!mounted) return;
+      var room = matrixClient.getRoomById(callRoomId);
       if (room == null) {
         await for (final _ in matrixClient.onSync.stream.timeout(
           const Duration(seconds: 10),
           onTimeout: (sink) => sink.close(),
         )) {
-          room = matrixClient.getRoomById(matrixRoomId);
+          room = matrixClient.getRoomById(callRoomId);
           if (room != null) break;
         }
       }
@@ -195,12 +189,18 @@ class NewPrivateChatController extends State<NewPrivateChat> {
         });
         return;
       }
+      // Stamp the contact request ID so the callee-side auto-accept can find it.
+      await room.sendEvent(
+        {'request_id': outgoing.id},
+        type: 'com.trustwork.contact_request',
+      );
+      if (!mounted) return;
       setState(() => isSendingRequest = false);
       final voipPlugin = Matrix.of(context).voipPlugin;
       if (voipPlugin == null) return;
       await voipPlugin.voip.inviteToCall(room, CallType.kVoice);
       if (!mounted) return;
-      context.go('/rooms/$matrixRoomId');
+      context.go('/rooms/$callRoomId');
     } on DioException catch (e) {
       if (!mounted) return;
       if (e.response?.statusCode == 409) {

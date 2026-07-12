@@ -234,52 +234,53 @@ Future<String?> _askForInitialMessage(BuildContext context) async {
         right: 16,
         top: 16,
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            l10n.addAMessage,
-            style: Theme.of(ctx).textTheme.titleMedium,
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: msgCtrl,
-            autofocus: true,
-            maxLength: 2000,
-            maxLines: 4,
-            minLines: 2,
-            textInputAction: TextInputAction.newline,
-            decoration: InputDecoration(
-              hintText: l10n.initialMessageHint,
-              border: const OutlineInputBorder(),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              l10n.addAMessage,
+              style: Theme.of(ctx).textTheme.titleMedium,
             ),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () => Navigator.of(ctx).pop(),
-                  child: Text(l10n.skip),
-                ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: msgCtrl,
+              autofocus: true,
+              maxLength: 2000,
+              maxLines: 4,
+              minLines: 2,
+              textInputAction: TextInputAction.newline,
+              decoration: InputDecoration(
+                hintText: l10n.initialMessageHint,
+                border: const OutlineInputBorder(),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: FilledButton(
-                  onPressed: () =>
-                      Navigator.of(ctx).pop(msgCtrl.text.trim()),
-                  child: Text(l10n.sendContactRequest),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.of(ctx).pop(),
+                    child: Text(l10n.skip),
+                  ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-        ],
+                const SizedBox(width: 12),
+                Expanded(
+                  child: FilledButton(
+                    onPressed: () =>
+                        Navigator.of(ctx).pop(msgCtrl.text.trim()),
+                    child: Text(l10n.sendContactRequest),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
       ),
     ),
   );
-  msgCtrl.dispose();
   return result;
 }
 
@@ -408,22 +409,17 @@ class _CallToConnectActionState extends State<_CallToConnectAction> {
         initialMessage: (message == null || message.isEmpty) ? null : message,
       );
       if (!mounted) return;
-      final matrixRoomId = outgoing.matrixRoomId;
-      if (matrixRoomId == null) {
-        Navigator.of(context).pop();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No room ID returned — request sent.')),
-        );
-        return;
-      }
-      // Wait for the delivery room to arrive via sync.
-      var room = matrixClient.getRoomById(matrixRoomId);
+      // The backend creates a contact-request room where the caller is not a
+      // member. Use a 1:1 DM room for the call instead.
+      final callRoomId = await matrixClient.startDirectChat(widget.userId);
+      if (!mounted) return;
+      var room = matrixClient.getRoomById(callRoomId);
       if (room == null) {
         await for (final _ in matrixClient.onSync.stream.timeout(
           const Duration(seconds: 10),
           onTimeout: (sink) => sink.close(),
         )) {
-          room = matrixClient.getRoomById(matrixRoomId);
+          room = matrixClient.getRoomById(callRoomId);
           if (room != null) break;
         }
       }
@@ -435,6 +431,12 @@ class _CallToConnectActionState extends State<_CallToConnectAction> {
         );
         return;
       }
+      // Stamp the contact request ID so the callee-side auto-accept can find it.
+      await room.sendEvent(
+        {'request_id': outgoing.id},
+        type: 'com.trustwork.contact_request',
+      );
+      if (!mounted) return;
       final voipPlugin = Matrix.of(context).voipPlugin;
       if (voipPlugin == null) {
         Navigator.of(context).pop();
@@ -443,7 +445,7 @@ class _CallToConnectActionState extends State<_CallToConnectAction> {
       await voipPlugin.voip.inviteToCall(room, CallType.kVoice);
       if (!mounted) return;
       Navigator.of(context).pop();
-      router.go('/rooms/$matrixRoomId');
+      router.go('/rooms/$callRoomId');
     } on DioException catch (e) {
       if (!mounted) return;
       if (e.response?.statusCode == 409) {

@@ -165,14 +165,14 @@ class _DataRequestBubbleState extends State<DataRequestBubble> {
           children: [
             _buildLabelRow(l10n.dataRequestReceived(fromName)),
             const SizedBox(height: 8),
-            Row(
-              mainAxisSize: MainAxisSize.min,
+            Wrap(
+              spacing: 8,
+              runSpacing: 4,
               children: [
                 OutlinedButton(
                   onPressed: _busy ? null : _decline,
                   child: Text(l10n.dataSharingDecline),
                 ),
-                const SizedBox(width: 8),
                 FilledButton(
                   onPressed: _busy ? null : _openShareSheet,
                   child: _busy
