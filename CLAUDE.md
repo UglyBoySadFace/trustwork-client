@@ -125,16 +125,16 @@ Also, the tool rewrites every file in `lib/` and `test/` regardless of which pat
 
 ## Implementation workflow
 
-**One plan per session.** When working through a numbered plan in `plans/<feature>/`, implement exactly one plan file and then stop. Do not chain into the next plan in the same session, even if it's "blocked by" the one you just finished and even if it's small. The user reviews the code by hand between plans, and bulk implementations are harder to review and revert.
+**The user manages session scope.** When working through numbered plans in `plans/<feature>/`, implement as many plans as the user asks for — don't stop after one plan by default. Keep plans reviewable: commit once per plan (do not push), so each plan stays individually revertible.
 
 **At the end of each plan:**
 
-1. Summarize what you changed in 1–3 bullets.
-2. Give the user a short manual-verification checklist — what to skim, what to spot-check, what behaviors to try if relevant. Be specific; "review the code" is not useful.
-3. Wait for the user to say it looks good.
-4. After approval, commit (do not push). Then the user starts a fresh session for the next plan.
+1. Commit that plan's changes as a single commit (do not push).
+2. Update the plan's status in `plans/<feature>/README.md`.
 
-**New plan directory = new branch.** When the user asks you to start implementing a brand-new `plans/<feature>/` directory (i.e., the very first plan in that feature), first create a branch named after the feature (e.g., `git checkout -b data-sharing`) before any code changes. Subsequent plans within the same feature directory continue on that branch.
+**When handing off** (end of the session's requested work): summarize what changed per plan, and give a short manual-verification checklist — what to skim, what to spot-check, what behaviors to try. Be specific; "review the code" is not useful.
+
+**Branching:** ask the user (or follow their instruction) on whether a new `plans/<feature>/` directory gets its own branch — features usually get one, but the user may choose to continue on an existing branch.
 
 ## Implementation Plans
 
