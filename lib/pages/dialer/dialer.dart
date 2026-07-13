@@ -24,7 +24,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'package:api_client/api_client.dart';
-import 'package:dio/dio.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart' hide VideoRenderer;
 import 'package:just_audio/just_audio.dart';
 import 'package:matrix/matrix.dart';
@@ -39,7 +38,6 @@ import 'package:fluffychat/utils/data_sharing/sharing_preferences_cache.dart';
 import 'package:fluffychat/utils/matrix_sdk_extensions/matrix_locals.dart';
 import 'package:fluffychat/utils/platform_infos.dart';
 import 'package:fluffychat/utils/ringer_vibration.dart';
-import 'package:fluffychat/utils/trustwork_api_service.dart';
 import 'package:fluffychat/utils/voip/user_media_manager.dart';
 import 'package:fluffychat/utils/voip/video_renderer.dart';
 import 'package:fluffychat/widgets/avatar.dart';
@@ -870,48 +868,6 @@ class MyCallingPage extends State<Calling> {
     }
   }
 
-  Future<int?> _findContactRequestId() async {
-    // Try the DB — works whether or not the room's timeline was opened in UI.
-    final events = await widget.client.database.getEventList(
-      call.room,
-      limit: 30,
-    );
-    for (final event in events) {
-      if (event.type == 'com.trustwork.contact_request') {
-        return event.content.tryGet<int>('request_id');
-      }
-    }
-    return null;
-  }
-
-  Future<void> _acceptContactRequestInBackground(int requestId) async {
-    try {
-      await TrustworkApiService.instance.acceptContactRequest(requestId);
-      if (!mounted) return;
-      final matrix = Matrix.of(context);
-      unawaited(matrix.contactsCache.refresh(matrix.store));
-      unawaited(matrix.refreshIncomingRequestCount());
-      final callerId = call.room
-          .getParticipants()
-          .where((m) => m.id != widget.client.userID)
-          .firstOrNull
-          ?.id;
-      if (callerId != null) {
-        unawaited(call.room.addToDirectChat(callerId));
-      }
-      unawaited(
-        call.room
-            .sendEvent({}, type: 'com.trustwork.contact_accepted')
-            .catchError((_) => ''),
-      );
-    } on DioException catch (e) {
-      Logs().w('[CALL-CONNECT] acceptContactRequest($requestId) failed: '
-          '${TrustworkApiService.friendlyError(e)}');
-    } catch (e) {
-      Logs().w('[CALL-CONNECT] acceptContactRequest($requestId) failed: $e');
-    }
-  }
-
   void _answerCall() {
     if (_answerPressed) return;
     setState(() => _answerPressed = true);
@@ -928,9 +884,10 @@ class MyCallingPage extends State<Calling> {
     }
     // If answering in a locked contact-request delivery room, also accept the
     // contact request so the room unlocks and both sides become contacts.
-    // Only fires on the callee side (_isOutgoing == false).
-    if (!_isOutgoing) {
-      unawaited(_findAndAcceptContactRequest());
+    // Only fires on the callee side (_isOutgoing == false). Routed through
+    // the plugin so overlapping answer paths can't accept twice.
+    if (!_isOutgoing && voipPlugin != null) {
+      unawaited(voipPlugin.acceptContactRequestForCall(call));
     }
     // Route through the plugin's answer funnel so this can't race the callkit
     // notification action into a second answer() on the same call.
@@ -941,13 +898,6 @@ class MyCallingPage extends State<Calling> {
         (Object e, StackTrace s) => Logs().e('[VOIP] call.answer() failed', e, s),
       ),
     );
-  }
-
-  Future<void> _findAndAcceptContactRequest() async {
-    final requestId = await _findContactRequestId();
-    if (requestId != null) {
-      await _acceptContactRequestInBackground(requestId);
-    }
   }
 
   void _hangUp() {

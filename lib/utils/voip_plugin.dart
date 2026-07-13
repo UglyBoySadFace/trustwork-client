@@ -4,6 +4,7 @@ import 'dart:core';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import 'package:dio/dio.dart';
 import 'package:flutter_callkit_incoming/entities/entities.dart' as fci;
 import 'package:flutter_callkit_incoming/flutter_callkit_incoming.dart' as callkit;
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
@@ -328,27 +329,62 @@ class VoipPlugin with WidgetsBindingObserver implements WebRTCDelegate {
     }
   }
 
-  // Scans the room's DB timeline for a com.trustwork.contact_request event
-  // and fires acceptContactRequest if found. Used on the callee side when
-  // answering from the lock screen (cold-start path) where the dialer's
-  // _answerCall() is never invoked.
-  Future<void> _acceptContactRequestFromRoom(CallSession call) async {
-    final events = await client.database.getEventList(call.room, limit: 30);
-    for (final event in events) {
-      if (event.type == 'com.trustwork.contact_request') {
-        final requestId = event.content.tryGet<int>('request_id');
-        if (requestId != null) {
-          unawaited(_doAcceptContactRequest(requestId, call.room));
-          return;
+  // Scans the room's recent DB timeline for the com.trustwork.contact_request
+  // stamp. The DM room is E2EE when the callee owns device keys, so events
+  // may still be stored as m.room.encrypted if the key arrived after the
+  // sync that delivered them — retry decryption before matching.
+  Future<int?> _findContactRequestId(Room room) async {
+    final events = await client.database.getEventList(room, limit: 30);
+    for (var event in events) {
+      if (event.type == EventTypes.Encrypted) {
+        try {
+          event = await client.encryption
+                  ?.decryptRoomEvent(event, store: true) ??
+              event;
+        } catch (e) {
+          Logs().w('[CALL-CONNECT] decrypt during request scan failed: $e');
+        }
+        if (event.type == EventTypes.Encrypted) {
+          Logs().w(
+            '[CALL-CONNECT] undecryptable event ${event.eventId} in ${room.id} during request scan',
+          );
+          continue;
         }
       }
+      if (event.type == 'com.trustwork.contact_request') {
+        final requestId = event.content.tryGet<int>('request_id');
+        if (requestId == null) {
+          Logs().w(
+            '[CALL-CONNECT] contact_request event ${event.eventId} has no request_id',
+          );
+        }
+        return requestId;
+      }
     }
+    Logs().i(
+      '[CALL-CONNECT] no contact_request stamp in last 30 events of ${room.id} — not a call-to-connect call',
+    );
+    return null;
   }
 
-  Future<void> _doAcceptContactRequest(int requestId, Room room) async {
+  // Calls whose contact request we already accepted (or are accepting), so
+  // overlapping answer paths (in-app button + callkit action) don't fire the
+  // accept twice. Entries are dropped on failure so a later path can retry.
+  final _contactAcceptedCallIds = <String>{};
+
+  /// Callee side of call-to-connect: if [call]'s room carries a
+  /// com.trustwork.contact_request stamp, accept the request via the
+  /// Trustwork API so the room unlocks. Safe to call from every answer path —
+  /// deduped per callId.
+  Future<void> acceptContactRequestForCall(CallSession call) async {
+    if (!_contactAcceptedCallIds.add(call.callId)) return;
+    final requestId = await _findContactRequestId(call.room);
+    if (requestId == null) return;
+    final room = call.room;
     try {
       await TrustworkApiService.instance.acceptContactRequest(requestId);
       await matrix.contactsCache.refresh(matrix.store);
+      unawaited(matrix.refreshIncomingRequestCount());
       final callerId = room
           .getParticipants()
           .where((m) => m.id != client.userID)
@@ -362,8 +398,13 @@ class VoipPlugin with WidgetsBindingObserver implements WebRTCDelegate {
             .sendEvent({}, type: 'com.trustwork.contact_accepted')
             .catchError((_) => ''),
       );
+    } on DioException catch (e) {
+      _contactAcceptedCallIds.remove(call.callId);
+      Logs().w('[CALL-CONNECT] acceptContactRequest($requestId) failed: '
+          '${TrustworkApiService.friendlyError(e)}');
     } catch (e) {
-      Logs().w('[CALL-CONNECT] _doAcceptContactRequest($requestId) failed: $e');
+      _contactAcceptedCallIds.remove(call.callId);
+      Logs().w('[CALL-CONNECT] acceptContactRequest($requestId) failed: $e');
     }
   }
 
@@ -641,7 +682,7 @@ class VoipPlugin with WidgetsBindingObserver implements WebRTCDelegate {
     }
     // If this call arrived in a contact-request delivery room, accept the
     // request so the room unlocks. Fire-and-forget alongside the call answer.
-    unawaited(_acceptContactRequestFromRoom(call));
+    unawaited(acceptContactRequestForCall(call));
     await answerCall(call);
   }
 
@@ -686,6 +727,7 @@ class VoipPlugin with WidgetsBindingObserver implements WebRTCDelegate {
   @override
   Future<void> handleCallEnded(CallSession session) async {
     _answeredCallIds.remove(session.callId);
+    _contactAcceptedCallIds.remove(session.callId);
     if (PlatformInfos.isMobile) {
       unawaited(RingerVibration.stop());
       await callkit.FlutterCallkitIncoming.endCall(session.callId);
@@ -719,6 +761,7 @@ class VoipPlugin with WidgetsBindingObserver implements WebRTCDelegate {
   @override
   Future<void> handleMissedCall(CallSession session) async {
     _answeredCallIds.remove(session.callId);
+    _contactAcceptedCallIds.remove(session.callId);
     if (PlatformInfos.isMobile) {
       unawaited(RingerVibration.stop());
       await callkit.FlutterCallkitIncoming.endCall(session.callId);
