@@ -405,21 +405,35 @@ class MyCallingPage extends State<Calling> {
   BuildContext get _sheetHostContext =>
       _navigatorKey.currentState?.overlay?.context ?? context;
 
-  void _playCallSound() async {
+  Future<void> _playCallSound() async {
     const path = 'assets/sounds/call.ogg';
     if (kIsWeb || PlatformInfos.isMobile || PlatformInfos.isMacOS) {
       final player = _callSoundPlayer = AudioPlayer();
+      // _stopCallSound may run while we're awaiting below (instant answer,
+      // hangup during asset load). It nulls the field, so re-check after
+      // each await — otherwise we'd start a looping sound nothing owns.
       await player.setAsset(path);
+      if (!identical(_callSoundPlayer, player)) {
+        await player.dispose();
+        return;
+      }
       await player.setLoopMode(LoopMode.one);
-      player.play();
+      if (!identical(_callSoundPlayer, player)) {
+        await player.dispose();
+        return;
+      }
+      unawaited(player.play());
     } else {
       Logs().w('Playing sound not implemented for this platform!');
     }
   }
 
   void _stopCallSound() {
-    _callSoundPlayer?.stop();
+    final player = _callSoundPlayer;
     _callSoundPlayer = null;
+    if (player != null) {
+      unawaited(player.stop().then((_) => player.dispose()));
+    }
   }
 
   @override
@@ -431,7 +445,7 @@ class MyCallingPage extends State<Calling> {
     initialize();
     if (_isOutgoing) {
       // Only play outgoing dialing sound for calls we initiated.
-      _playCallSound();
+      unawaited(_playCallSound());
       _wireDataSharing();
     } else {
       _wireCalleeProactiveReceive();
@@ -747,6 +761,9 @@ class MyCallingPage extends State<Calling> {
 
   @override
   void dispose() {
+    // The sound normally stops on kConnected/kEnded, but an overlay removed
+    // without a state transition would leave it looping.
+    _stopCallSound();
     _stopStatsPolling();
     _clearTimer?.cancel();
     _clearTimer = null;

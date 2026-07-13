@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:just_audio/just_audio.dart';
 
 class UserMediaManager {
@@ -14,15 +16,28 @@ class UserMediaManager {
   Future<void> startRingingTone() async {
     const path = 'assets/sounds/phone.ogg';
     final player = _assetsAudioPlayer = AudioPlayer();
+    // stopRingingTone may run while we're awaiting below. It nulls the
+    // field, so re-check after each await — otherwise we'd start a looping
+    // ringtone nothing owns.
     await player.setAsset(path);
+    if (!identical(_assetsAudioPlayer, player)) {
+      await player.dispose();
+      return;
+    }
     await player.setLoopMode(LoopMode.one);
-    player.play();
-    return;
+    if (!identical(_assetsAudioPlayer, player)) {
+      await player.dispose();
+      return;
+    }
+    unawaited(player.play());
   }
 
   Future<void> stopRingingTone() async {
-    await _assetsAudioPlayer?.stop();
+    final player = _assetsAudioPlayer;
     _assetsAudioPlayer = null;
-    return;
+    if (player != null) {
+      await player.stop();
+      unawaited(player.dispose());
+    }
   }
 }
