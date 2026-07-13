@@ -161,6 +161,11 @@ class VoipPlugin with WidgetsBindingObserver implements WebRTCDelegate {
   Client get client => matrix.client;
 
   String? _callkitAcceptedId;
+  // Symmetric memo for decline: if the user declines from the lock screen
+  // before the m.call.invite has been synced, there is no CallSession to
+  // reject yet — remember the id so handleNewCall can reject it instead of
+  // ringing in-app for a call the user already declined.
+  String? _callkitDeclinedId;
   // Set on cold start when activeCalls() reports an accepted callkit entry.
   // The callkit entry's id does NOT match the Matrix call_id (callkit IDs
   // are minted by the push payload, Matrix IDs come from m.call.invite),
@@ -202,6 +207,7 @@ class VoipPlugin with WidgetsBindingObserver implements WebRTCDelegate {
           Logs().i('[VOIP] callkit actionCallAccept id=${event?.body['id']}');
           unawaited(RingerVibration.stop());
           final callId = event?.body['id'] as String?;
+          _callkitDeclinedId = null;
           // If handleNewCall already ran and the call is waiting, answer it now.
           if (callId != null) {
             final existing = voip.calls.entries
@@ -213,7 +219,7 @@ class VoipPlugin with WidgetsBindingObserver implements WebRTCDelegate {
               // Answer first so the call transitions out of kRinging before
               // the overlay's initState reads the state — otherwise the dialer
               // briefly shows the answer/decline buttons again.
-              unawaited(answerCall(existing));
+              unawaited(_answerFromCallkit(existing));
               if (overlayEntry == null) {
                 addCallingOverlay(callId, existing);
               }
@@ -233,13 +239,21 @@ class VoipPlugin with WidgetsBindingObserver implements WebRTCDelegate {
                 .where((e) => e.key.callId == callId)
                 .firstOrNull
                 ?.value;
-            existing?.reject();
+            if (existing != null) {
+              existing.reject();
+            } else {
+              // Invite not synced yet — remember the decline so
+              // handleNewCall rejects it instead of ringing in-app.
+              Logs().i('[VOIP] callkit decline: no call yet, storing id for reject in handleNewCall');
+              _callkitDeclinedId = callId;
+            }
           }
           break;
         case fci.Event.actionCallTimeout:
         case fci.Event.actionCallEnded:
           unawaited(RingerVibration.stop());
           _callkitAcceptedId = null;
+          _callkitDeclinedId = null;
           break;
         default:
           break;
@@ -517,6 +531,22 @@ class VoipPlugin with WidgetsBindingObserver implements WebRTCDelegate {
     }
     Logs().i('[VOIP] handleNewCall after-restore id=${call.callId} acceptedId=$_callkitAcceptedId coldStartAccepted=$_callkitAcceptedOnColdStart');
 
+    // The user already declined this call from the lock screen before the
+    // invite was synced — reject it instead of ringing in-app. (Cold-start
+    // declines have no id to match, mirroring the accept limitation; callkit
+    // itself dismisses the lock-screen UI in that case.)
+    if (_callkitDeclinedId == call.callId) {
+      Logs().i('[VOIP] handleNewCall: call ${call.callId} was declined via callkit, rejecting');
+      _callkitDeclinedId = null;
+      try {
+        await call.reject();
+      } catch (e) {
+        Logs().w('[VOIP] reject after callkit decline failed: $e');
+      }
+      unawaited(callkit.FlutterCallkitIncoming.endCall(call.callId));
+      return;
+    }
+
     // Cold-start auto-answer: if callkit reported an accepted call when we
     // booted, the very first ringing Matrix call we see is the one the user
     // accepted. The callkit id and Matrix call_id don't match, so we can't
@@ -548,16 +578,10 @@ class VoipPlugin with WidgetsBindingObserver implements WebRTCDelegate {
     if (_callkitAcceptedId == call.callId || coldStartMatch) {
       Logs().i('[VOIP] handleNewCall: AUTO-ANSWER path id=${call.callId} (coldStart=$coldStartMatch)');
       _callkitAcceptedId = null;
-      if (PlatformInfos.isAndroid) {
-        unawaited(_startForegroundService());
-      }
-      // If this call arrived in a contact-request delivery room, accept the
-      // request so the room unlocks. Fire-and-forget alongside the call answer.
-      unawaited(_acceptContactRequestFromRoom(call));
       // Answer before showing the overlay so the dialer doesn't briefly
       // render the ringing UI (answer/decline buttons) on top of a call
       // the user already accepted from the lock-screen callkit notification.
-      await answerCall(call);
+      await _answerFromCallkit(call);
       Logs().i('[VOIP] handleNewCall: answered, state=${call.state}, adding overlay');
       addCallingOverlay(call.callId, call);
       return;
@@ -603,6 +627,22 @@ class VoipPlugin with WidgetsBindingObserver implements WebRTCDelegate {
       return;
     }
     await call.answer();
+  }
+
+  /// Shared accept path for callkit-driven answers (warm accept on an
+  /// existing call and the handleNewCall auto-answer): starts the microphone
+  /// foreground service, accepts a pending contact request in the call's
+  /// room, and answers through the reentrancy funnel. The FGS can be started
+  /// here because the user just interacted with the callkit notification,
+  /// which Android treats as an eligible state for a microphone-type FGS.
+  Future<void> _answerFromCallkit(CallSession call) async {
+    if (PlatformInfos.isAndroid) {
+      unawaited(_startForegroundService());
+    }
+    // If this call arrived in a contact-request delivery room, accept the
+    // request so the room unlocks. Fire-and-forget alongside the call answer.
+    unawaited(_acceptContactRequestFromRoom(call));
+    await answerCall(call);
   }
 
   /// Called by the dialer when the user answers a call from the in-app overlay.
