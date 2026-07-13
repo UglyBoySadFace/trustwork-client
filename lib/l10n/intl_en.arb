@@ -3546,6 +3546,12 @@
   "dataSharingErrored": "Something went wrong while requesting details.",
   "dataRequestSentWaiting": "You requested more info — waiting for response…",
   "@dataRequestSentWaiting": {},
+  "declineWithMessage": "Reply with message",
+  "declineMessageCantTalk": "Can't talk now. What's up?",
+  "declineMessageCallRightBack": "I'll call you right back.",
+  "declineMessageCallLater": "I'll call you later.",
+  "declineMessageCantTalkCallLater": "Can't talk now. Call me later?",
+  "declineMessageCustomHint": "Write your own message…",
   "dataRequestReceived": "Info request received from {name}",
   "@dataRequestReceived": {
     "placeholders": {

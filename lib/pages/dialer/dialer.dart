@@ -24,15 +24,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'package:api_client/api_client.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart' hide VideoRenderer;
 import 'package:just_audio/just_audio.dart';
 import 'package:matrix/matrix.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
-import 'package:dio/dio.dart';
-
 import 'package:fluffychat/l10n/l10n.dart';
 import 'package:fluffychat/pages/data_sharing/data_sharing_approval_sheet.dart';
+import 'package:fluffychat/pages/dialer/decline_with_message_sheet.dart';
 import 'package:fluffychat/utils/data_sharing/data_sharing_service.dart';
 import 'package:fluffychat/utils/data_sharing/shareable_field.dart';
 import 'package:fluffychat/utils/data_sharing/sharing_preferences_cache.dart';
@@ -394,6 +394,7 @@ class MyCallingPage extends State<Calling> {
   Map<ShareableField, bool> _cachedSharingPrefs = const {};
 
   BuildContext? _calleeSheetContext;
+  BuildContext? _declineMsgSheetContext;
 
   // The Calling widget is mounted inside an OverlayEntry that sits above the
   // root Navigator, so pushing a modal route through the outer Navigator (as
@@ -684,6 +685,42 @@ class MyCallingPage extends State<Calling> {
     }
   }
 
+  void _dismissDeclineMsgSheet() {
+    final ctx = _declineMsgSheetContext;
+    _declineMsgSheetContext = null;
+    if (ctx != null && ctx.mounted && Navigator.canPop(ctx)) {
+      Navigator.of(ctx).pop();
+    }
+  }
+
+  /// Decline-with-message, like WhatsApp / native dialers: lets the callee
+  /// pick a quick reply (or write one), then rejects the call and sends the
+  /// message into the call's room as a normal text message.
+  Future<void> _declineWithMessage() async {
+    final message = await showModalBottomSheet<String>(
+      context: _sheetHostContext,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (sheetCtx) {
+        _declineMsgSheetContext = sheetCtx;
+        return const DeclineWithMessageSheet();
+      },
+    );
+    _declineMsgSheetContext = null;
+    if (message == null) return;
+    // Decline first so the caller stops ringing; the room outlives the call
+    // and the overlay, so the send can safely run after.
+    final room = call.room;
+    _hangUp();
+    unawaited(
+      room.sendTextEvent(message).then(
+        (_) {},
+        onError: (Object e, StackTrace s) =>
+            Logs().w('[VOIP] decline-with-message send failed', e, s),
+      ),
+    );
+  }
+
   Future<void> _showRequestInfoSheet() async {
     final mxId = call.room.directChatMatrixID;
     if (mxId == null) return;
@@ -772,6 +809,7 @@ class MyCallingPage extends State<Calling> {
     _proactiveShareSub?.cancel();
     _proactiveShareSub = null;
     _abortDataSharingPrompts();
+    _dismissDeclineMsgSheet();
     super.dispose();
     // Only tear down the call's media/peer connection when the call is
     // actually over. Every SDK end path (hangup, reject, errors) goes through
@@ -815,6 +853,13 @@ class MyCallingPage extends State<Calling> {
     // prompts and dismiss the sheet — the callee will time out.
     if (!_inDataSharingWindow(state)) {
       _abortDataSharingPrompts();
+    }
+
+    // The decline-with-message sheet only makes sense while still ringing
+    // (the call may have been answered via the callkit notification or
+    // ended by the caller while the sheet was open).
+    if (state != CallState.kRinging) {
+      _dismissDeclineMsgSheet();
     }
 
     if (mounted) {
@@ -982,6 +1027,17 @@ class MyCallingPage extends State<Calling> {
     );
 
     final l10n = L10n.of(widget.context);
+
+    final declineWithMessageButton = FloatingActionButton(
+      heroTag: 'declineWithMessage',
+      mini: true,
+      onPressed: () => unawaited(_declineWithMessage()),
+      tooltip: l10n.declineWithMessage,
+      foregroundColor: Colors.white,
+      backgroundColor: Colors.black45,
+      child: const Icon(Icons.message_outlined, size: 20),
+    );
+
     final canRequestInfo = call.room.directChatMatrixID != null;
     final requestInfoButton = TextButton.icon(
       onPressed: _showRequestInfoSheet,
@@ -1017,6 +1073,7 @@ class MyCallingPage extends State<Calling> {
             ? <Widget>[muteMicButton, switchSpeakerButton, hangupButton]
             : <Widget>[
                 hangupButton,
+                declineWithMessageButton,
                 if (canRequestInfo) requestInfoButton,
                 answerButton,
               ];
