@@ -251,6 +251,11 @@ class VoipPlugin with WidgetsBindingObserver implements WebRTCDelegate {
   bool speakerOn = false;
   late VoIP voip;
   OverlayEntry? overlayEntry;
+  // callId the current overlayEntry was created for, so re-adding the overlay
+  // for the same call is a no-op instead of a destructive remove+reinsert
+  // (removing unmounts the old Calling widget, whose dispose() tears down the
+  // very call the new overlay is about to show).
+  String? _overlayCallId;
   BuildContext get context => matrix.context;
 
   @override
@@ -352,7 +357,15 @@ class VoipPlugin with WidgetsBindingObserver implements WebRTCDelegate {
     final context = ChatList.contextForVoip ?? this.context;
 
     if (overlayEntry != null) {
-      Logs().e('[VOIP] addCallingOverlay: The call session already exists?');
+      if (_overlayCallId == callId) {
+        Logs().i(
+          '[VOIP] addCallingOverlay: overlay for $callId already shown, skipping',
+        );
+        return;
+      }
+      Logs().e(
+        '[VOIP] addCallingOverlay: replacing overlay for $_overlayCallId with $callId',
+      );
       _removeOverlay();
     }
     // Overlay.of(context) is broken on web
@@ -369,23 +382,34 @@ class VoipPlugin with WidgetsBindingObserver implements WebRTCDelegate {
         ),
       );
     } else {
-      overlayEntry = OverlayEntry(
+      late final OverlayEntry entry;
+      entry = OverlayEntry(
         builder: (_) => Calling(
           context: context,
           client: client,
           callId: callId,
           call: call,
-          onClear: _removeOverlay,
+          onClear: () => _removeOverlayEntry(entry),
         ),
       );
-      Overlay.of(context).insert(overlayEntry!);
+      overlayEntry = entry;
+      _overlayCallId = callId;
+      Overlay.of(context).insert(entry);
     }
   }
 
   void _removeOverlay() {
     final entry = overlayEntry;
     overlayEntry = null;
+    _overlayCallId = null;
     entry?.remove();
+  }
+
+  // Entry-specific removal: a stale onClear (e.g. the previous call's delayed
+  // clear timer in the dialer) must not remove the overlay of a newer call.
+  void _removeOverlayEntry(OverlayEntry entry) {
+    if (!identical(entry, overlayEntry)) return;
+    _removeOverlay();
   }
 
   @override
@@ -539,6 +563,16 @@ class VoipPlugin with WidgetsBindingObserver implements WebRTCDelegate {
       return;
     }
     Logs().i('[VOIP] handleNewCall: RINGING path (no auto-answer) id=${call.callId}');
+
+    // The callkit accept handler may have answered this call and added its
+    // overlay while we were awaiting the restore future above — in that case
+    // re-adding the overlay or starting the ringer would fight the live call.
+    if (overlayEntry != null && _overlayCallId == call.callId) {
+      Logs().i(
+        '[VOIP] handleNewCall: overlay for ${call.callId} already shown, skipping ringing path',
+      );
+      return;
+    }
 
     // Show the call screen immediately — don't wait for foreground service setup.
     // We deliberately do NOT start the foreground service here: on Android 14+

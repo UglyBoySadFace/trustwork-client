@@ -371,6 +371,7 @@ class MyCallingPage extends State<Calling> {
   bool _speakerOn = false;
   _CallStats? _callStats;
   Timer? _statsTimer;
+  Timer? _clearTimer;
 
   AudioPlayer? _callSoundPlayer;
 
@@ -717,7 +718,8 @@ class MyCallingPage extends State<Calling> {
   void cleanUp() {
     _stopCallSound();
     _stopStatsPolling();
-    Timer(const Duration(seconds: 2), () => widget.onClear?.call());
+    _clearTimer?.cancel();
+    _clearTimer = Timer(const Duration(seconds: 2), () => widget.onClear?.call());
     try {
       unawaited(WakelockPlus.disable());
     } catch (_) {}
@@ -742,13 +744,22 @@ class MyCallingPage extends State<Calling> {
   @override
   void dispose() {
     _stopStatsPolling();
+    _clearTimer?.cancel();
+    _clearTimer = null;
     _dataReqSub?.cancel();
     _dataReqSub = null;
     _proactiveShareSub?.cancel();
     _proactiveShareSub = null;
     _abortDataSharingPrompts();
     super.dispose();
-    call.cleanUp.call();
+    // Only tear down the call's media/peer connection when the call is
+    // actually over. Every SDK end path (hangup, reject, errors) goes through
+    // terminate(), which already runs cleanUp() itself — so for a live call
+    // this would destroy the peer connection just because the overlay widget
+    // was unmounted (e.g. an OEM activity re-create).
+    if (call.callHasEnded) {
+      unawaited(call.cleanUp());
+    }
   }
 
   void _resizeLocalVideo(Orientation orientation) {
