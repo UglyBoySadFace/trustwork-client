@@ -373,6 +373,10 @@ class MyCallingPage extends State<Calling> {
   Timer? _statsTimer;
   Timer? _clearTimer;
 
+  // Disables the answer FAB after the first tap; the call only leaves
+  // kRinging asynchronously, so without this a double tap answers twice.
+  bool _answerPressed = false;
+
   AudioPlayer? _callSoundPlayer;
 
   // Snapshot of call.isOutgoing taken once in initState.  Using call.isOutgoing
@@ -847,6 +851,8 @@ class MyCallingPage extends State<Calling> {
   }
 
   void _answerCall() {
+    if (_answerPressed) return;
+    setState(() => _answerPressed = true);
     _stopCallSound();
     UserMediaManager().stopRingingTone();
     unawaited(RingerVibration.stop());
@@ -864,8 +870,12 @@ class MyCallingPage extends State<Calling> {
     if (!_isOutgoing) {
       unawaited(_findAndAcceptContactRequest());
     }
+    // Route through the plugin's answer funnel so this can't race the callkit
+    // notification action into a second answer() on the same call.
+    final answerFuture =
+        voipPlugin != null ? voipPlugin.answerCall(call) : call.answer();
     unawaited(
-      call.answer().catchError(
+      answerFuture.catchError(
         (Object e, StackTrace s) => Logs().e('[VOIP] call.answer() failed', e, s),
       ),
     );
@@ -948,7 +958,7 @@ class MyCallingPage extends State<Calling> {
 
     final answerButton = FloatingActionButton(
       heroTag: 'answer',
-      onPressed: _answerCall,
+      onPressed: _answerPressed ? null : _answerCall,
       tooltip: 'Answer',
       backgroundColor: Colors.green,
       child: const Icon(Icons.phone),

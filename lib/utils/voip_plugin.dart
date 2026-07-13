@@ -213,7 +213,7 @@ class VoipPlugin with WidgetsBindingObserver implements WebRTCDelegate {
               // Answer first so the call transitions out of kRinging before
               // the overlay's initState reads the state — otherwise the dialer
               // briefly shows the answer/decline buttons again.
-              existing.answer();
+              unawaited(answerCall(existing));
               if (overlayEntry == null) {
                 addCallingOverlay(callId, existing);
               }
@@ -557,7 +557,7 @@ class VoipPlugin with WidgetsBindingObserver implements WebRTCDelegate {
       // Answer before showing the overlay so the dialer doesn't briefly
       // render the ringing UI (answer/decline buttons) on top of a call
       // the user already accepted from the lock-screen callkit notification.
-      await call.answer();
+      await answerCall(call);
       Logs().i('[VOIP] handleNewCall: answered, state=${call.state}, adding overlay');
       addCallingOverlay(call.callId, call);
       return;
@@ -583,6 +583,26 @@ class VoipPlugin with WidgetsBindingObserver implements WebRTCDelegate {
     if (call.isRinging && !call.isOutgoing) {
       unawaited(RingerVibration.start());
     }
+  }
+
+  // Calls we already invoked answer() on. The SDK's own reentrancy guard
+  // (_inviteOrAnswerSent) is only set after createAnswer + the network send
+  // complete, so two overlapping answer() calls (in-app answer button +
+  // callkit notification action) would both run createAnswer on the same
+  // peer connection.
+  final _answeredCallIds = <String>{};
+
+  /// Single funnel for answering a call — all answer paths (callkit accept,
+  /// cold-start auto-answer, dialer answer button) must go through here so
+  /// [CallSession.answer] runs at most once per call.
+  Future<void> answerCall(CallSession call) async {
+    if (!_answeredCallIds.add(call.callId)) {
+      Logs().i(
+        '[VOIP] answerCall: ${call.callId} already being answered, ignoring',
+      );
+      return;
+    }
+    await call.answer();
   }
 
   /// Called by the dialer when the user answers a call from the in-app overlay.
@@ -625,6 +645,7 @@ class VoipPlugin with WidgetsBindingObserver implements WebRTCDelegate {
 
   @override
   Future<void> handleCallEnded(CallSession session) async {
+    _answeredCallIds.remove(session.callId);
     if (PlatformInfos.isMobile) {
       unawaited(RingerVibration.stop());
       await callkit.FlutterCallkitIncoming.endCall(session.callId);
@@ -657,6 +678,7 @@ class VoipPlugin with WidgetsBindingObserver implements WebRTCDelegate {
 
   @override
   Future<void> handleMissedCall(CallSession session) async {
+    _answeredCallIds.remove(session.callId);
     if (PlatformInfos.isMobile) {
       unawaited(RingerVibration.stop());
       await callkit.FlutterCallkitIncoming.endCall(session.callId);
