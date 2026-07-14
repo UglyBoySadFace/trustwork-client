@@ -129,6 +129,36 @@ void main() {
     expect(find.text('sharing failed'), findsOneWidget);
   });
 
+  testWidgets(
+    'share does not pop the route underneath when the host already '
+    'dismissed the sheet mid-flight',
+    (tester) async {
+      await tester.pumpWidget(
+        buildApp(
+          fields: [ShareableField.country],
+          defaults: {ShareableField.country: true},
+          onShare: (_) async {
+            // Simulate the dialer dismissing the sheet while the approve
+            // call is in flight (the call left the data-sharing window).
+            Navigator.of(
+              tester.element(find.byType(DataSharingApprovalSheet)),
+            ).pop();
+            return null;
+          },
+        ),
+      );
+      await openSheet(tester);
+
+      await tester.tap(find.text('Share'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(DataSharingApprovalSheet), findsNothing);
+      // The route under the sheet must survive — in the dialer it is the
+      // call screen of the local navigator.
+      expect(find.text('open'), findsOneWidget);
+    },
+  );
+
   testWidgets('decline invokes the callback and closes the sheet', (
     tester,
   ) async {

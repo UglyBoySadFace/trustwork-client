@@ -630,7 +630,8 @@ class MyCallingPage extends State<Calling> {
     if (service == null) return L10n.of(widget.context).dataSharingShareFailed;
     try {
       await service.approve(request: req, approvedFields: selected);
-      _dismissCurrentSheet();
+      // The sheet closes itself on a null return — popping here as well
+      // double-pops the local navigator and takes the call screen with it.
       return null;
     } catch (e, s) {
       Logs().w(
@@ -655,7 +656,7 @@ class MyCallingPage extends State<Calling> {
         s,
       );
     }
-    _dismissCurrentSheet();
+    // The sheet closes itself when onDecline returns — see _handleApprove.
   }
 
   void _dismissCurrentSheet() {
@@ -1370,7 +1371,7 @@ class _DataSharingRequestSheetState extends State<_DataSharingRequestSheet> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(l10n.dataSharingDeclined)),
         );
-        Navigator.of(context).pop();
+        _close();
         return;
       case DataSharingTimedOut():
         setState(() => _flow = _CalleeErrored(l10n.dataSharingTimedOut));
@@ -1382,6 +1383,10 @@ class _DataSharingRequestSheetState extends State<_DataSharingRequestSheet> {
   }
 
   void _close() {
+    // The dialer dismisses this sheet externally when the call leaves the
+    // data-sharing window; a second pop would remove the call screen route
+    // from the dialer's local navigator.
+    if (ModalRoute.of(context)?.isCurrent != true) return;
     Navigator.of(context).pop();
   }
 

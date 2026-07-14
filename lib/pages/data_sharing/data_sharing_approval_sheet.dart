@@ -52,13 +52,23 @@ class _DataSharingApprovalSheetState extends State<DataSharingApprovalSheet> {
       });
       return;
     }
-    Navigator.of(context).pop();
+    _popIfCurrent();
   }
 
   Future<void> _decline() async {
     setState(() => _busy = true);
     await widget.onDecline();
     if (!mounted) return;
+    _popIfCurrent();
+  }
+
+  // The host can dismiss this sheet externally while onShare/onDecline is in
+  // flight (the dialer closes it when the call leaves the data-sharing
+  // window). The sheet stays mounted through its exit animation, so an
+  // unconditional pop here would pop the route *under* the sheet — in the
+  // dialer's local navigator that's the call screen itself.
+  void _popIfCurrent() {
+    if (ModalRoute.of(context)?.isCurrent != true) return;
     Navigator.of(context).pop();
   }
 
