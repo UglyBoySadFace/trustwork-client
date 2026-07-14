@@ -374,12 +374,20 @@ class MatrixState extends State<Matrix> with WidgetsBindingObserver {
         .incomingRequests
         .listen((req) => _autoApproveDataRequest(name, req));
     _roomLeaveSubs[name] ??= c.onRoomState.stream
-        .where(
-          (update) =>
-              update.state.stateKey == c.userID &&
-              update.state.content['membership'] == 'leave',
-        )
-        .listen((_) => unawaited(_refreshContactsAndMarkDms(c)));
+        .where((update) => update.state.content['membership'] == 'leave')
+        .listen((update) {
+          if (update.state.stateKey == c.userID) {
+            unawaited(_refreshContactsAndMarkDms(c));
+          } else {
+            unawaited(
+              _leaveAbandonedContactRoom(
+                c,
+                update.roomId,
+                update.state.stateKey,
+              ),
+            );
+          }
+        });
     _contactAcceptedSubs[name] ??= c.onTimelineEvent.stream
         .where((e) => e.type == 'com.trustwork.contact_accepted')
         .listen((_) => unawaited(_refreshContactsAndMarkDms(c)));
@@ -592,6 +600,38 @@ class MatrixState extends State<Matrix> with WidgetsBindingObserver {
       if (contactsCache.isContact(otherId)) {
         unawaited(room.addToDirectChat(otherId));
       }
+    }
+  }
+
+  /// When the other party of a 1:1 room leaves and is no longer a Trustwork
+  /// contact (they unfriended us), leave the abandoned room too so it doesn't
+  /// linger as a writable chat. Rooms that still have other members (e.g. the
+  /// request-delivery room's service user) and Trustwork group rooms are
+  /// never touched — the backend is responsible for those.
+  Future<void> _leaveAbandonedContactRoom(
+    Client c,
+    String roomId,
+    String? leaverId,
+  ) async {
+    if (leaverId == null || leaverId == c.userID) return;
+    final room = c.getRoomById(roomId);
+    if (room == null || room.isSpace) return;
+    if (room.membership != Membership.join) return;
+    if (GroupsService.instance.findByMatrixRoomId(room.id) != null) return;
+    final others =
+        room.getParticipants().where((u) => u.id != c.userID).toList();
+    if (others.isNotEmpty) return;
+    try {
+      await contactsCache.refresh(store);
+    } catch (_) {
+      return; // Can't verify the contact status — don't leave on a guess.
+    }
+    if (contactsCache.isContact(leaverId)) return;
+    try {
+      await room.leave();
+      await room.forget();
+    } catch (e) {
+      Logs().w('[CONTACTS] failed to leave abandoned room ${room.id}: $e');
     }
   }
 

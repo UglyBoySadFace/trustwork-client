@@ -5,6 +5,7 @@ import 'package:built_collection/built_collection.dart';
 import 'package:dio/dio.dart';
 
 import 'package:fluffychat/l10n/l10n.dart';
+import 'package:fluffychat/utils/contact_room_cleanup.dart';
 import 'package:fluffychat/utils/trustwork_api_service.dart';
 import 'package:fluffychat/widgets/matrix.dart';
 
@@ -77,15 +78,8 @@ class _ContactsTabState extends State<ContactsTab> {
     setState(() => _removingIds.add(mxid));
     try {
       final client = Matrix.of(context).client;
-      final dmRoom = client.rooms.where((r) {
-        final ids = r.getParticipants().map((m) => m.id).toSet();
-        return r.isDirectChat &&
-            ids.contains(mxid) &&
-            ids.contains(client.userID) &&
-            ids.length == 2;
-      }).firstOrNull;
-      if (dmRoom != null) await dmRoom.removeFromDirectChat();
       await TrustworkApiService.instance.removeContact(mxid);
+      await leaveSharedContactRooms(client, mxid);
       if (!mounted) return;
       await Matrix.of(context)
           .contactsCache

@@ -9,6 +9,7 @@ import 'package:fluffychat/l10n/l10n.dart';
 import 'package:fluffychat/pages/chat_details/chat_details.dart';
 import 'package:fluffychat/pages/chat_details/participant_list_item.dart';
 import 'package:fluffychat/utils/contact_request_room_title.dart';
+import 'package:fluffychat/utils/contact_room_cleanup.dart';
 import 'package:fluffychat/utils/fluffy_share.dart';
 import 'package:fluffychat/utils/groups/groups_service.dart';
 import 'package:fluffychat/utils/trustwork_api_service.dart';
@@ -384,9 +385,10 @@ class ChatDetailsView extends StatelessWidget {
                               if (confirmed != true) return;
                               try {
                                 final mxid = room.directChatMatrixID!;
-                                await room.removeFromDirectChat();
+                                final client = Matrix.of(context).client;
                                 await TrustworkApiService.instance
                                     .removeContact(mxid);
+                                await leaveSharedContactRooms(client, mxid);
                                 if (!context.mounted) return;
                                 await Matrix.of(context)
                                     .contactsCache
