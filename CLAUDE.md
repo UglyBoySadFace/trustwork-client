@@ -134,7 +134,7 @@ Also, the tool rewrites every file in `lib/` and `test/` regardless of which pat
 
 **When handing off** (end of the session's requested work): summarize what changed per plan, and give a short manual-verification checklist — what to skim, what to spot-check, what behaviors to try. Be specific; "review the code" is not useful.
 
-**Branching:** ask the user (or follow their instruction) on whether a new `plans/<feature>/` directory gets its own branch — features usually get one, but the user may choose to continue on an existing branch.
+**Branching:** all work happens directly on `main` — do not create feature branches or open PRs. (Background sessions still isolate in a worktree, but merge the result straight back into `main`.)
 
 ## Implementation Plans
 
