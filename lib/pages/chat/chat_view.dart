@@ -17,9 +17,7 @@ import 'package:fluffychat/pages/chat/pinned_events.dart';
 import 'package:fluffychat/pages/chat/reply_display.dart';
 import 'package:fluffychat/utils/account_config.dart';
 import 'package:fluffychat/utils/contacts/contacts_cache.dart';
-import 'package:fluffychat/utils/localized_exception_extension.dart';
 import 'package:fluffychat/widgets/chat_settings_popup_menu.dart';
-import 'package:fluffychat/widgets/future_loading_dialog.dart';
 import 'package:fluffychat/widgets/matrix.dart';
 import 'package:fluffychat/widgets/mxc_image.dart';
 import 'package:fluffychat/widgets/unread_rooms_badge.dart';
@@ -165,13 +163,9 @@ class ChatView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    if (controller.room.membership == Membership.invite) {
-      showFutureLoadingDialog(
-        context: context,
-        future: () => controller.room.join(),
-        exceptionContext: ExceptionContext.joinRoom,
-      );
-    }
+    // Matrix-level invites are joined (or redirected to the group-invite
+    // prompt) by ChatController._checkGroupInvite — never auto-join here,
+    // the room may be a pending Trustwork group invite.
     final bottomSheetPadding = FluffyThemes.isColumnMode(context) ? 16.0 : 8.0;
     final scrollUpBannerEventId = controller.scrollUpBannerEventId;
 

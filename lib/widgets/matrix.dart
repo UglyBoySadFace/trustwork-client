@@ -194,6 +194,8 @@ class MatrixState extends State<Matrix> with WidgetsBindingObserver {
       <String, StreamSubscription<IncomingDataRequest>>{};
   final _roomLeaveSubs = <String, StreamSubscription>{};
   final _contactAcceptedSubs = <String, StreamSubscription>{};
+  final _groupMemberJoinSubs = <String, StreamSubscription>{};
+  Timer? _groupJoinRefreshDebounce;
   final contactsCache = ContactsCache();
   final incomingContactRequestCount = ValueNotifier<int>(0);
   /// Display name sourced from the Trustwork middleware (BankID). Populated on
@@ -381,6 +383,19 @@ class MatrixState extends State<Matrix> with WidgetsBindingObserver {
     _contactAcceptedSubs[name] ??= c.onTimelineEvent.stream
         .where((e) => e.type == 'com.trustwork.contact_accepted')
         .listen((_) => unawaited(_refreshContactsAndMarkDms(c)));
+    // Someone new joining a Trustwork group means the middleware just
+    // created a contact between them and every member — refresh so their
+    // real name replaces the raw Matrix ID without waiting for app resume.
+    _groupMemberJoinSubs[name] ??= c.onRoomState.stream
+        .where(
+          (update) =>
+              update.state.content['membership'] == 'join' &&
+              update.state.stateKey != c.userID &&
+              !contactsCache.isContact(update.state.stateKey ?? '') &&
+              GroupsService.instance.findByMatrixRoomId(update.roomId) !=
+                  null,
+        )
+        .listen((_) => _scheduleGroupContactsRefresh(c));
     if (PlatformInfos.isWeb || PlatformInfos.isLinux) {
       c.onSync.stream.first.then((s) {
         html.Notification.requestPermission();
@@ -406,6 +421,8 @@ class MatrixState extends State<Matrix> with WidgetsBindingObserver {
     _roomLeaveSubs.remove(name);
     _contactAcceptedSubs[name]?.cancel();
     _contactAcceptedSubs.remove(name);
+    _groupMemberJoinSubs[name]?.cancel();
+    _groupMemberJoinSubs.remove(name);
     dataSharingServices[name]?.dispose();
     dataSharingServices.remove(name);
   }
@@ -540,6 +557,25 @@ class MatrixState extends State<Matrix> with WidgetsBindingObserver {
     _markContactRoomsAsDm(c);
   }
 
+  /// Refreshes the groups list and the contacts cache, awaiting both, so
+  /// callers that just changed contact state server-side (e.g. joining a
+  /// group creates contacts with every member) can show fresh names
+  /// immediately.
+  Future<void> refreshContactsAndGroups() async {
+    await GroupsService.instance.refresh().catchError((_) {});
+    await contactsCache.refresh(store);
+    _markContactRoomsAsDm(client);
+  }
+
+  /// Debounced contacts refresh for group-member joins: entering a group
+  /// replays one join state per member, so coalesce them into one request.
+  void _scheduleGroupContactsRefresh(Client c) {
+    _groupJoinRefreshDebounce?.cancel();
+    _groupJoinRefreshDebounce = Timer(const Duration(seconds: 2), () {
+      unawaited(_refreshContactsAndMarkDms(c));
+    });
+  }
+
   /// After refreshing the contacts cache, mark any 1:1 rooms with accepted
   /// contacts as DM rooms on this client too (handles the requester's side
   /// not calling addToDirectChat at acceptance time).
@@ -607,6 +643,11 @@ class MatrixState extends State<Matrix> with WidgetsBindingObserver {
       s.dispose();
     }
     dataSharingServices.clear();
+    _groupJoinRefreshDebounce?.cancel();
+    for (final s in _groupMemberJoinSubs.values) {
+      s.cancel();
+    }
+    _groupMemberJoinSubs.clear();
     incomingContactRequestCount.dispose();
     client.httpClient.close();
 

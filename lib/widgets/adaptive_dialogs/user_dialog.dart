@@ -328,8 +328,22 @@ class _SendRequestActionState extends State<_SendRequestAction> {
     } on DioException catch (e) {
       if (!mounted) return;
       if (e.response?.statusCode == 409) {
+        // Already contacts or a request is already pending — the local cache
+        // may be stale (e.g. contacts created by a group join). Refresh it
+        // and tell the user instead of failing silently.
+        final matrix = Matrix.of(context);
+        await matrix.refreshContactsAndGroups().catchError((_) {});
+        if (!mounted) return;
         Navigator.of(context).pop();
-        router.go('/rooms/contacts/requests');
+        if (matrix.contactsCache.isContact(widget.userId)) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('You are already connected with this user.'),
+            ),
+          );
+        } else {
+          router.go('/rooms/contacts/requests');
+        }
         return;
       }
       Navigator.of(context).pop();
@@ -449,8 +463,22 @@ class _CallToConnectActionState extends State<_CallToConnectAction> {
     } on DioException catch (e) {
       if (!mounted) return;
       if (e.response?.statusCode == 409) {
+        // Already contacts or a request is already pending — the local cache
+        // may be stale (e.g. contacts created by a group join). Refresh it
+        // and tell the user instead of failing silently.
+        final matrix = Matrix.of(context);
+        await matrix.refreshContactsAndGroups().catchError((_) {});
+        if (!mounted) return;
         Navigator.of(context).pop();
-        router.go('/rooms/contacts/requests');
+        if (matrix.contactsCache.isContact(widget.userId)) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('You are already connected with this user.'),
+            ),
+          );
+        } else {
+          router.go('/rooms/contacts/requests');
+        }
         return;
       }
       Navigator.of(context).pop();

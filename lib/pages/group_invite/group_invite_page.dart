@@ -9,6 +9,7 @@ import 'package:go_router/go_router.dart';
 import 'package:fluffychat/l10n/l10n.dart';
 import 'package:fluffychat/utils/groups/groups_service.dart';
 import 'package:fluffychat/utils/trustwork_api_service.dart';
+import 'package:fluffychat/widgets/matrix.dart';
 
 /// Full-page prompt shown when the user opens a Matrix room that is a
 /// pending Trustwork group invite. Shows who invited them (and who suggested
@@ -62,13 +63,16 @@ class _GroupInvitePageState extends State<GroupInvitePage> {
       final detail = await TrustworkApiService.instance.joinGroup(
         widget.groupId,
       );
-      unawaited(GroupsService.instance.refresh().catchError((_) {}));
+      // Joining created contacts with every member server-side — refresh
+      // groups AND contacts before entering the room so real names (instead
+      // of raw Matrix IDs) show up immediately.
+      await _refreshCaches();
       if (!mounted) return;
       _goToRoom(detail.matrixRoomId);
     } on DioException catch (e) {
       if (e.response?.statusCode == 409) {
         // Already joined — treat as success.
-        await GroupsService.instance.refresh().catchError((_) {});
+        await _refreshCaches();
         if (!mounted) return;
         _goToRoom(
           GroupsService.instance.findById(widget.groupId)?.matrixRoomId,
@@ -80,6 +84,20 @@ class _GroupInvitePageState extends State<GroupInvitePage> {
         busy = false;
         error = TrustworkApiService.friendlyError(e);
       });
+    }
+  }
+
+  /// Best-effort refresh of groups + contacts (names of the new contacts
+  /// created by the join). Falls back to the groups list alone when no
+  /// Matrix ancestor exists (widget tests).
+  Future<void> _refreshCaches() async {
+    final matrix = mounted
+        ? context.findAncestorStateOfType<MatrixState>()
+        : null;
+    if (matrix != null) {
+      await matrix.refreshContactsAndGroups().catchError((_) {});
+    } else {
+      await GroupsService.instance.refresh().catchError((_) {});
     }
   }
 

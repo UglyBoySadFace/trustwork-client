@@ -385,7 +385,7 @@ class ChatController extends State<ChatPageWithRoom>
 
   @override
   void initState() {
-    _checkGroupInvite();
+    unawaited(_checkGroupInvite());
     inputFocus = FocusNode(onKeyEvent: _customEnterKeyHandling);
 
     scrollController.addListener(_updateScrollController);
@@ -411,14 +411,44 @@ class ChatController extends State<ChatPageWithRoom>
   }
 
   /// If this room is a pending Trustwork group invite, show the join/decline
-  /// prompt instead of the chat.
-  void _checkGroupInvite() {
-    final group = GroupsService.instance.findByMatrixRoomId(widget.room.id);
-    if (group == null || group.myStatus != 'invited') return;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      context.go('/rooms/group-invite/${group.id}');
-    });
+  /// prompt instead of the chat. Only when the room is provably not a pending
+  /// group invite may a Matrix-level invite be auto-joined — the groups cache
+  /// can be stale when an invite arrives mid-session, so refresh it before
+  /// deciding.
+  Future<void> _checkGroupInvite() async {
+    var group = GroupsService.instance.findByMatrixRoomId(widget.room.id);
+    if (widget.room.membership == Membership.invite &&
+        (group == null || group.myStatus != 'invited')) {
+      try {
+        await GroupsService.instance.refresh();
+      } catch (_) {
+        // Can't tell whether this is a group invite — don't auto-join on a
+        // guess. Reopening the room retries.
+        return;
+      }
+      group = GroupsService.instance.findByMatrixRoomId(widget.room.id);
+    }
+    if (!mounted) return;
+    if (group != null && group.myStatus == 'invited') {
+      final groupId = group.id;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        context.go('/rooms/group-invite/$groupId');
+      });
+      return;
+    }
+    // Not a pending Trustwork group invite (e.g. a contact-request room):
+    // keep the original behavior of joining Matrix invites on open.
+    if (widget.room.membership == Membership.invite) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        showFutureLoadingDialog(
+          context: context,
+          future: widget.room.join,
+          exceptionContext: ExceptionContext.joinRoom,
+        );
+      });
+    }
   }
 
   final Set<String> expandedEventIds = {};
