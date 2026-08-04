@@ -8,6 +8,7 @@ import 'package:matrix/matrix.dart';
 
 import 'package:fluffychat/config/themes.dart';
 import 'package:fluffychat/l10n/l10n.dart';
+import 'package:fluffychat/utils/call_to_connect.dart';
 import 'package:fluffychat/utils/date_time_extension.dart';
 import 'package:fluffychat/utils/trustwork_api_service.dart';
 import 'package:fluffychat/widgets/adaptive_dialogs/adaptive_dialog_action.dart';
@@ -417,49 +418,27 @@ class _CallToConnectActionState extends State<_CallToConnectAction> {
     final router = GoRouter.of(context);
     setState(() => _calling = true);
     try {
-      final matrixClient = Matrix.of(context).client;
-      final outgoing = await TrustworkApiService.instance.createContactRequest(
-        widget.userId,
-        initialMessage: (message == null || message.isEmpty) ? null : message,
+      final outcome = await startCallToConnect(
+        matrix: Matrix.of(context),
+        mxid: widget.userId,
+        initialMessage: message,
       );
       if (!mounted) return;
-      // The backend creates a contact-request room where the caller is not a
-      // member. Use a 1:1 DM room for the call instead.
-      final callRoomId = await matrixClient.startDirectChat(widget.userId);
-      if (!mounted) return;
-      var room = matrixClient.getRoomById(callRoomId);
-      if (room == null) {
-        await for (final _ in matrixClient.onSync.stream.timeout(
-          const Duration(seconds: 10),
-          onTimeout: (sink) => sink.close(),
-        )) {
-          room = matrixClient.getRoomById(callRoomId);
-          if (room != null) break;
-        }
+      switch (outcome) {
+        case CallToConnectStarted(:final roomId):
+          Navigator.of(context).pop();
+          router.go('/rooms/$roomId');
+        case CallToConnectRoomUnavailable():
+          Navigator.of(context).pop();
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Room not available — request sent.')),
+          );
+        case CallToConnectBusy():
+          Navigator.of(context).pop();
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('You are already in a call.')),
+          );
       }
-      if (!mounted) return;
-      if (room == null) {
-        Navigator.of(context).pop();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Room not available — request sent.')),
-        );
-        return;
-      }
-      // Stamp the contact request ID so the callee-side auto-accept can find it.
-      await room.sendEvent(
-        {'request_id': outgoing.id},
-        type: 'com.trustwork.contact_request',
-      );
-      if (!mounted) return;
-      final voipPlugin = Matrix.of(context).voipPlugin;
-      if (voipPlugin == null) {
-        Navigator.of(context).pop();
-        return;
-      }
-      await voipPlugin.voip.inviteToCall(room, CallType.kVoice);
-      if (!mounted) return;
-      Navigator.of(context).pop();
-      router.go('/rooms/$callRoomId');
     } on DioException catch (e) {
       if (!mounted) return;
       if (e.response?.statusCode == 409) {

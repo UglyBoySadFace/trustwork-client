@@ -12,6 +12,7 @@ import 'package:fluffychat/l10n/l10n.dart';
 import 'package:fluffychat/pages/new_private_chat/new_private_chat_view.dart';
 import 'package:fluffychat/pages/new_private_chat/qr_scanner_modal.dart';
 import 'package:fluffychat/utils/adaptive_bottom_sheet.dart';
+import 'package:fluffychat/utils/call_to_connect.dart';
 import 'package:fluffychat/utils/fluffy_share.dart';
 import 'package:fluffychat/utils/platform_infos.dart';
 import 'package:fluffychat/utils/restricted_user_search.dart';
@@ -161,46 +162,28 @@ class NewPrivateChatController extends State<NewPrivateChat> {
       sendRequestStatus = null;
     });
     try {
-      final matrixClient = Matrix.of(context).client;
-      final outgoing = await TrustworkApiService.instance.createContactRequest(
-        mxid,
-        initialMessage: msg.isEmpty ? null : msg,
+      final outcome = await startCallToConnect(
+        matrix: Matrix.of(context),
+        mxid: mxid,
+        initialMessage: msg,
       );
       if (!mounted) return;
-      // The backend creates a contact-request room where the caller is not a
-      // member. Use a 1:1 DM room for the call instead.
-      final callRoomId = await matrixClient.startDirectChat(mxid);
-      if (!mounted) return;
-      var room = matrixClient.getRoomById(callRoomId);
-      if (room == null) {
-        await for (final _ in matrixClient.onSync.stream.timeout(
-          const Duration(seconds: 10),
-          onTimeout: (sink) => sink.close(),
-        )) {
-          room = matrixClient.getRoomById(callRoomId);
-          if (room != null) break;
-        }
+      switch (outcome) {
+        case CallToConnectStarted(:final roomId):
+          setState(() => isSendingRequest = false);
+          context.go('/rooms/$roomId');
+        case CallToConnectRoomUnavailable():
+          setState(() {
+            sendRequestError =
+                'Room not available — request sent, try calling from the chat.';
+            isSendingRequest = false;
+          });
+        case CallToConnectBusy():
+          setState(() {
+            sendRequestError = 'You are already in a call.';
+            isSendingRequest = false;
+          });
       }
-      if (!mounted) return;
-      if (room == null) {
-        setState(() {
-          sendRequestError = 'Room not available — request sent, try calling from the chat.';
-          isSendingRequest = false;
-        });
-        return;
-      }
-      // Stamp the contact request ID so the callee-side auto-accept can find it.
-      await room.sendEvent(
-        {'request_id': outgoing.id},
-        type: 'com.trustwork.contact_request',
-      );
-      if (!mounted) return;
-      setState(() => isSendingRequest = false);
-      final voipPlugin = Matrix.of(context).voipPlugin;
-      if (voipPlugin == null) return;
-      await voipPlugin.voip.inviteToCall(room, CallType.kVoice);
-      if (!mounted) return;
-      context.go('/rooms/$callRoomId');
     } on DioException catch (e) {
       if (!mounted) return;
       if (e.response?.statusCode == 409) {
