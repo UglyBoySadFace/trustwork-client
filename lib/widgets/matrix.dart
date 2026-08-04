@@ -388,9 +388,19 @@ class MatrixState extends State<Matrix> with WidgetsBindingObserver {
             );
           }
         });
+    // Caller-side unlock for call-to-connect: the callee stamps a
+    // com.trustwork.contact_accepted event into the (encrypted) DM room. Match
+    // it to refresh contacts and unlock the caller's UI. onTimelineEvent emits
+    // raw events, so an event whose Megolm key arrived late is still typed
+    // m.room.encrypted — decrypt those before matching, mirroring the callee
+    // scan in VoipPlugin._findContactRequestId and contact_room_cleanup.
     _contactAcceptedSubs[name] ??= c.onTimelineEvent.stream
-        .where((e) => e.type == 'com.trustwork.contact_accepted')
-        .listen((_) => unawaited(_refreshContactsAndMarkDms(c)));
+        .where(
+          (e) =>
+              e.type == 'com.trustwork.contact_accepted' ||
+              e.type == EventTypes.Encrypted,
+        )
+        .listen((e) => unawaited(_handleMaybeContactAccepted(c, e)));
     // Someone new joining a Trustwork group means the middleware just
     // created a contact between them and every member — refresh so their
     // real name replaces the raw Matrix ID without waiting for app resume.
@@ -555,6 +565,26 @@ class MatrixState extends State<Matrix> with WidgetsBindingObserver {
   void createVoipPlugin() {
     voipPlugin?.dispose();
     voipPlugin = VoipPlugin(this);
+  }
+
+  /// Handles a timeline event that may be a com.trustwork.contact_accepted
+  /// unlock signal. Encrypted events get a decryption retry before matching so
+  /// a late-arriving Megolm key doesn't leave the caller's UI silently locked.
+  Future<void> _handleMaybeContactAccepted(Client c, Event event) async {
+    var e = event;
+    if (e.type == EventTypes.Encrypted) {
+      try {
+        e = await c.encryption?.decryptRoomEvent(e, store: true) ?? e;
+      } catch (err) {
+        Logs().w(
+          '[CALL-CONNECT] decrypt of timeline event for contact_accepted '
+          'failed: $err',
+        );
+        return;
+      }
+      if (e.type != 'com.trustwork.contact_accepted') return;
+    }
+    unawaited(_refreshContactsAndMarkDms(c));
   }
 
   Future<void> _refreshContactsAndMarkDms(Client c) async {
