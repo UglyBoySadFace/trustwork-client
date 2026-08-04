@@ -305,6 +305,11 @@ class ChatListItem extends StatelessWidget {
                             key: ValueKey(
                               '${lastEvent?.eventId}_${lastEvent?.type}_${lastEvent?.redacted}',
                             ),
+                            // Sender name prefix is added manually below via
+                            // contactsCache.label instead of the SDK's
+                            // withSenderNamePrefix, which falls back to a
+                            // formatted MXID localpart (Event.calcDisplayname)
+                            // rather than the Trustwork contact's real name.
                             future: needLastEventSender
                                 ? lastEvent.calcLocalizedBody(
                                     MatrixLocals(L10n.of(context)),
@@ -312,10 +317,6 @@ class ChatListItem extends StatelessWidget {
                                     hideEdit: true,
                                     plaintextBody: true,
                                     removeMarkdown: true,
-                                    withSenderNamePrefix:
-                                        (!isDirectChat ||
-                                        directChatMatrixId !=
-                                            room.lastEvent?.senderId),
                                   )
                                 : null,
                             initialData: lastEvent?.calcLocalizedBodyFallback(
@@ -324,13 +325,10 @@ class ChatListItem extends StatelessWidget {
                               hideEdit: true,
                               plaintextBody: true,
                               removeMarkdown: true,
-                              withSenderNamePrefix:
-                                  (!isDirectChat ||
-                                  directChatMatrixId !=
-                                      room.lastEvent?.senderId),
                             ),
-                            builder: (context, snapshot) => Text(
-                              room.membership == Membership.invite
+                            builder: (context, snapshot) {
+                              final l10n = L10n.of(context);
+                              var body = room.membership == Membership.invite
                                   ? room
                                             .getState(
                                               EventTypes.RoomMember,
@@ -339,19 +337,42 @@ class ChatListItem extends StatelessWidget {
                                             ?.content
                                             .tryGet<String>('reason') ??
                                         (isDirectChat
-                                            ? L10n.of(context).newChatRequest
-                                            : L10n.of(context).inviteGroupChat)
-                                  : snapshot.data ??
-                                        L10n.of(context).noMessagesYet,
-                              softWrap: false,
-                              maxLines: room.notificationCount >= 1 ? 2 : 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                decoration: room.lastEvent?.redacted == true
-                                    ? TextDecoration.lineThrough
-                                    : null,
-                              ),
-                            ),
+                                            ? l10n.newChatRequest
+                                            : l10n.inviteGroupChat)
+                                  : snapshot.data ?? l10n.noMessagesYet;
+                              final needsSenderPrefix =
+                                  !isDirectChat ||
+                                  directChatMatrixId != lastEvent?.senderId;
+                              if (room.membership != Membership.invite &&
+                                  needsSenderPrefix &&
+                                  lastEvent != null &&
+                                  lastEvent.type == EventTypes.Message &&
+                                  Event.textOnlyMessageTypes.contains(
+                                    lastEvent.messageType,
+                                  )) {
+                                final senderName =
+                                    lastEvent.senderId == room.client.userID
+                                    ? l10n.you
+                                    : Matrix.of(
+                                        context,
+                                      ).contactsCache.label(
+                                        lastEvent.senderId,
+                                      );
+                                body = '$senderName: $body';
+                              }
+                              return Text(
+                                body,
+                                softWrap: false,
+                                maxLines: room.notificationCount >= 1 ? 2 : 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  decoration:
+                                      room.lastEvent?.redacted == true
+                                      ? TextDecoration.lineThrough
+                                      : null,
+                                ),
+                              );
+                            },
                           ),
                   ),
                   const SizedBox(width: 8),

@@ -6,6 +6,7 @@ import 'package:matrix/matrix.dart';
 
 import 'package:fluffychat/config/setting_keys.dart';
 import 'package:fluffychat/l10n/l10n.dart';
+import 'package:fluffychat/widgets/matrix.dart';
 
 class CuteContent extends StatefulWidget {
   final Event event;
@@ -32,7 +33,7 @@ class _CuteContentState extends State<CuteContent> {
     return FutureBuilder<User?>(
       future: widget.event.fetchSenderUser(),
       builder: (context, snapshot) {
-        final label = generateLabel(snapshot.data);
+        final label = generateLabel(context);
 
         return GestureDetector(
           onTap: addOverlay,
@@ -66,26 +67,17 @@ class _CuteContentState extends State<CuteContent> {
     Overlay.of(context).insert(overlay);
   }
 
-  String? generateLabel(User? user) {
+  String? generateLabel(BuildContext context) {
+    final senderName = Matrix.of(
+      context,
+    ).contactsCache.label(widget.event.senderId);
     switch (widget.event.content['cute_type']) {
       case 'googly_eyes':
-        return L10n.of(context).googlyEyesContent(
-          user?.displayName ??
-              widget.event.senderFromMemoryOrFallback.displayName ??
-              '',
-        );
+        return L10n.of(context).googlyEyesContent(senderName);
       case 'cuddle':
-        return L10n.of(context).cuddleContent(
-          user?.displayName ??
-              widget.event.senderFromMemoryOrFallback.displayName ??
-              '',
-        );
+        return L10n.of(context).cuddleContent(senderName);
       case 'hug':
-        return L10n.of(context).hugContent(
-          user?.displayName ??
-              widget.event.senderFromMemoryOrFallback.displayName ??
-              '',
-        );
+        return L10n.of(context).hugContent(senderName);
     }
     return null;
   }

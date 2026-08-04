@@ -893,10 +893,40 @@ class Message extends StatelessWidget {
                               ),
                               onPressed: () => enterThread(event.eventId),
                               icon: const Icon(Icons.message),
-                              label: Text(
-                                '${L10n.of(context).countReplies(threadChildren.length)} | ${threadChildren.first.calcLocalizedBodyFallback(MatrixLocals(L10n.of(context)), withSenderNamePrefix: true)}',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
+                              label: Builder(
+                                builder: (context) {
+                                  final l10n = L10n.of(context);
+                                  final firstChild = threadChildren.first;
+                                  var body = firstChild
+                                      .calcLocalizedBodyFallback(
+                                        MatrixLocals(l10n),
+                                      );
+                                  // Sender prefix added manually via
+                                  // contactsCache.label instead of the SDK's
+                                  // withSenderNamePrefix, which falls back to
+                                  // a formatted MXID rather than the
+                                  // Trustwork contact's real name.
+                                  if (firstChild.type == EventTypes.Message &&
+                                      Event.textOnlyMessageTypes.contains(
+                                        firstChild.messageType,
+                                      )) {
+                                    final senderName =
+                                        firstChild.senderId ==
+                                            firstChild.room.client.userID
+                                        ? l10n.you
+                                        : Matrix.of(
+                                            context,
+                                          ).contactsCache.label(
+                                            firstChild.senderId,
+                                          );
+                                    body = '$senderName: $body';
+                                  }
+                                  return Text(
+                                    '${l10n.countReplies(threadChildren.length)} | $body',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  );
+                                },
                               ),
                             ),
                           ),
