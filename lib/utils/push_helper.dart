@@ -100,6 +100,33 @@ Future<void> pushHelper(
   }
 }
 
+/// Builds the callkit incoming-call parameters. Shared by the push fast-path
+/// and the fetched-event fallback so the two ringing UIs stay identical.
+fci.CallKitParams _trustworkCallKitParams({
+  required String callId,
+  required String callerName,
+}) => fci.CallKitParams(
+  id: callId,
+  nameCaller: callerName,
+  appName: 'Trustwork',
+  type: 0,
+  duration: 60000,
+  android: const fci.AndroidParams(
+    isCustomNotification: false,
+    isShowLogo: false,
+    // Bundled at res/raw/ringtone_default.ogg. Avoids the SecurityException
+    // path that fires when the user has set a private file as their
+    // system default ringtone (the package can't read it).
+    ringtonePath: 'ringtone_default',
+    backgroundColor: '#0a1931',
+  ),
+  ios: const fci.IOSParams(
+    handleType: 'generic',
+    supportsVideo: true,
+    ringtonePath: 'system_ringtone_default',
+  ),
+);
+
 Future<void> _showCallkitIncomingFromPush(PushNotification notification) async {
   final callId =
       (notification.content?['call_id'] as String?) ??
@@ -108,27 +135,7 @@ Future<void> _showCallkitIncomingFromPush(PushNotification notification) async {
   final callerName =
       notification.senderDisplayName ?? notification.sender ?? 'Unknown';
   await FlutterCallkitIncoming.showCallkitIncoming(
-    fci.CallKitParams(
-      id: callId,
-      nameCaller: callerName,
-      appName: 'Trustwork',
-      type: 0,
-      duration: 60000,
-      android: const fci.AndroidParams(
-        isCustomNotification: false,
-        isShowLogo: false,
-        // Bundled at res/raw/ringtone_default.ogg. Avoids the SecurityException
-        // path that fires when the user has set a private file as their
-        // system default ringtone (the package can't read it).
-        ringtonePath: 'ringtone_default',
-        backgroundColor: '#0a1931',
-      ),
-      ios: const fci.IOSParams(
-        handleType: 'generic',
-        supportsVideo: true,
-        ringtonePath: 'system_ringtone_default',
-      ),
-    ),
+    _trustworkCallKitParams(callId: callId, callerName: callerName),
   );
   unawaited(RingerVibration.start());
 }
@@ -218,24 +225,7 @@ Future<void> _tryPushHelper(
     final callId = (event.content['call_id'] as String?) ?? event.eventId;
     final callerName = contactsCache.label(event.senderId);
     await FlutterCallkitIncoming.showCallkitIncoming(
-      fci.CallKitParams(
-        id: callId,
-        nameCaller: callerName,
-        appName: 'Trustwork',
-        type: 0,
-        duration: 60000,
-        android: const fci.AndroidParams(
-          isCustomNotification: false,
-          isShowLogo: false,
-          ringtonePath: 'ringtone_default',
-          backgroundColor: '#0a1931',
-        ),
-        ios: const fci.IOSParams(
-          handleType: 'generic',
-          supportsVideo: true,
-          ringtonePath: 'system_ringtone_default',
-        ),
-      ),
+      _trustworkCallKitParams(callId: callId, callerName: callerName),
     );
     unawaited(RingerVibration.start());
     return;
