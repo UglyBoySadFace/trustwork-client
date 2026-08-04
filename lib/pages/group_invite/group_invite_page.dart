@@ -90,14 +90,39 @@ class _GroupInvitePageState extends State<GroupInvitePage> {
   /// Best-effort refresh of groups + contacts (names of the new contacts
   /// created by the join). Falls back to the groups list alone when no
   /// Matrix ancestor exists (widget tests).
+  ///
+  /// `POST /groups/:id/join` can return before the middleware finishes
+  /// writing every pairwise contact, so the immediately-following
+  /// `GET /contacts` can miss some members. Retry with a short backoff until
+  /// every member of the joined room resolves as a contact, so names don't
+  /// render as raw Matrix IDs while that eventual-consistency window closes.
   Future<void> _refreshCaches() async {
     final matrix = mounted
         ? context.findAncestorStateOfType<MatrixState>()
         : null;
-    if (matrix != null) {
-      await matrix.refreshContactsAndGroups().catchError((_) {});
-    } else {
+    if (matrix == null) {
       await GroupsService.instance.refresh().catchError((_) {});
+      return;
+    }
+    await matrix.refreshContactsAndGroups().catchError((_) {});
+    final roomId =
+        GroupsService.instance.findById(widget.groupId)?.matrixRoomId;
+    final room = roomId != null ? matrix.client.getRoomById(roomId) : null;
+    if (room == null) return;
+    final memberIds = room
+        .getParticipants()
+        .map((m) => m.id)
+        .where((id) => id != matrix.client.userID)
+        .toList();
+    for (final delay in const [
+      Duration(seconds: 1),
+      Duration(seconds: 2),
+      Duration(seconds: 4),
+    ]) {
+      if (memberIds.every(matrix.contactsCache.isContact)) return;
+      await Future.delayed(delay);
+      if (!mounted) return;
+      await matrix.contactsCache.refresh(matrix.store).catchError((_) {});
     }
   }
 

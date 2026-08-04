@@ -623,6 +623,13 @@ class MatrixState extends State<Matrix> with WidgetsBindingObserver {
     _markContactRoomsAsDm(client);
   }
 
+  /// Debounced contacts+groups refresh for entering a Trustwork group room.
+  /// Members already present when you join arrive as backfilled historical
+  /// state rather than fresh join events, so `_groupMemberJoinSubs` may never
+  /// fire for them — this is the second, navigation-time safety net (the
+  /// first being the post-join retry in `GroupInvitePage._refreshCaches`).
+  void scheduleGroupRoomEntryRefresh() => _scheduleGroupContactsRefresh(client);
+
   /// Debounced contacts refresh for group-member joins: entering a group
   /// replays one join state per member, so coalesce them into one request.
   void _scheduleGroupContactsRefresh(Client c) {

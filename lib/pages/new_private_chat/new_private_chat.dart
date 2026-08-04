@@ -107,7 +107,7 @@ class NewPrivateChatController extends State<NewPrivateChat> {
     } on DioException catch (e) {
       if (!mounted) return;
       if (e.response?.statusCode == 409) {
-        context.go('/rooms/contacts/requests');
+        await _handleAlreadyConnected(mxid);
         return;
       }
       setState(() {
@@ -120,6 +120,26 @@ class NewPrivateChatController extends State<NewPrivateChat> {
         sendRequestError = e.toString();
         isSendingRequest = false;
       });
+    }
+  }
+
+  // Already contacts or a request is already pending — the local cache may
+  // be stale (e.g. contacts created by a group join). Refresh it and tell
+  // the user instead of failing silently. Mirrors
+  // UserDialog's _SendRequestAction / _CallToConnectAction handling.
+  Future<void> _handleAlreadyConnected(String mxid) async {
+    final matrix = Matrix.of(context);
+    await matrix.refreshContactsAndGroups().catchError((_) {});
+    if (!mounted) return;
+    if (matrix.contactsCache.isContact(mxid)) {
+      setState(() => isSendingRequest = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('You are already connected with this user.'),
+        ),
+      );
+    } else {
+      context.go('/rooms/contacts/requests');
     }
   }
 
@@ -187,7 +207,7 @@ class NewPrivateChatController extends State<NewPrivateChat> {
     } on DioException catch (e) {
       if (!mounted) return;
       if (e.response?.statusCode == 409) {
-        context.go('/rooms/contacts/requests');
+        await _handleAlreadyConnected(mxid);
         return;
       }
       setState(() {

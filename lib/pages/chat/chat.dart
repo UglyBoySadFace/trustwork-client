@@ -453,6 +453,13 @@ class ChatController extends State<ChatPageWithRoom>
       });
       return;
     }
+    if (group != null) {
+      // An already-accepted Trustwork group room: entering it is a second
+      // safety net for members who joined before us and whose contact
+      // wasn't resolved yet (backfilled historical join state doesn't
+      // reliably trigger matrix.dart's _groupMemberJoinSubs listener).
+      Matrix.of(context).scheduleGroupRoomEntryRefresh();
+    }
     // Not a pending Trustwork group invite (e.g. a contact-request room):
     // keep the original behavior of joining Matrix invites on open.
     if (widget.room.membership == Membership.invite) {
