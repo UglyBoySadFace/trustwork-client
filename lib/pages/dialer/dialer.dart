@@ -818,6 +818,17 @@ class MyCallingPage extends State<Calling> {
     );
 
     final canRequestInfo = call.room.directChatMatrixID != null;
+    // Decline-with-message is only offered when the caller is already a
+    // contact. On a call-to-connect delivery call the caller is a stranger and
+    // the room is still locked behind an unaccepted contact request — sending
+    // a free-text decline into it would bypass the accept gate and drop a
+    // message the two parties aren't yet connected to exchange. Those callers
+    // get a plain decline instead. (A non-contact can only reach the callee via
+    // call-to-connect, so "not a contact" is a reliable proxy for "locked
+    // delivery room" without an async stamp scan.)
+    final callerMxId = call.room.directChatMatrixID;
+    final canDeclineWithMessage = callerMxId != null &&
+        Matrix.of(context).contactsCache.isContact(callerMxId);
     final requestInfoButton = TextButton.icon(
       onPressed: _showRequestInfoSheet,
       style: TextButton.styleFrom(
@@ -852,7 +863,7 @@ class MyCallingPage extends State<Calling> {
             ? <Widget>[muteMicButton, switchSpeakerButton, hangupButton]
             : <Widget>[
                 hangupButton,
-                declineWithMessageButton,
+                if (canDeclineWithMessage) declineWithMessageButton,
                 if (canRequestInfo) requestInfoButton,
                 answerButton,
               ];
