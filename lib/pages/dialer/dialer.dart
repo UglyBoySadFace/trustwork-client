@@ -31,6 +31,8 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 
 import 'package:fluffychat/l10n/l10n.dart';
 import 'package:fluffychat/pages/data_sharing/data_sharing_approval_sheet.dart';
+import 'package:fluffychat/pages/dialer/call_stats_overlay.dart';
+import 'package:fluffychat/pages/dialer/data_sharing_request_sheet.dart';
 import 'package:fluffychat/pages/dialer/decline_with_message_sheet.dart';
 import 'package:fluffychat/utils/data_sharing/data_sharing_service.dart';
 import 'package:fluffychat/utils/data_sharing/shareable_field.dart';
@@ -43,87 +45,6 @@ import 'package:fluffychat/utils/voip/video_renderer.dart';
 import 'package:fluffychat/widgets/avatar.dart';
 import 'package:fluffychat/widgets/matrix.dart';
 import 'pip/pip_view.dart';
-
-class _CallStats {
-  final double rttMs;
-  final double jitterMs;
-  final double packetLossPercent;
-  final double audioLevel;
-  final String iceType;
-
-  const _CallStats({
-    required this.rttMs,
-    required this.jitterMs,
-    required this.packetLossPercent,
-    required this.audioLevel,
-    required this.iceType,
-  });
-
-  static Future<_CallStats?> fromPeerConnection(
-    RTCPeerConnection pc,
-  ) async {
-    final reports = await pc.getStats();
-
-    final remoteInbound = reports.firstWhere(
-      (r) => r.type == 'remote-inbound-rtp' && r.values['kind'] == 'audio',
-      orElse: () => reports.firstWhere(
-        (r) => r.type == 'remote-inbound-rtp',
-        orElse: () => StatsReport('', '', 0, {}),
-      ),
-    );
-    final candidatePair = reports.firstWhere(
-      (r) =>
-          r.type == 'candidate-pair' &&
-          (r.values['nominated'] == true || r.values['state'] == 'succeeded'),
-      orElse: () => StatsReport('', '', 0, {}),
-    );
-    final inboundRtp = reports.firstWhere(
-      (r) => r.type == 'inbound-rtp' && r.values['kind'] == 'audio',
-      orElse: () => StatsReport('', '', 0, {}),
-    );
-
-    // RTT: prefer RTCP-based remote-inbound-rtp, fall back to candidate-pair
-    final rttRaw =
-        _toDouble(remoteInbound.values['roundTripTime']) ??
-        _toDouble(candidatePair.values['currentRoundTripTime']);
-    if (rttRaw == null) return null;
-
-    final jitterRaw = _toDouble(inboundRtp.values['jitter']) ?? 0.0;
-    final lost = _toDouble(inboundRtp.values['packetsLost']) ?? 0.0;
-    final received = _toDouble(inboundRtp.values['packetsReceived']) ?? 0.0;
-    final total = lost + received;
-    final lossPercent = total > 0 ? (lost / total * 100) : 0.0;
-    final audioLevel = _toDouble(inboundRtp.values['audioLevel']) ?? 0.0;
-
-    // ICE candidate type from the active candidate pair
-    final localCandidateId =
-        candidatePair.values['localCandidateId'] as String?;
-    final localCandidate = localCandidateId != null
-        ? reports.firstWhere(
-            (r) => r.id == localCandidateId,
-            orElse: () => StatsReport('', '', 0, {}),
-          )
-        : null;
-    final iceType =
-        (localCandidate?.values['candidateType'] as String?) ?? '?';
-
-    return _CallStats(
-      rttMs: rttRaw * 1000,
-      jitterMs: jitterRaw * 1000,
-      packetLossPercent: lossPercent,
-      audioLevel: audioLevel,
-      iceType: iceType,
-    );
-  }
-
-  static double? _toDouble(dynamic v) {
-    if (v == null) return null;
-    if (v is double) return v;
-    if (v is int) return v.toDouble();
-    if (v is String) return double.tryParse(v);
-    return null;
-  }
-}
 
 class _StreamView extends StatelessWidget {
   const _StreamView(
@@ -221,102 +142,6 @@ class Calling extends StatefulWidget {
   MyCallingPage createState() => MyCallingPage();
 }
 
-class _StatsOverlay extends StatelessWidget {
-  const _StatsOverlay({required this.stats});
-
-  final _CallStats stats;
-
-  Color get _rttColor {
-    if (stats.rttMs < 150) return Colors.greenAccent;
-    if (stats.rttMs < 400) return Colors.orangeAccent;
-    return Colors.redAccent;
-  }
-
-  Color get _lossColor {
-    if (stats.packetLossPercent < 1) return Colors.greenAccent;
-    if (stats.packetLossPercent < 5) return Colors.orangeAccent;
-    return Colors.redAccent;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-      decoration: BoxDecoration(
-        color: Colors.black.withAlpha(160),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: DefaultTextStyle(
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 11,
-          fontFeatures: [FontFeature.tabularFigures()],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _row('RTT', '${stats.rttMs.round()} ms', _rttColor),
-            _row('Jitter', '${stats.jitterMs.round()} ms', Colors.white70),
-            _row(
-              'Loss',
-              '${stats.packetLossPercent.toStringAsFixed(1)} %',
-              _lossColor,
-            ),
-            _row('ICE', stats.iceType, Colors.white70),
-            _audioBar(stats.audioLevel),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _row(String label, String value, Color valueColor) => Padding(
-    padding: const EdgeInsets.symmetric(vertical: 1),
-    child: Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        SizedBox(
-          width: 36,
-          child: Text(label, style: const TextStyle(color: Colors.white54)),
-        ),
-        Text(value, style: TextStyle(color: valueColor)),
-      ],
-    ),
-  );
-
-  Widget _audioBar(double level) => Padding(
-    padding: const EdgeInsets.only(top: 2),
-    child: Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        const SizedBox(
-          width: 36,
-          child: Text('Audio', style: TextStyle(color: Colors.white54)),
-        ),
-        Container(
-          width: 60,
-          height: 6,
-          decoration: BoxDecoration(
-            color: Colors.white24,
-            borderRadius: BorderRadius.circular(3),
-          ),
-          child: FractionallySizedBox(
-            alignment: Alignment.centerLeft,
-            widthFactor: level.clamp(0.0, 1.0),
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.greenAccent,
-                borderRadius: BorderRadius.circular(3),
-              ),
-            ),
-          ),
-        ),
-      ],
-    ),
-  );
-}
-
 class MyCallingPage extends State<Calling> {
   Room? get room => call.room;
 
@@ -367,7 +192,7 @@ class MyCallingPage extends State<Calling> {
   EdgeInsetsGeometry? _localVideoMargin;
   CallState? _state;
   bool _speakerOn = false;
-  _CallStats? _callStats;
+  CallStats? _callStats;
   Timer? _statsTimer;
   Timer? _clearTimer;
 
@@ -735,7 +560,7 @@ class MyCallingPage extends State<Calling> {
         useSafeArea: true,
         builder: (sheetCtx) {
           _calleeSheetContext = sheetCtx;
-          return _DataSharingRequestSheet(
+          return DataSharingRequestSheet(
             callerDisplayName: callerName,
             callerMatrixId: mxId,
             service: service,
@@ -784,7 +609,7 @@ class MyCallingPage extends State<Calling> {
     _statsTimer = Timer.periodic(const Duration(seconds: 3), (_) async {
       final pc = call.pc;
       if (pc == null) return;
-      final stats = await _CallStats.fromPeerConnection(pc);
+      final stats = await CallStats.fromPeerConnection(pc);
       if (mounted) setState(() => _callStats = stats);
     });
   }
@@ -1280,7 +1105,7 @@ class MyCallingPage extends State<Calling> {
                       Positioned(
                         top: 24.0,
                         right: 12.0,
-                        child: _StatsOverlay(stats: _callStats!),
+                        child: StatsOverlay(stats: _callStats!),
                       ),
                   ],
                 ),
@@ -1289,339 +1114,6 @@ class MyCallingPage extends State<Calling> {
           ),
         );
       },
-    );
-  }
-}
-
-sealed class _CalleeFlowState {
-  const _CalleeFlowState();
-}
-
-final class _CalleePicking extends _CalleeFlowState {
-  const _CalleePicking();
-}
-
-final class _CalleeWaiting extends _CalleeFlowState {
-  const _CalleeWaiting();
-}
-
-final class _CalleeShowing extends _CalleeFlowState {
-  const _CalleeShowing(this.fields, this.data);
-  final List<ShareableField> fields;
-  final SharedData data;
-}
-
-final class _CalleeErrored extends _CalleeFlowState {
-  const _CalleeErrored(this.message);
-  final String message;
-}
-
-class _DataSharingRequestSheet extends StatefulWidget {
-  const _DataSharingRequestSheet({
-    required this.callerDisplayName,
-    required this.callerMatrixId,
-    this.service,
-  });
-
-  final String callerDisplayName;
-  final String callerMatrixId;
-  final DataSharingService? service;
-
-  @override
-  State<_DataSharingRequestSheet> createState() =>
-      _DataSharingRequestSheetState();
-}
-
-class _DataSharingRequestSheetState extends State<_DataSharingRequestSheet> {
-  final Map<ShareableField, bool> _selected = {
-    for (final f in ShareableField.values) f: false,
-  };
-  late _CalleeFlowState _flow = const _CalleePicking();
-
-  Set<ShareableField> _selectedFields() => _selected.entries
-      .where((e) => e.value)
-      .map((e) => e.key)
-      .toSet();
-
-  Future<void> _send() async {
-    final service = widget.service;
-    if (service == null) return;
-    final selected = _selectedFields();
-    if (selected.isEmpty) return;
-    setState(() => _flow = const _CalleeWaiting());
-
-    final outcome = await service.request(
-      callerMatrixId: widget.callerMatrixId,
-      fields: selected,
-    );
-    if (!mounted) return;
-    _handleOutcome(outcome, selected);
-  }
-
-  void _handleOutcome(DataSharingOutcome outcome, Set<ShareableField> fields) {
-    if (!mounted) return;
-    final l10n = L10n.of(context);
-    switch (outcome) {
-      case DataSharingApproved(:final data):
-        final ordered = fields.toList()
-          ..sort((a, b) => a.index.compareTo(b.index));
-        setState(() => _flow = _CalleeShowing(ordered, data));
-        return;
-      case DataSharingDeclined():
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.dataSharingDeclined)),
-        );
-        _close();
-        return;
-      case DataSharingTimedOut():
-        setState(() => _flow = _CalleeErrored(l10n.dataSharingTimedOut));
-        return;
-      case DataSharingErrored():
-        setState(() => _flow = _CalleeErrored(l10n.dataSharingErrored));
-        return;
-    }
-  }
-
-  void _close() {
-    // The dialer dismisses this sheet externally when the call leaves the
-    // data-sharing window; a second pop would remove the call screen route
-    // from the dialer's local navigator.
-    if (ModalRoute.of(context)?.isCurrent != true) return;
-    Navigator.of(context).pop();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return SafeArea(
-      top: false,
-      child: Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.viewInsetsOf(context).bottom,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(height: 12),
-            Container(
-              width: 36,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Theme.of(context).dividerColor,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Flexible(
-              child: switch (_flow) {
-                _CalleePicking() => _buildPicker(),
-                _CalleeWaiting() => _buildWaiting(),
-                _CalleeShowing(:final fields, :final data) =>
-                  _buildShowing(fields, data),
-                _CalleeErrored(:final message) => _buildErrored(message),
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPicker() {
-    final l10n = L10n.of(context);
-    const fields = ShareableField.values;
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Text(
-            l10n.dataSharingPickerTitle,
-            style: Theme.of(context).textTheme.titleMedium,
-            textAlign: TextAlign.center,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Text(
-            l10n.dataSharingPickerSubtitle,
-            style: Theme.of(context).textTheme.bodySmall,
-            textAlign: TextAlign.center,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Flexible(
-          child: ListView(
-            shrinkWrap: true,
-            children: [
-              for (final f in fields)
-                CheckboxListTile(
-                  value: _selected[f] ?? false,
-                  onChanged: (v) =>
-                      setState(() => _selected[f] = v ?? false),
-                  title: Text(f.label(l10n)),
-                  controlAffinity: ListTileControlAffinity.leading,
-                ),
-            ],
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-          child: Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: _close,
-                  child: Text(l10n.dataSharingCancel),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: FilledButton(
-                  onPressed: (_selectedFields().isEmpty || widget.service == null)
-                      ? null
-                      : _send,
-                  child: Text(l10n.dataSharingSendRequest),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildWaiting() {
-    final l10n = L10n.of(context);
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const SizedBox(
-            width: 36,
-            height: 36,
-            child: CircularProgressIndicator(strokeWidth: 3),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            l10n.dataSharingWaitingTitle,
-            style: Theme.of(context).textTheme.titleMedium,
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            l10n.dataSharingWaitingSubtitle,
-            style: Theme.of(context).textTheme.bodySmall,
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildShowing(List<ShareableField> fields, SharedData data) {
-    final l10n = L10n.of(context);
-    final rows = <Widget>[];
-    for (final f in fields) {
-      final value = f.formatValue(data, l10n);
-      if (value == null) continue;
-      rows.add(
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 6),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SizedBox(
-                width: 140,
-                child: Text(
-                  f.label(l10n),
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(context).hintColor,
-                      ),
-                ),
-              ),
-              Expanded(
-                child: Text(
-                  value,
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Text(
-            l10n.dataSharingResultTitle,
-            style: Theme.of(context).textTheme.titleMedium,
-            textAlign: TextAlign.center,
-          ),
-        ),
-        const SizedBox(height: 12),
-        Flexible(
-          child: rows.isEmpty
-              ? Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 16,
-                  ),
-                  child: Text(
-                    l10n.dataSharingNoData,
-                    style: Theme.of(context).textTheme.bodyMedium,
-                    textAlign: TextAlign.center,
-                  ),
-                )
-              : ListView(shrinkWrap: true, children: rows),
-        ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-          child: SizedBox(
-            width: double.infinity,
-            child: FilledButton(
-              onPressed: _close,
-              child: Text(l10n.dataSharingClose),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildErrored(String message) {
-    final l10n = L10n.of(context);
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            Icons.error_outline,
-            size: 36,
-            color: Theme.of(context).colorScheme.error,
-          ),
-          const SizedBox(height: 12),
-          Text(
-            message,
-            style: Theme.of(context).textTheme.bodyMedium,
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton(
-              onPressed: _close,
-              child: Text(l10n.dataSharingClose),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
