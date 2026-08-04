@@ -3657,6 +3657,10 @@
       "unknownCount": {"type": "int"}
     }
   },
+  "pendingGroupInviteBanner": "You've been invited to this group. Decide whether to join before you can send messages.",
+  "@pendingGroupInviteBanner": {},
+  "viewInvite": "View invite",
+  "@viewInvite": {},
   "manageGroup": "Manage group",
   "@manageGroup": {},
   "leaveGroup": "Leave group",

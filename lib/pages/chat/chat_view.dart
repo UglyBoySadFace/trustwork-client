@@ -358,6 +358,39 @@ class ChatView extends StatelessWidget {
                                 onPressed: controller.goToNewRoomAction,
                               ),
                             )
+                          else if (controller.isPendingGroupInvite)
+                            Container(
+                              margin: EdgeInsets.all(bottomSheetPadding),
+                              constraints: const BoxConstraints(
+                                maxWidth: FluffyThemes.maxTimelineWidth,
+                              ),
+                              child: Material(
+                                clipBehavior: Clip.hardEdge,
+                                color: theme.colorScheme.surfaceContainerHigh,
+                                borderRadius: BorderRadius.circular(16),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(16),
+                                  child: Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          L10n.of(context)
+                                              .pendingGroupInviteBanner,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      TextButton(
+                                        onPressed:
+                                            controller.goToPendingGroupInvite,
+                                        child: Text(
+                                          L10n.of(context).viewInvite,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            )
                           else if (controller.room.canSendDefaultMessages &&
                               controller.room.membership == Membership.join)
                             Container(

@@ -417,8 +417,19 @@ class ChatController extends State<ChatPageWithRoom>
   /// deciding.
   Future<void> _checkGroupInvite() async {
     var group = GroupsService.instance.findByMatrixRoomId(widget.room.id);
-    if (widget.room.membership == Membership.invite &&
-        (group == null || group.myStatus != 'invited')) {
+    // Force a refresh when the room is unknown to GroupsService: either a
+    // classic Matrix invite, or a join-membership room that could be a
+    // Trustwork group invite whose cache entry hasn't arrived yet (nothing
+    // refreshes GroupsService on sync when a new invite lands mid-session —
+    // see matrix.dart's _groupInviteArrivedSubs, which is the primary fix;
+    // this is the navigation-time fallback). Skip already-known contact DMs
+    // to avoid a round-trip on every ordinary 1:1 open.
+    final shouldForceRefresh =
+        group == null &&
+        (widget.room.membership == Membership.invite ||
+            (widget.room.membership == Membership.join &&
+                !widget.room.isDirectChat));
+    if (shouldForceRefresh) {
       try {
         await GroupsService.instance.refresh();
       } catch (_) {
@@ -427,6 +438,11 @@ class ChatController extends State<ChatPageWithRoom>
         return;
       }
       group = GroupsService.instance.findByMatrixRoomId(widget.room.id);
+      if (!mounted) return;
+      // Refreshing the shared GroupsService singleton doesn't itself notify
+      // this widget — force a rebuild so isPendingGroupInvite (read by
+      // ChatView's composer gate) reflects the just-fetched status.
+      setState(() {});
     }
     if (!mounted) return;
     if (group != null && group.myStatus == 'invited') {
@@ -449,6 +465,21 @@ class ChatController extends State<ChatPageWithRoom>
         );
       });
     }
+  }
+
+  /// True while this room is a Trustwork group the user has been invited to
+  /// but not yet accepted. The composer must stay non-interactive in this
+  /// state independent of whether the redirect to the join/decline prompt
+  /// (`_checkGroupInvite`) has fired yet — the cache backing this getter can
+  /// itself be briefly stale right after the invite arrives.
+  bool get isPendingGroupInvite =>
+      GroupsService.instance.findByMatrixRoomId(room.id)?.myStatus ==
+      'invited';
+
+  void goToPendingGroupInvite() {
+    final groupId = GroupsService.instance.findByMatrixRoomId(room.id)?.id;
+    if (groupId == null) return;
+    context.go('/rooms/group-invite/$groupId');
   }
 
   final Set<String> expandedEventIds = {};

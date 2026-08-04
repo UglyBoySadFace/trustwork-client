@@ -195,6 +195,7 @@ class MatrixState extends State<Matrix> with WidgetsBindingObserver {
   final _roomLeaveSubs = <String, StreamSubscription>{};
   final _contactAcceptedSubs = <String, StreamSubscription>{};
   final _groupMemberJoinSubs = <String, StreamSubscription>{};
+  final _groupInviteArrivedSubs = <String, StreamSubscription>{};
   Timer? _groupJoinRefreshDebounce;
   final contactsCache = ContactsCache();
   final incomingContactRequestCount = ValueNotifier<int>(0);
@@ -414,6 +415,21 @@ class MatrixState extends State<Matrix> with WidgetsBindingObserver {
                   null,
         )
         .listen((_) => _scheduleGroupContactsRefresh(c));
+    // A brand-new Trustwork group invite lands mid-session as a room the
+    // GroupsService cache doesn't know about yet. Nothing else refreshes
+    // that cache on sync, so ChatController._checkGroupInvite would find no
+    // entry and let the chat render instead of the join/decline prompt.
+    // Refresh once the moment such a room appears.
+    _groupInviteArrivedSubs[name] ??= c.onRoomState.stream
+        .where(
+          (update) =>
+              update.state.stateKey == c.userID &&
+              {'join', 'invite'}.contains(update.state.content['membership']) &&
+              GroupsService.instance.findByMatrixRoomId(update.roomId) ==
+                  null &&
+              c.getRoomById(update.roomId)?.directChatMatrixID == null,
+        )
+        .listen((_) => _scheduleGroupContactsRefresh(c));
     if (PlatformInfos.isWeb || PlatformInfos.isLinux) {
       c.onSync.stream.first.then((s) {
         html.Notification.requestPermission();
@@ -441,6 +457,8 @@ class MatrixState extends State<Matrix> with WidgetsBindingObserver {
     _contactAcceptedSubs.remove(name);
     _groupMemberJoinSubs[name]?.cancel();
     _groupMemberJoinSubs.remove(name);
+    _groupInviteArrivedSubs[name]?.cancel();
+    _groupInviteArrivedSubs.remove(name);
     dataSharingServices[name]?.dispose();
     dataSharingServices.remove(name);
   }
@@ -718,6 +736,10 @@ class MatrixState extends State<Matrix> with WidgetsBindingObserver {
       s.cancel();
     }
     _groupMemberJoinSubs.clear();
+    for (final s in _groupInviteArrivedSubs.values) {
+      s.cancel();
+    }
+    _groupInviteArrivedSubs.clear();
     incomingContactRequestCount.dispose();
     client.httpClient.close();
 
