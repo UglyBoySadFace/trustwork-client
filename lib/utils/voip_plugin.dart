@@ -429,7 +429,6 @@ class VoipPlugin with WidgetsBindingObserver implements WebRTCDelegate {
       showDialog(
         context: context,
         builder: (context) => Calling(
-          context: context,
           client: client,
           callId: callId,
           call: call,
@@ -440,7 +439,6 @@ class VoipPlugin with WidgetsBindingObserver implements WebRTCDelegate {
       late final OverlayEntry entry;
       entry = OverlayEntry(
         builder: (_) => Calling(
-          context: context,
           client: client,
           callId: callId,
           call: call,
@@ -538,11 +536,9 @@ class VoipPlugin with WidgetsBindingObserver implements WebRTCDelegate {
     return _DtlsRoleFixPeerConnection(pc);
   }
 
-  Future<bool> get hasCallingAccount async => false;
-
   @override
   Future<void> playRingtone() async {
-    if (!background && !await hasCallingAccount) {
+    if (!background) {
       try {
         await UserMediaManager().startRingingTone();
       } catch (_) {}
@@ -551,7 +547,7 @@ class VoipPlugin with WidgetsBindingObserver implements WebRTCDelegate {
 
   @override
   Future<void> stopRingtone() async {
-    if (!background && !await hasCallingAccount) {
+    if (!background) {
       try {
         await UserMediaManager().stopRingingTone();
       } catch (_) {}

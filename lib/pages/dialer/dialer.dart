@@ -101,8 +101,6 @@ class _StreamView extends StatelessWidget {
                         .label(wrappedStream.getUser().id),
                 size: mainView ? 96 : 48,
                 client: matrixClient,
-                // textSize: mainView ? 36 : 24,
-                // matrixClient: matrixClient,
               ),
             ),
           ],
@@ -124,13 +122,11 @@ class _StreamView extends StatelessWidget {
 
 class Calling extends StatefulWidget {
   final VoidCallback? onClear;
-  final BuildContext context;
   final String callId;
   final CallSession call;
   final Client client;
 
   const Calling({
-    required this.context,
     required this.call,
     required this.client,
     required this.callId,
@@ -148,10 +144,10 @@ class MyCallingPage extends State<Calling> {
   String get displayName {
     final mxId = call.room.directChatMatrixID;
     if (mxId != null) {
-      return Matrix.of(widget.context).contactsCache.label(mxId);
+      return Matrix.of(context).contactsCache.label(mxId);
     }
     return call.room.getLocalizedDisplayname(
-      MatrixLocals(L10n.of(widget.context)),
+      MatrixLocals(L10n.of(context)),
     );
   }
 
@@ -159,16 +155,9 @@ class MyCallingPage extends State<Calling> {
 
   CallSession get call => widget.call;
 
-  MediaStream? get localStream {
-    if (call.localUserMediaStream != null) {
-      return call.localUserMediaStream!.stream!;
-    }
-    return null;
-  }
-
   MediaStream? get remoteStream {
     if (call.getRemoteStreams.isNotEmpty) {
-      return call.getRemoteStreams.first.stream!;
+      return call.getRemoteStreams.first.stream;
     }
     return null;
   }
@@ -182,8 +171,6 @@ class MyCallingPage extends State<Calling> {
   bool get isRemoteOnHold => call.remoteOnHold;
 
   bool get voiceonly => call.type == CallType.kVoice;
-
-  bool get connecting => call.state == CallState.kConnecting;
 
   bool get connected => call.state == CallState.kConnected;
 
@@ -208,6 +195,8 @@ class MyCallingPage extends State<Calling> {
   // causing the callee UI to flash briefly on an outgoing call.
   late final bool _isOutgoing;
 
+  StreamSubscription<CallState>? _callStateSub;
+  StreamSubscription<CallStateChange>? _callEventSub;
   StreamSubscription<IncomingDataRequest>? _dataReqSub;
   StreamSubscription<ProactiveShareData>? _proactiveShareSub;
   SharedData? _proactiveShareData;
@@ -277,7 +266,7 @@ class MyCallingPage extends State<Calling> {
   }
 
   void _wireCalleeProactiveReceive() {
-    final service = Matrix.of(widget.context)
+    final service = Matrix.of(context)
         .dataSharingServices[widget.client.clientName];
     if (service == null) {
       Logs().w('[DATA-SHARING] _wireCalleeProactiveReceive: service is null');
@@ -316,7 +305,7 @@ class MyCallingPage extends State<Calling> {
   }
 
   void _wireDataSharing() {
-    final matrix = Matrix.of(widget.context);
+    final matrix = Matrix.of(context);
     final service = matrix.dataSharingServices[widget.client.clientName];
     if (service == null) return;
 
@@ -417,7 +406,7 @@ class MyCallingPage extends State<Calling> {
       for (final f in req.fields) f: _cachedSharingPrefs[f] ?? false,
     };
     final fromName =
-        Matrix.of(widget.context).contactsCache.label(req.fromMatrixId);
+        Matrix.of(context).contactsCache.label(req.fromMatrixId);
 
     try {
       await showModalBottomSheet<void>(
@@ -451,8 +440,8 @@ class MyCallingPage extends State<Calling> {
     Set<ShareableField> selected,
   ) async {
     final service =
-        Matrix.of(widget.context).dataSharingServices[widget.client.clientName];
-    if (service == null) return L10n.of(widget.context).dataSharingShareFailed;
+        Matrix.of(context).dataSharingServices[widget.client.clientName];
+    if (service == null) return L10n.of(context).dataSharingShareFailed;
     try {
       await service.approve(request: req, approvedFields: selected);
       // The sheet closes itself on a null return — popping here as well
@@ -465,13 +454,13 @@ class MyCallingPage extends State<Calling> {
         s,
       );
       if (!mounted) return null;
-      return L10n.of(widget.context).dataSharingShareFailed;
+      return L10n.of(context).dataSharingShareFailed;
     }
   }
 
   Future<void> _handleDecline(IncomingDataRequest req) async {
     final service =
-        Matrix.of(widget.context).dataSharingServices[widget.client.clientName];
+        Matrix.of(context).dataSharingServices[widget.client.clientName];
     try {
       await service?.decline(req);
     } catch (e, s) {
@@ -574,8 +563,8 @@ class MyCallingPage extends State<Calling> {
 
   void initialize() {
     final call = this.call;
-    call.onCallStateChanged.stream.listen(_handleCallState);
-    call.onCallEventChanged.stream.listen((event) {
+    _callStateSub = call.onCallStateChanged.stream.listen(_handleCallState);
+    _callEventSub = call.onCallEventChanged.stream.listen((event) {
       if (event == CallStateChange.kFeedsChanged) {
         setState(call.tryRemoveStopedStreams);
       } else if (event == CallStateChange.kLocalHoldUnhold ||
@@ -617,7 +606,16 @@ class MyCallingPage extends State<Calling> {
   void _stopStatsPolling() {
     _statsTimer?.cancel();
     _statsTimer = null;
+    if (_callStats == null) return;
     _callStats = null;
+    // Rebuild so the debug overlay disappears immediately instead of lingering
+    // until the next unrelated setState. Deferred to a post-frame callback so
+    // this stays safe when called from dispose()/cleanUp() teardown.
+    if (mounted) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) setState(() {});
+      });
+    }
   }
 
   @override
@@ -628,6 +626,10 @@ class MyCallingPage extends State<Calling> {
     _stopStatsPolling();
     _clearTimer?.cancel();
     _clearTimer = null;
+    _callStateSub?.cancel();
+    _callStateSub = null;
+    _callEventSub?.cancel();
+    _callEventSub = null;
     _dataReqSub?.cancel();
     _dataReqSub = null;
     _proactiveShareSub?.cancel();
@@ -647,18 +649,18 @@ class MyCallingPage extends State<Calling> {
 
   void _resizeLocalVideo(Orientation orientation) {
     final shortSide = min(
-      MediaQuery.sizeOf(widget.context).width,
-      MediaQuery.sizeOf(widget.context).height,
+      MediaQuery.sizeOf(context).width,
+      MediaQuery.sizeOf(context).height,
     );
     _localVideoMargin = remoteStream != null
         ? const EdgeInsets.only(top: 20.0, right: 20.0)
         : EdgeInsets.zero;
     _localVideoWidth = remoteStream != null
         ? shortSide / 3
-        : MediaQuery.sizeOf(widget.context).width;
+        : MediaQuery.sizeOf(context).width;
     _localVideoHeight = remoteStream != null
         ? shortSide / 4
-        : MediaQuery.sizeOf(widget.context).height;
+        : MediaQuery.sizeOf(context).height;
   }
 
   void _handleCallState(CallState state) {
@@ -752,12 +754,13 @@ class MyCallingPage extends State<Calling> {
     });
   }
 
-  void _switchCamera() async {
+  Future<void> _switchCamera() async {
     if (call.localUserMediaStream != null) {
       await Helper.switchCamera(
         call.localUserMediaStream!.stream!.getVideoTracks().first,
       );
     }
+    if (!mounted) return;
     setState(() {});
   }
 
@@ -775,7 +778,7 @@ class MyCallingPage extends State<Calling> {
 
     final switchCameraButton = FloatingActionButton(
       heroTag: 'switchCamera',
-      onPressed: _switchCamera,
+      onPressed: () => unawaited(_switchCamera()),
       backgroundColor: Colors.black45,
       child: const Icon(Icons.switch_camera),
     );
@@ -802,7 +805,7 @@ class MyCallingPage extends State<Calling> {
       child: const Icon(Icons.phone),
     );
 
-    final l10n = L10n.of(widget.context);
+    final l10n = L10n.of(context);
 
     final declineWithMessageButton = FloatingActionButton(
       heroTag: 'declineWithMessage',
@@ -945,18 +948,23 @@ class MyCallingPage extends State<Calling> {
     final secondaryStreamViews = <Widget>[];
 
     if (call.remoteScreenSharingStream != null) {
+      // The remote may be sharing their screen without also publishing a
+      // camera stream — only render the picture-in-picture user view when it
+      // actually exists.
       final remoteUserMediaStream = call.remoteUserMediaStream;
-      secondaryStreamViews.add(
-        SizedBox(
-          width: _localVideoWidth,
-          height: _localVideoHeight,
-          child: _StreamView(
-            remoteUserMediaStream!,
-            matrixClient: widget.client,
+      if (remoteUserMediaStream != null) {
+        secondaryStreamViews.add(
+          SizedBox(
+            width: _localVideoWidth,
+            height: _localVideoHeight,
+            child: _StreamView(
+              remoteUserMediaStream,
+              matrixClient: widget.client,
+            ),
           ),
-        ),
-      );
-      secondaryStreamViews.add(const SizedBox(height: 10));
+        );
+        secondaryStreamViews.add(const SizedBox(height: 10));
+      }
     }
 
     final localStream =
@@ -972,13 +980,16 @@ class MyCallingPage extends State<Calling> {
       secondaryStreamViews.add(const SizedBox(height: 10));
     }
 
-    if (call.localScreenSharingStream != null && !isFloating) {
+    final remoteUserMediaStream = call.remoteUserMediaStream;
+    if (call.localScreenSharingStream != null &&
+        !isFloating &&
+        remoteUserMediaStream != null) {
       secondaryStreamViews.add(
         SizedBox(
           width: _localVideoWidth,
           height: _localVideoHeight,
           child: _StreamView(
-            call.remoteUserMediaStream!,
+            remoteUserMediaStream,
             matrixClient: widget.client,
           ),
         ),
