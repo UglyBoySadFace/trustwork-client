@@ -624,7 +624,7 @@ class ContactsApi {
   }
 
   /// Remove Contact
-  /// Remove an accepted contact (either direction). Tears down the shared room.
+  /// Remove an accepted contact (either direction) and abandon every shared 1:1 room.  Unfriending must be more than cosmetic: both parties are evicted from the delivery room(s) the request flow created *and* from any room Synapse reports as being just the two of them (e.g. a client-made call DM). Shared group rooms are left alone.
   ///
   /// Parameters:
   /// * [matrixUserId] 

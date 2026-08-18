@@ -12,6 +12,7 @@ Method | HTTP request | Description
 [**addMemberGroupsGroupIdMembersPost**](GroupsApi.md#addmembergroupsgroupidmemberspost) | **POST** /groups/{group_id}/members | Add Member
 [**createGroupGroupsPost**](GroupsApi.md#creategroupgroupspost) | **POST** /groups | Create Group
 [**declineGroupGroupsGroupIdDeclinePost**](GroupsApi.md#declinegroupgroupsgroupiddeclinepost) | **POST** /groups/{group_id}/decline | Decline Group
+[**deleteGroupGroupsGroupIdDelete**](GroupsApi.md#deletegroupgroupsgroupiddelete) | **DELETE** /groups/{group_id} | Delete Group
 [**dismissSuggestionGroupsGroupIdSuggestionsSuggestionIdDismissPost**](GroupsApi.md#dismisssuggestiongroupsgroupidsuggestionssuggestioniddismisspost) | **POST** /groups/{group_id}/suggestions/{suggestion_id}/dismiss | Dismiss Suggestion
 [**getGroupGroupsGroupIdGet**](GroupsApi.md#getgroupgroupsgroupidget) | **GET** /groups/{group_id} | Get Group
 [**invitePreviewGroupsGroupIdInvitePreviewGet**](GroupsApi.md#invitepreviewgroupsgroupidinvitepreviewget) | **GET** /groups/{group_id}/invite-preview | Invite Preview
@@ -21,7 +22,9 @@ Method | HTTP request | Description
 [**listGroupsGroupsGet**](GroupsApi.md#listgroupsgroupsget) | **GET** /groups | List Groups
 [**listSuggestionsGroupsGroupIdSuggestionsGet**](GroupsApi.md#listsuggestionsgroupsgroupidsuggestionsget) | **GET** /groups/{group_id}/suggestions | List Suggestions
 [**removeMemberGroupsGroupIdMembersMatrixUserIdDelete**](GroupsApi.md#removemembergroupsgroupidmembersmatrixuseriddelete) | **DELETE** /groups/{group_id}/members/{matrix_user_id} | Remove Member
+[**renameGroupGroupsGroupIdPatch**](GroupsApi.md#renamegroupgroupsgroupidpatch) | **PATCH** /groups/{group_id} | Rename Group
 [**suggestMemberGroupsGroupIdSuggestionsPost**](GroupsApi.md#suggestmembergroupsgroupidsuggestionspost) | **POST** /groups/{group_id}/suggestions | Suggest Member
+[**transferAdminGroupsGroupIdTransferAdminPost**](GroupsApi.md#transferadmingroupsgroupidtransferadminpost) | **POST** /groups/{group_id}/transfer-admin | Transfer Admin
 
 
 # **addMemberGroupsGroupIdMembersPost**
@@ -121,7 +124,7 @@ Name | Type | Description  | Notes
 
 Decline Group
 
-Decline a group invite.
+Decline a group invite.  The invite card's delivery room goes with it, so the admin keeps no room to message someone who turned the group down. A later re-invite gets a fresh one.
 
 ### Example
 ```dart
@@ -136,6 +139,50 @@ try {
     api.declineGroupGroupsGroupIdDeclinePost(groupId);
 } on DioException catch (e) {
     print('Exception when calling GroupsApi->declineGroupGroupsGroupIdDeclinePost: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **groupId** | **int**|  | 
+
+### Return type
+
+void (empty response body)
+
+### Authorization
+
+[OAuth2PasswordBearer](../README.md#OAuth2PasswordBearer)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **deleteGroupGroupsGroupIdDelete**
+> deleteGroupGroupsGroupIdDelete(groupId)
+
+Delete Group
+
+Admin deletes the group: memberships, suggestions and the room all go.  The Matrix room is purged (everyone is forced out), so no one is left holding a room for a group that no longer exists. Contact edges people gained by joining **persist** — decision A says they outlive the group.
+
+### Example
+```dart
+import 'package:api_client/api.dart';
+// TODO Configure OAuth2 access token for authorization: OAuth2PasswordBearer
+//defaultApiClient.getAuthentication<OAuth>('OAuth2PasswordBearer').accessToken = 'YOUR_ACCESS_TOKEN';
+
+final api = ApiClient().getGroupsApi();
+final int groupId = 56; // int | 
+
+try {
+    api.deleteGroupGroupsGroupIdDelete(groupId);
+} on DioException catch (e) {
+    print('Exception when calling GroupsApi->deleteGroupGroupsGroupIdDelete: $e\n');
 }
 ```
 
@@ -393,7 +440,7 @@ Name | Type | Description  | Notes
 
 Leave Group
 
-Leave a group. Contact edges gained in the group persist.
+Leave a group. Contact edges gained in the group persist.  The admin cannot simply leave: a group whose admin is gone can never gain a member again (only the admin invites). They must hand the group over (`transfer-admin`) or delete it.
 
 ### Example
 ```dart
@@ -564,6 +611,53 @@ void (empty response body)
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
+# **renameGroupGroupsGroupIdPatch**
+> GroupDetail renameGroupGroupsGroupIdPatch(groupId, groupUpdate)
+
+Rename Group
+
+Admin renames the group. The Matrix room name follows (best-effort).  The middleware is the source of truth for the name — clients should rename through here rather than setting `m.room.name` directly, or the two drift.
+
+### Example
+```dart
+import 'package:api_client/api.dart';
+// TODO Configure OAuth2 access token for authorization: OAuth2PasswordBearer
+//defaultApiClient.getAuthentication<OAuth>('OAuth2PasswordBearer').accessToken = 'YOUR_ACCESS_TOKEN';
+
+final api = ApiClient().getGroupsApi();
+final int groupId = 56; // int | 
+final GroupUpdate groupUpdate = ; // GroupUpdate | 
+
+try {
+    final response = api.renameGroupGroupsGroupIdPatch(groupId, groupUpdate);
+    print(response);
+} on DioException catch (e) {
+    print('Exception when calling GroupsApi->renameGroupGroupsGroupIdPatch: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **groupId** | **int**|  | 
+ **groupUpdate** | [**GroupUpdate**](GroupUpdate.md)|  | 
+
+### Return type
+
+[**GroupDetail**](GroupDetail.md)
+
+### Authorization
+
+[OAuth2PasswordBearer](../README.md#OAuth2PasswordBearer)
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
+ - **Accept**: application/json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
 # **suggestMemberGroupsGroupIdSuggestionsPost**
 > MemberSuggestion suggestMemberGroupsGroupIdSuggestionsPost(groupId, memberSuggestionCreate)
 
@@ -599,6 +693,53 @@ Name | Type | Description  | Notes
 ### Return type
 
 [**MemberSuggestion**](MemberSuggestion.md)
+
+### Authorization
+
+[OAuth2PasswordBearer](../README.md#OAuth2PasswordBearer)
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
+ - **Accept**: application/json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **transferAdminGroupsGroupIdTransferAdminPost**
+> GroupDetail transferAdminGroupsGroupIdTransferAdminPost(groupId, groupAdminTransfer)
+
+Transfer Admin
+
+Hand the group to another *joined* member — the way an admin gets to leave.  The new admin takes over inviting and managing members, and is raised to PL 100 in the room. The outgoing admin stays an ordinary member until they leave.
+
+### Example
+```dart
+import 'package:api_client/api.dart';
+// TODO Configure OAuth2 access token for authorization: OAuth2PasswordBearer
+//defaultApiClient.getAuthentication<OAuth>('OAuth2PasswordBearer').accessToken = 'YOUR_ACCESS_TOKEN';
+
+final api = ApiClient().getGroupsApi();
+final int groupId = 56; // int | 
+final GroupAdminTransfer groupAdminTransfer = ; // GroupAdminTransfer | 
+
+try {
+    final response = api.transferAdminGroupsGroupIdTransferAdminPost(groupId, groupAdminTransfer);
+    print(response);
+} on DioException catch (e) {
+    print('Exception when calling GroupsApi->transferAdminGroupsGroupIdTransferAdminPost: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **groupId** | **int**|  | 
+ **groupAdminTransfer** | [**GroupAdminTransfer**](GroupAdminTransfer.md)|  | 
+
+### Return type
+
+[**GroupDetail**](GroupDetail.md)
 
 ### Authorization
 

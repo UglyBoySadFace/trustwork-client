@@ -88,6 +88,7 @@ Class | Method | HTTP request | Description
 [*GroupsApi*](doc/GroupsApi.md) | [**addMemberGroupsGroupIdMembersPost**](doc/GroupsApi.md#addmembergroupsgroupidmemberspost) | **POST** /groups/{group_id}/members | Add Member
 [*GroupsApi*](doc/GroupsApi.md) | [**createGroupGroupsPost**](doc/GroupsApi.md#creategroupgroupspost) | **POST** /groups | Create Group
 [*GroupsApi*](doc/GroupsApi.md) | [**declineGroupGroupsGroupIdDeclinePost**](doc/GroupsApi.md#declinegroupgroupsgroupiddeclinepost) | **POST** /groups/{group_id}/decline | Decline Group
+[*GroupsApi*](doc/GroupsApi.md) | [**deleteGroupGroupsGroupIdDelete**](doc/GroupsApi.md#deletegroupgroupsgroupiddelete) | **DELETE** /groups/{group_id} | Delete Group
 [*GroupsApi*](doc/GroupsApi.md) | [**dismissSuggestionGroupsGroupIdSuggestionsSuggestionIdDismissPost**](doc/GroupsApi.md#dismisssuggestiongroupsgroupidsuggestionssuggestioniddismisspost) | **POST** /groups/{group_id}/suggestions/{suggestion_id}/dismiss | Dismiss Suggestion
 [*GroupsApi*](doc/GroupsApi.md) | [**getGroupGroupsGroupIdGet**](doc/GroupsApi.md#getgroupgroupsgroupidget) | **GET** /groups/{group_id} | Get Group
 [*GroupsApi*](doc/GroupsApi.md) | [**invitePreviewGroupsGroupIdInvitePreviewGet**](doc/GroupsApi.md#invitepreviewgroupsgroupidinvitepreviewget) | **GET** /groups/{group_id}/invite-preview | Invite Preview
@@ -97,7 +98,9 @@ Class | Method | HTTP request | Description
 [*GroupsApi*](doc/GroupsApi.md) | [**listGroupsGroupsGet**](doc/GroupsApi.md#listgroupsgroupsget) | **GET** /groups | List Groups
 [*GroupsApi*](doc/GroupsApi.md) | [**listSuggestionsGroupsGroupIdSuggestionsGet**](doc/GroupsApi.md#listsuggestionsgroupsgroupidsuggestionsget) | **GET** /groups/{group_id}/suggestions | List Suggestions
 [*GroupsApi*](doc/GroupsApi.md) | [**removeMemberGroupsGroupIdMembersMatrixUserIdDelete**](doc/GroupsApi.md#removemembergroupsgroupidmembersmatrixuseriddelete) | **DELETE** /groups/{group_id}/members/{matrix_user_id} | Remove Member
+[*GroupsApi*](doc/GroupsApi.md) | [**renameGroupGroupsGroupIdPatch**](doc/GroupsApi.md#renamegroupgroupsgroupidpatch) | **PATCH** /groups/{group_id} | Rename Group
 [*GroupsApi*](doc/GroupsApi.md) | [**suggestMemberGroupsGroupIdSuggestionsPost**](doc/GroupsApi.md#suggestmembergroupsgroupidsuggestionspost) | **POST** /groups/{group_id}/suggestions | Suggest Member
+[*GroupsApi*](doc/GroupsApi.md) | [**transferAdminGroupsGroupIdTransferAdminPost**](doc/GroupsApi.md#transferadmingroupsgroupidtransferadminpost) | **POST** /groups/{group_id}/transfer-admin | Transfer Admin
 [*HealthApi*](doc/HealthApi.md) | [**healthCheckHealthGet**](doc/HealthApi.md#healthcheckhealthget) | **GET** /health | Health Check
 [*PhoneAuthApi*](doc/PhoneAuthApi.md) | [**phoneCheckAuthPhoneCheckGet**](doc/PhoneAuthApi.md#phonecheckauthphonecheckget) | **GET** /auth/phone/check | Phone Check
 [*SharingApi*](doc/SharingApi.md) | [**approveDataRequestDataSharingApprovePost**](doc/SharingApi.md#approvedatarequestdatasharingapprovepost) | **POST** /data-sharing/approve | Approve Data Request
@@ -123,11 +126,13 @@ Class | Method | HTTP request | Description
  - [EmailStartRequest](doc/EmailStartRequest.md)
  - [EmailStartResponse](doc/EmailStartResponse.md)
  - [EmailVerifyRequest](doc/EmailVerifyRequest.md)
+ - [GroupAdminTransfer](doc/GroupAdminTransfer.md)
  - [GroupCreate](doc/GroupCreate.md)
  - [GroupDetail](doc/GroupDetail.md)
  - [GroupInvitePreview](doc/GroupInvitePreview.md)
  - [GroupMember](doc/GroupMember.md)
  - [GroupSummary](doc/GroupSummary.md)
+ - [GroupUpdate](doc/GroupUpdate.md)
  - [HTTPValidationError](doc/HTTPValidationError.md)
  - [IncomingContactRequest](doc/IncomingContactRequest.md)
  - [LocationInner](doc/LocationInner.md)

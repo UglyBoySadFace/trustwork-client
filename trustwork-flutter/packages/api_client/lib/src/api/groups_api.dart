@@ -9,10 +9,12 @@ import 'package:built_value/serializer.dart';
 import 'package:dio/dio.dart';
 
 import 'package:api_client/src/api_util.dart';
+import 'package:api_client/src/model/group_admin_transfer.dart';
 import 'package:api_client/src/model/group_create.dart';
 import 'package:api_client/src/model/group_detail.dart';
 import 'package:api_client/src/model/group_invite_preview.dart';
 import 'package:api_client/src/model/group_summary.dart';
+import 'package:api_client/src/model/group_update.dart';
 import 'package:api_client/src/model/http_validation_error.dart';
 import 'package:api_client/src/model/member_suggestion.dart';
 import 'package:api_client/src/model/member_suggestion_create.dart';
@@ -229,7 +231,7 @@ class GroupsApi {
   }
 
   /// Decline Group
-  /// Decline a group invite.
+  /// Decline a group invite.  The invite card&#39;s delivery room goes with it, so the admin keeps no room to message someone who turned the group down. A later re-invite gets a fresh one.
   ///
   /// Parameters:
   /// * [groupId] 
@@ -254,6 +256,58 @@ class GroupsApi {
     final _path = r'/groups/{group_id}/decline'.replaceAll('{' r'group_id' '}', encodeQueryParameter(_serializers, groupId, const FullType(int)).toString());
     final _options = Options(
       method: r'POST',
+      headers: <String, dynamic>{
+        ...?headers,
+      },
+      extra: <String, dynamic>{
+        'secure': <Map<String, String>>[
+          {
+            'type': 'oauth2',
+            'name': 'OAuth2PasswordBearer',
+          },
+        ],
+        ...?extra,
+      },
+      validateStatus: validateStatus,
+    );
+
+    final _response = await _dio.request<Object>(
+      _path,
+      options: _options,
+      cancelToken: cancelToken,
+      onSendProgress: onSendProgress,
+      onReceiveProgress: onReceiveProgress,
+    );
+
+    return _response;
+  }
+
+  /// Delete Group
+  /// Admin deletes the group: memberships, suggestions and the room all go.  The Matrix room is purged (everyone is forced out), so no one is left holding a room for a group that no longer exists. Contact edges people gained by joining **persist** — decision A says they outlive the group.
+  ///
+  /// Parameters:
+  /// * [groupId] 
+  /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
+  /// * [headers] - Can be used to add additional headers to the request
+  /// * [extras] - Can be used to add flags to the request
+  /// * [validateStatus] - A [ValidateStatus] callback that can be used to determine request success based on the HTTP status of the response
+  /// * [onSendProgress] - A [ProgressCallback] that can be used to get the send progress
+  /// * [onReceiveProgress] - A [ProgressCallback] that can be used to get the receive progress
+  ///
+  /// Returns a [Future]
+  /// Throws [DioException] if API call or serialization fails
+  Future<Response<void>> deleteGroupGroupsGroupIdDelete({ 
+    required int groupId,
+    CancelToken? cancelToken,
+    Map<String, dynamic>? headers,
+    Map<String, dynamic>? extra,
+    ValidateStatus? validateStatus,
+    ProgressCallback? onSendProgress,
+    ProgressCallback? onReceiveProgress,
+  }) async {
+    final _path = r'/groups/{group_id}'.replaceAll('{' r'group_id' '}', encodeQueryParameter(_serializers, groupId, const FullType(int)).toString());
+    final _options = Options(
+      method: r'DELETE',
       headers: <String, dynamic>{
         ...?headers,
       },
@@ -657,7 +711,7 @@ class GroupsApi {
   }
 
   /// Leave Group
-  /// Leave a group. Contact edges gained in the group persist.
+  /// Leave a group. Contact edges gained in the group persist.  The admin cannot simply leave: a group whose admin is gone can never gain a member again (only the admin invites). They must hand the group over (&#x60;transfer-admin&#x60;) or delete it.
   ///
   /// Parameters:
   /// * [groupId] 
@@ -920,6 +974,108 @@ class GroupsApi {
     return _response;
   }
 
+  /// Rename Group
+  /// Admin renames the group. The Matrix room name follows (best-effort).  The middleware is the source of truth for the name — clients should rename through here rather than setting &#x60;m.room.name&#x60; directly, or the two drift.
+  ///
+  /// Parameters:
+  /// * [groupId] 
+  /// * [groupUpdate] 
+  /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
+  /// * [headers] - Can be used to add additional headers to the request
+  /// * [extras] - Can be used to add flags to the request
+  /// * [validateStatus] - A [ValidateStatus] callback that can be used to determine request success based on the HTTP status of the response
+  /// * [onSendProgress] - A [ProgressCallback] that can be used to get the send progress
+  /// * [onReceiveProgress] - A [ProgressCallback] that can be used to get the receive progress
+  ///
+  /// Returns a [Future] containing a [Response] with a [GroupDetail] as data
+  /// Throws [DioException] if API call or serialization fails
+  Future<Response<GroupDetail>> renameGroupGroupsGroupIdPatch({ 
+    required int groupId,
+    required GroupUpdate groupUpdate,
+    CancelToken? cancelToken,
+    Map<String, dynamic>? headers,
+    Map<String, dynamic>? extra,
+    ValidateStatus? validateStatus,
+    ProgressCallback? onSendProgress,
+    ProgressCallback? onReceiveProgress,
+  }) async {
+    final _path = r'/groups/{group_id}'.replaceAll('{' r'group_id' '}', encodeQueryParameter(_serializers, groupId, const FullType(int)).toString());
+    final _options = Options(
+      method: r'PATCH',
+      headers: <String, dynamic>{
+        ...?headers,
+      },
+      extra: <String, dynamic>{
+        'secure': <Map<String, String>>[
+          {
+            'type': 'oauth2',
+            'name': 'OAuth2PasswordBearer',
+          },
+        ],
+        ...?extra,
+      },
+      contentType: 'application/json',
+      validateStatus: validateStatus,
+    );
+
+    dynamic _bodyData;
+
+    try {
+      const _type = FullType(GroupUpdate);
+      _bodyData = _serializers.serialize(groupUpdate, specifiedType: _type);
+
+    } catch(error, stackTrace) {
+      throw DioException(
+         requestOptions: _options.compose(
+          _dio.options,
+          _path,
+        ),
+        type: DioExceptionType.unknown,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    final _response = await _dio.request<Object>(
+      _path,
+      data: _bodyData,
+      options: _options,
+      cancelToken: cancelToken,
+      onSendProgress: onSendProgress,
+      onReceiveProgress: onReceiveProgress,
+    );
+
+    GroupDetail? _responseData;
+
+    try {
+      final rawResponse = _response.data;
+      _responseData = rawResponse == null ? null : _serializers.deserialize(
+        rawResponse,
+        specifiedType: const FullType(GroupDetail),
+      ) as GroupDetail;
+
+    } catch (error, stackTrace) {
+      throw DioException(
+        requestOptions: _response.requestOptions,
+        response: _response,
+        type: DioExceptionType.unknown,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    return Response<GroupDetail>(
+      data: _responseData,
+      headers: _response.headers,
+      isRedirect: _response.isRedirect,
+      requestOptions: _response.requestOptions,
+      redirects: _response.redirects,
+      statusCode: _response.statusCode,
+      statusMessage: _response.statusMessage,
+      extra: _response.extra,
+    );
+  }
+
   /// Suggest Member
   /// A member suggests someone for the admin to invite.
   ///
@@ -1011,6 +1167,108 @@ class GroupsApi {
     }
 
     return Response<MemberSuggestion>(
+      data: _responseData,
+      headers: _response.headers,
+      isRedirect: _response.isRedirect,
+      requestOptions: _response.requestOptions,
+      redirects: _response.redirects,
+      statusCode: _response.statusCode,
+      statusMessage: _response.statusMessage,
+      extra: _response.extra,
+    );
+  }
+
+  /// Transfer Admin
+  /// Hand the group to another *joined* member — the way an admin gets to leave.  The new admin takes over inviting and managing members, and is raised to PL 100 in the room. The outgoing admin stays an ordinary member until they leave.
+  ///
+  /// Parameters:
+  /// * [groupId] 
+  /// * [groupAdminTransfer] 
+  /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
+  /// * [headers] - Can be used to add additional headers to the request
+  /// * [extras] - Can be used to add flags to the request
+  /// * [validateStatus] - A [ValidateStatus] callback that can be used to determine request success based on the HTTP status of the response
+  /// * [onSendProgress] - A [ProgressCallback] that can be used to get the send progress
+  /// * [onReceiveProgress] - A [ProgressCallback] that can be used to get the receive progress
+  ///
+  /// Returns a [Future] containing a [Response] with a [GroupDetail] as data
+  /// Throws [DioException] if API call or serialization fails
+  Future<Response<GroupDetail>> transferAdminGroupsGroupIdTransferAdminPost({ 
+    required int groupId,
+    required GroupAdminTransfer groupAdminTransfer,
+    CancelToken? cancelToken,
+    Map<String, dynamic>? headers,
+    Map<String, dynamic>? extra,
+    ValidateStatus? validateStatus,
+    ProgressCallback? onSendProgress,
+    ProgressCallback? onReceiveProgress,
+  }) async {
+    final _path = r'/groups/{group_id}/transfer-admin'.replaceAll('{' r'group_id' '}', encodeQueryParameter(_serializers, groupId, const FullType(int)).toString());
+    final _options = Options(
+      method: r'POST',
+      headers: <String, dynamic>{
+        ...?headers,
+      },
+      extra: <String, dynamic>{
+        'secure': <Map<String, String>>[
+          {
+            'type': 'oauth2',
+            'name': 'OAuth2PasswordBearer',
+          },
+        ],
+        ...?extra,
+      },
+      contentType: 'application/json',
+      validateStatus: validateStatus,
+    );
+
+    dynamic _bodyData;
+
+    try {
+      const _type = FullType(GroupAdminTransfer);
+      _bodyData = _serializers.serialize(groupAdminTransfer, specifiedType: _type);
+
+    } catch(error, stackTrace) {
+      throw DioException(
+         requestOptions: _options.compose(
+          _dio.options,
+          _path,
+        ),
+        type: DioExceptionType.unknown,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    final _response = await _dio.request<Object>(
+      _path,
+      data: _bodyData,
+      options: _options,
+      cancelToken: cancelToken,
+      onSendProgress: onSendProgress,
+      onReceiveProgress: onReceiveProgress,
+    );
+
+    GroupDetail? _responseData;
+
+    try {
+      final rawResponse = _response.data;
+      _responseData = rawResponse == null ? null : _serializers.deserialize(
+        rawResponse,
+        specifiedType: const FullType(GroupDetail),
+      ) as GroupDetail;
+
+    } catch (error, stackTrace) {
+      throw DioException(
+        requestOptions: _response.requestOptions,
+        response: _response,
+        type: DioExceptionType.unknown,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    return Response<GroupDetail>(
       data: _responseData,
       headers: _response.headers,
       isRedirect: _response.isRedirect,

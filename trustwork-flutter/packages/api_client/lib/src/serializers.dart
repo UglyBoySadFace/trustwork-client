@@ -26,11 +26,13 @@ import 'package:api_client/src/model/data_sharing_approve_response.dart';
 import 'package:api_client/src/model/email_start_request.dart';
 import 'package:api_client/src/model/email_start_response.dart';
 import 'package:api_client/src/model/email_verify_request.dart';
+import 'package:api_client/src/model/group_admin_transfer.dart';
 import 'package:api_client/src/model/group_create.dart';
 import 'package:api_client/src/model/group_detail.dart';
 import 'package:api_client/src/model/group_invite_preview.dart';
 import 'package:api_client/src/model/group_member.dart';
 import 'package:api_client/src/model/group_summary.dart';
+import 'package:api_client/src/model/group_update.dart';
 import 'package:api_client/src/model/http_validation_error.dart';
 import 'package:api_client/src/model/incoming_contact_request.dart';
 import 'package:api_client/src/model/location_inner.dart';
@@ -64,11 +66,13 @@ part 'serializers.g.dart';
   EmailStartRequest,
   EmailStartResponse,
   EmailVerifyRequest,
+  GroupAdminTransfer,
   GroupCreate,
   GroupDetail,
   GroupInvitePreview,
   GroupMember,
   GroupSummary,
+  GroupUpdate,
   HTTPValidationError,
   IncomingContactRequest,
   LocationInner,
