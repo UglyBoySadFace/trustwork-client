@@ -3667,6 +3667,8 @@
   "@leaveGroup": {},
   "leaveGroupConfirmation": "Are you sure you want to leave this group?",
   "@leaveGroupConfirmation": {},
+  "adminLeaveDeletesGroupWarning": "You're the admin of this group. Leaving removes you as admin — this can't be undone.",
+  "@adminLeaveDeletesGroupWarning": {},
   "addGroupMember": "Add member",
   "@addGroupMember": {},
   "removeMemberConfirmation": "Remove {name} from this group?",

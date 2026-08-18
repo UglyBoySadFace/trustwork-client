@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:fluffychat/l10n/l10n.dart';
 import 'package:fluffychat/utils/groups/groups_service.dart';
+import 'package:fluffychat/utils/groups/leave_group_action.dart';
 import 'package:fluffychat/utils/trustwork_api_service.dart';
 import 'package:fluffychat/widgets/matrix.dart';
 
@@ -345,8 +346,6 @@ class _GroupManagePageState extends State<GroupManagePage> {
   }
 
   Future<void> _leaveGroup() async {
-    final groupId = _groupId;
-    if (groupId == null) return;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -368,22 +367,11 @@ class _GroupManagePageState extends State<GroupManagePage> {
       ),
     );
     if (confirmed != true || !mounted) return;
-    setState(() {
-      busy = true;
-      error = null;
-    });
-    try {
-      await TrustworkApiService.instance.leaveGroup(groupId);
-      unawaited(GroupsService.instance.refresh().catchError((_) {}));
-      if (!mounted) return;
-      context.go('/rooms');
-    } on DioException catch (e) {
-      if (!mounted) return;
-      setState(() {
-        busy = false;
-        error = TrustworkApiService.friendlyError(e);
-      });
-    }
+    final room = Matrix.of(context).client.getRoomById(widget.roomId);
+    if (room == null) return;
+    final success = await leaveTrustworkGroupOrRoom(context, room);
+    if (!mounted || !success) return;
+    context.go('/rooms');
   }
 
   @override

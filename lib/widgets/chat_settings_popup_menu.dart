@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:matrix/matrix.dart';
 
 import 'package:fluffychat/l10n/l10n.dart';
+import 'package:fluffychat/utils/groups/leave_group_action.dart';
 import 'package:fluffychat/widgets/adaptive_dialogs/show_ok_cancel_alert_dialog.dart';
 import 'package:fluffychat/widgets/future_loading_dialog.dart';
 import 'matrix.dart';
@@ -64,11 +65,11 @@ class ChatSettingsPopupMenuState extends State<ChatSettingsPopupMenu> {
                   isDestructive: true,
                 );
                 if (confirmed != OkCancelResult.ok) return;
-                final result = await showFutureLoadingDialog(
-                  context: context,
-                  future: () => widget.room.leave(),
+                final success = await leaveTrustworkGroupOrRoom(
+                  context,
+                  widget.room,
                 );
-                if (result.error == null) {
+                if (success) {
                   router.go('/rooms');
                 }
 
