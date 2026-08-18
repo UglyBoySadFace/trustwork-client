@@ -391,6 +391,35 @@ class ChatView extends StatelessWidget {
                                 ),
                               ),
                             )
+                          else if (controller.groupInviteStatusUnresolved)
+                            Container(
+                              margin: EdgeInsets.all(bottomSheetPadding),
+                              constraints: const BoxConstraints(
+                                maxWidth: FluffyThemes.maxTimelineWidth,
+                              ),
+                              child: Material(
+                                clipBehavior: Clip.hardEdge,
+                                color: theme.colorScheme.surfaceContainerHigh,
+                                borderRadius: BorderRadius.circular(16),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(16),
+                                  child: Row(
+                                    mainAxisSize: .min,
+                                    children: [
+                                      const SizedBox(
+                                        width: 16,
+                                        height: 16,
+                                        child: CircularProgressIndicator.adaptive(
+                                          strokeWidth: 2,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Text(L10n.of(context).loadingPleaseWait),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            )
                           else if (controller.room.canSendDefaultMessages &&
                               controller.room.membership == Membership.join)
                             Container(

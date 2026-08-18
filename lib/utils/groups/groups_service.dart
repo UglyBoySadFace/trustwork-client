@@ -24,6 +24,9 @@ class GroupsService {
     return null;
   }
 
+  bool isPendingInvite(String matrixRoomId) =>
+      findByMatrixRoomId(matrixRoomId)?.myStatus == 'invited';
+
   Future<void> refresh() async {
     final fetched = await TrustworkApiService.instance.listGroups();
     _groups = fetched.toList();

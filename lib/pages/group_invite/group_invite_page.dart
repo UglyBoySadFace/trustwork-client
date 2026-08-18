@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:api_client/api_client.dart';
 import 'package:dio/dio.dart';
 import 'package:go_router/go_router.dart';
+import 'package:matrix/matrix.dart';
 
 import 'package:fluffychat/l10n/l10n.dart';
 import 'package:fluffychat/utils/groups/groups_service.dart';
@@ -141,6 +142,18 @@ class _GroupInvitePageState extends State<GroupInvitePage> {
     });
     try {
       await TrustworkApiService.instance.declineGroup(widget.groupId);
+      // Best-effort leave the underlying Matrix room too: the middleware
+      // joined us into it at invite time, and there's no guarantee the
+      // server retracts that membership on decline.
+      final roomId = GroupsService.instance.findById(widget.groupId)?.matrixRoomId;
+      final room = mounted && roomId != null
+          ? context.findAncestorStateOfType<MatrixState>()?.client.getRoomById(
+              roomId,
+            )
+          : null;
+      if (room != null && room.membership != Membership.leave) {
+        unawaited(room.leave().catchError((_) {}));
+      }
       unawaited(GroupsService.instance.refresh().catchError((_) {}));
       if (!mounted) return;
       context.go('/rooms');

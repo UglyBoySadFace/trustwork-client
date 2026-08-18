@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 
+import 'package:go_router/go_router.dart';
 import 'package:matrix/matrix.dart';
 
 import 'package:fluffychat/config/app_config.dart';
 import 'package:fluffychat/l10n/l10n.dart';
 import 'package:fluffychat/pages/chat_list/unread_bubble.dart';
 import 'package:fluffychat/utils/contact_request_room_title.dart';
+import 'package:fluffychat/utils/groups/groups_service.dart';
 import 'package:fluffychat/utils/matrix_sdk_extensions/matrix_locals.dart';
 import 'package:fluffychat/utils/room_status_extension.dart';
 import 'package:fluffychat/widgets/adaptive_dialogs/show_ok_cancel_alert_dialog.dart';
@@ -47,6 +49,7 @@ class ChatListItem extends StatelessWidget {
     final directChatMatrixId = room.directChatMatrixID;
     final isDirectChat = directChatMatrixId != null;
     final hasNotifications = room.notificationCount > 0;
+    final pendingGroupInvite = GroupsService.instance.isPendingInvite(room.id);
     final backgroundColor = activeChat
         ? theme.colorScheme.secondaryContainer
         : null;
@@ -339,11 +342,14 @@ class ChatListItem extends StatelessWidget {
                                         (isDirectChat
                                             ? l10n.newChatRequest
                                             : l10n.inviteGroupChat)
+                                  : pendingGroupInvite
+                                  ? l10n.inviteGroupChat
                                   : snapshot.data ?? l10n.noMessagesYet;
                               final needsSenderPrefix =
                                   !isDirectChat ||
                                   directChatMatrixId != lastEvent?.senderId;
                               if (room.membership != Membership.invite &&
+                                  !pendingGroupInvite &&
                                   needsSenderPrefix &&
                                   lastEvent != null &&
                                   lastEvent.type == EventTypes.Message &&
@@ -400,6 +406,18 @@ class ChatListItem extends StatelessWidget {
                                 context: context,
                                 future: room.leave,
                               );
+                            },
+                          )
+                        : pendingGroupInvite
+                        ? IconButton(
+                            tooltip: L10n.of(context).viewInvite,
+                            icon: const Icon(Icons.mail_outline),
+                            onPressed: () {
+                              final groupId = GroupsService.instance
+                                  .findByMatrixRoomId(room.id)
+                                  ?.id;
+                              if (groupId == null) return;
+                              context.go('/rooms/group-invite/$groupId');
                             },
                           )
                         : null

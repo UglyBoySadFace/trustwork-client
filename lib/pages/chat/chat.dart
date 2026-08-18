@@ -119,6 +119,11 @@ class ChatController extends State<ChatPageWithRoom>
   bool currentlyTyping = false;
   bool dragging = false;
 
+  /// True until `_checkGroupInvite`'s async determination of this room's
+  /// group-invite status completes at least once. See
+  /// `groupInviteStatusUnresolved`.
+  bool _groupInviteCheckPending = true;
+
   List<Emoji>? _cachedSuggestionEmojis;
   Locale? _cachedSuggestionLocale;
 
@@ -434,7 +439,11 @@ class ChatController extends State<ChatPageWithRoom>
         await GroupsService.instance.refresh();
       } catch (_) {
         // Can't tell whether this is a group invite — don't auto-join on a
-        // guess. Reopening the room retries.
+        // guess. Clear the pending flag anyway so a transient failure here
+        // doesn't permanently strand the composer behind the "checking
+        // invite status" placeholder — reopening the room retries the check.
+        if (!mounted) return;
+        setState(() => _groupInviteCheckPending = false);
         return;
       }
       group = GroupsService.instance.findByMatrixRoomId(widget.room.id);
@@ -447,6 +456,7 @@ class ChatController extends State<ChatPageWithRoom>
     if (!mounted) return;
     if (group != null && group.myStatus == 'invited') {
       final groupId = group.id;
+      setState(() => _groupInviteCheckPending = false);
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
         context.go('/rooms/group-invite/$groupId');
@@ -472,7 +482,21 @@ class ChatController extends State<ChatPageWithRoom>
         );
       });
     }
+    setState(() => _groupInviteCheckPending = false);
   }
+
+  /// True while `_checkGroupInvite` hasn't yet determined whether this room
+  /// is a pending Trustwork group invite. The composer must stay
+  /// non-interactive during this window too — otherwise there's a race where
+  /// the first build (before the async check resolves) renders the normal,
+  /// fully interactive composer for an unknown room that turns out to be a
+  /// pending invite. Narrowed to "unknown to GroupsService, non-DM, joined
+  /// room" so known DMs and already-resolved rooms render immediately.
+  bool get groupInviteStatusUnresolved =>
+      _groupInviteCheckPending &&
+      GroupsService.instance.findByMatrixRoomId(room.id) == null &&
+      !room.isDirectChat &&
+      room.membership == Membership.join;
 
   /// True while this room is a Trustwork group the user has been invited to
   /// but not yet accepted. The composer must stay non-interactive in this
@@ -480,8 +504,7 @@ class ChatController extends State<ChatPageWithRoom>
   /// (`_checkGroupInvite`) has fired yet — the cache backing this getter can
   /// itself be briefly stale right after the invite arrives.
   bool get isPendingGroupInvite =>
-      GroupsService.instance.findByMatrixRoomId(room.id)?.myStatus ==
-      'invited';
+      GroupsService.instance.isPendingInvite(room.id);
 
   void goToPendingGroupInvite() {
     final groupId = GroupsService.instance.findByMatrixRoomId(room.id)?.id;
