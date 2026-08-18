@@ -2,6 +2,7 @@ import 'package:matrix/matrix.dart';
 
 import 'package:fluffychat/l10n/l10n.dart';
 import 'package:fluffychat/utils/contacts/contacts_cache.dart';
+import 'package:fluffychat/utils/groups/groups_service.dart';
 import 'package:fluffychat/utils/matrix_sdk_extensions/matrix_locals.dart';
 
 /// Returns the correct display title for [room], overriding SDK-generated names
@@ -36,6 +37,9 @@ String contactRequestRoomTitle(Room room, ContactsCache cache, L10n l10n) {
     return crEvent.content.tryGet<String>('requester_display_name') ??
         requesterMxid;
   }
+
+  final group = GroupsService.instance.findByMatrixRoomId(room.id);
+  if (group != null) return group.name;
 
   final dmId = room.directChatMatrixID;
   return dmId != null

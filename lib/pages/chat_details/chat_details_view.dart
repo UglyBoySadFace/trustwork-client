@@ -61,6 +61,13 @@ class ChatDetailsView extends StatelessWidget {
           Matrix.of(context).contactsCache,
           L10n.of(context),
         );
+        // No middleware rename endpoint exists for Trustwork groups — the
+        // generic Matrix rename would desync the room name from the
+        // Trustwork-side group name, which the middleware owns.
+        final canRenameRoom =
+            !room.isDirectChat &&
+            GroupsService.instance.findByMatrixRoomId(room.id) == null &&
+            room.canChangeStateEvent(EventTypes.RoomName);
         return Scaffold(
           appBar: AppBar(
             leading:
@@ -148,9 +155,7 @@ class ChatDetailsView extends StatelessWidget {
                                   TextButton.icon(
                                     onPressed: () => room.isDirectChat
                                         ? null
-                                        : room.canChangeStateEvent(
-                                            EventTypes.RoomName,
-                                          )
+                                        : canRenameRoom
                                         ? controller.setDisplaynameAction()
                                         : FluffyShare.share(
                                             displayname,
@@ -160,9 +165,7 @@ class ChatDetailsView extends StatelessWidget {
                                     icon: Icon(
                                       room.isDirectChat
                                           ? Icons.chat_bubble_outline
-                                          : room.canChangeStateEvent(
-                                              EventTypes.RoomName,
-                                            )
+                                          : canRenameRoom
                                           ? Icons.edit_outlined
                                           : Icons.copy_outlined,
                                       size: 16,
