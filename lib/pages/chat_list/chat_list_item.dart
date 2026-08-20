@@ -304,6 +304,20 @@ class ChatListItem extends StatelessWidget {
                               color: theme.colorScheme.onSurfaceVariant,
                             ),
                           )
+                        : lastEvent?.type == 'com.trustwork.group_invite'
+                        ? Text(
+                            L10n.of(context).groupInviteListPreview(
+                              lastEvent!.content.tryGet<String>(
+                                    'group_name',
+                                  ) ??
+                                  '',
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          )
                         : FutureBuilder(
                             key: ValueKey(
                               '${lastEvent?.eventId}_${lastEvent?.type}_${lastEvent?.redacted}',

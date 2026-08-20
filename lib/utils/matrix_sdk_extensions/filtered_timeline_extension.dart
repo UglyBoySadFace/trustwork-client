@@ -40,7 +40,8 @@ extension IsStateExtension on Event {
       (!AppSettings.hideUnknownEvents.value ||
           isEventTypeKnown ||
           type == 'com.trustwork.contact_request' ||
-          type == 'com.trustwork.data_request');
+          type == 'com.trustwork.data_request' ||
+          type == 'com.trustwork.group_invite');
 
   bool get isState => !{
     EventTypes.Message,
