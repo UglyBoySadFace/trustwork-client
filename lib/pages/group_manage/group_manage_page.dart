@@ -345,6 +345,26 @@ class _GroupManagePageState extends State<GroupManagePage> {
     }
   }
 
+  Future<void> _transferAdmin() async {
+    final detail = this.detail;
+    if (detail == null) return;
+    final success = await transferTrustworkGroupAdmin(
+      context,
+      detail,
+      Matrix.of(context).client.userID,
+    );
+    if (!mounted || !success) return;
+    await _reload();
+  }
+
+  Future<void> _deleteGroup() async {
+    final groupId = _groupId;
+    if (groupId == null) return;
+    final success = await deleteTrustworkGroup(context, groupId);
+    if (!mounted || !success) return;
+    context.go('/rooms');
+  }
+
   Future<void> _leaveGroup() async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -468,6 +488,27 @@ class _GroupManagePageState extends State<GroupManagePage> {
                         : () => context.go(
                             '/rooms/${widget.roomId}/group-suggestions',
                           ),
+                  ),
+                  ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: theme.colorScheme.primaryContainer,
+                      foregroundColor: theme.colorScheme.onPrimaryContainer,
+                      child: const Icon(Icons.swap_horiz_outlined),
+                    ),
+                    title: Text(L10n.of(context).transferAdmin),
+                    onTap: busy ? null : _transferAdmin,
+                  ),
+                  ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: theme.colorScheme.errorContainer,
+                      foregroundColor: theme.colorScheme.onErrorContainer,
+                      child: const Icon(Icons.delete_forever_outlined),
+                    ),
+                    title: Text(
+                      L10n.of(context).deleteGroup,
+                      style: TextStyle(color: theme.colorScheme.error),
+                    ),
+                    onTap: busy ? null : _deleteGroup,
                   ),
                 ] else if (detail.myStatus == 'joined')
                   ListTile(

@@ -3661,14 +3661,58 @@
   "@pendingGroupInviteBanner": {},
   "viewInvite": "View invite",
   "@viewInvite": {},
+  "groupInviteListPreview": "Group invite: {name}",
+  "@groupInviteListPreview": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "groupInviteCardInvitedYou": "{admin} invited you to {group}",
+  "@groupInviteCardInvitedYou": {
+    "placeholders": {
+      "admin": {"type": "String"},
+      "group": {"type": "String"}
+    }
+  },
+  "groupInviteCardSentTo": "Invited {invitee} to {group}",
+  "@groupInviteCardSentTo": {
+    "placeholders": {
+      "invitee": {"type": "String"},
+      "group": {"type": "String"}
+    }
+  },
+  "groupInviteCardSuggestedBy": "Suggested by {name}",
+  "@groupInviteCardSuggestedBy": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "groupInviteCardJoined": "You joined this group.",
+  "@groupInviteCardJoined": {},
+  "groupInviteCardDeclined": "You declined this invite.",
+  "@groupInviteCardDeclined": {},
+  "groupInviteCardLeft": "You left this group.",
+  "@groupInviteCardLeft": {},
   "manageGroup": "Manage group",
   "@manageGroup": {},
   "leaveGroup": "Leave group",
   "@leaveGroup": {},
   "leaveGroupConfirmation": "Are you sure you want to leave this group?",
   "@leaveGroupConfirmation": {},
-  "adminLeaveDeletesGroupWarning": "You're the admin of this group. Leaving removes you as admin — this can't be undone.",
-  "@adminLeaveDeletesGroupWarning": {},
+  "adminMustTransferOrDeleteToLeave": "You're the admin of this group. Transfer admin to another member, or delete the group, before you can leave.",
+  "@adminMustTransferOrDeleteToLeave": {},
+  "transferAdminAndLeave": "Transfer admin and leave",
+  "@transferAdminAndLeave": {},
+  "deleteGroupInstead": "Delete group instead",
+  "@deleteGroupInstead": {},
+  "transferAdmin": "Transfer admin",
+  "@transferAdmin": {},
+  "noEligibleTransferTargets": "No other joined members to transfer admin to.",
+  "@noEligibleTransferTargets": {},
+  "deleteGroup": "Delete group",
+  "@deleteGroup": {},
+  "deleteGroupConfirmation": "This permanently deletes the group and its chat for everyone. This can't be undone.",
+  "@deleteGroupConfirmation": {},
   "addGroupMember": "Add member",
   "@addGroupMember": {},
   "removeMemberConfirmation": "Remove {name} from this group?",
