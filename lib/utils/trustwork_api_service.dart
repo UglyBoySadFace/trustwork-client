@@ -227,6 +227,44 @@ class TrustworkApiService {
     ),
   );
 
+  /// Deletes the group (admin only). Purges memberships, suggestions, and
+  /// the Matrix room; contact edges gained by joining persist.
+  Future<void> deleteGroup(int groupId) => authedRequest(
+    (token) => groups.deleteGroupGroupsGroupIdDelete(
+      groupId: groupId,
+      headers: _authHeader(token),
+    ),
+  );
+
+  /// Hands the group to another joined member (admin only).
+  Future<GroupDetail> transferAdmin(
+    int groupId,
+    String newAdminMatrixUserId,
+  ) async {
+    final response = await authedRequest(
+      (token) => groups.transferAdminGroupsGroupIdTransferAdminPost(
+        groupId: groupId,
+        groupAdminTransfer: GroupAdminTransfer(
+          (b) => b.matrixUserId = newAdminMatrixUserId,
+        ),
+        headers: _authHeader(token),
+      ),
+    );
+    return response.data!;
+  }
+
+  /// Renames the group (admin only); mirrored to the Matrix room name.
+  Future<GroupDetail> renameGroup(int groupId, String name) async {
+    final response = await authedRequest(
+      (token) => groups.renameGroupGroupsGroupIdPatch(
+        groupId: groupId,
+        groupUpdate: GroupUpdate((b) => b.name = name),
+        headers: _authHeader(token),
+      ),
+    );
+    return response.data!;
+  }
+
   /// Directly invites [mxid] into the group (admin only).
   Future<GroupDetail> addMember(int groupId, String mxid) async {
     final response = await authedRequest(
