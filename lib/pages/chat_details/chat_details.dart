@@ -9,8 +9,10 @@ import 'package:fluffychat/l10n/l10n.dart';
 import 'package:fluffychat/pages/chat_details/chat_details_view.dart';
 import 'package:fluffychat/pages/settings/settings.dart';
 import 'package:fluffychat/utils/file_selector.dart';
+import 'package:fluffychat/utils/groups/groups_service.dart';
 import 'package:fluffychat/utils/matrix_sdk_extensions/matrix_locals.dart';
 import 'package:fluffychat/utils/platform_infos.dart';
+import 'package:fluffychat/utils/trustwork_api_service.dart';
 import 'package:fluffychat/widgets/adaptive_dialogs/show_modal_action_popup.dart';
 import 'package:fluffychat/widgets/adaptive_dialogs/show_text_input_dialog.dart';
 import 'package:fluffychat/widgets/future_loading_dialog.dart';
@@ -40,23 +42,31 @@ class ChatDetailsController extends State<ChatDetails> {
 
   void setDisplaynameAction() async {
     final room = Matrix.of(context).client.getRoomById(roomId!)!;
+    final group = GroupsService.instance.findByMatrixRoomId(room.id);
     final input = await showTextInputDialog(
       context: context,
       title: L10n.of(context).changeTheNameOfTheGroup,
       okLabel: L10n.of(context).ok,
       cancelLabel: L10n.of(context).cancel,
-      initialText: room.getLocalizedDisplayname(MatrixLocals(L10n.of(context))),
+      initialText:
+          group?.name ??
+          room.getLocalizedDisplayname(MatrixLocals(L10n.of(context))),
     );
     if (input == null) return;
     final success = await showFutureLoadingDialog(
       context: context,
-      future: () => room.setName(input),
+      future: () => group != null
+          ? TrustworkApiService.instance.renameGroup(group.id, input)
+          : room.setName(input),
     );
-    if (success.error == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(L10n.of(context).displaynameHasBeenChanged)),
-      );
+    if (success.error != null) return;
+    if (group != null) {
+      await GroupsService.instance.refresh().catchError((_) {});
     }
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(L10n.of(context).displaynameHasBeenChanged)),
+    );
   }
 
   void setTopicAction() async {

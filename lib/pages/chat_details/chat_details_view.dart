@@ -61,13 +61,12 @@ class ChatDetailsView extends StatelessWidget {
           Matrix.of(context).contactsCache,
           L10n.of(context),
         );
-        // No middleware rename endpoint exists for Trustwork groups — the
-        // generic Matrix rename would desync the room name from the
-        // Trustwork-side group name, which the middleware owns.
+        final group = GroupsService.instance.findByMatrixRoomId(room.id);
         final canRenameRoom =
             !room.isDirectChat &&
-            GroupsService.instance.findByMatrixRoomId(room.id) == null &&
-            room.canChangeStateEvent(EventTypes.RoomName);
+            (group == null
+                ? room.canChangeStateEvent(EventTypes.RoomName)
+                : group.admin.matrixUserId == Matrix.of(context).client.userID);
         return Scaffold(
           appBar: AppBar(
             leading:
