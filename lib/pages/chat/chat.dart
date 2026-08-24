@@ -1488,6 +1488,27 @@ class ChatController extends State<ChatPageWithRoom>
     try {
       await voipPlugin!.voip.inviteToCall(room, callType);
     } catch (e) {
+      // inviteToCall can throw partway through setup (e.g. a null-check deep
+      // in the SDK's addLocalStream/createOffer path) after it already set
+      // voip.currentCID and stashed the half-built CallSession in voip.calls.
+      // Neither gets cleared on this path — only terminate()/hangup() clear
+      // them — so canHandleNewCall (currentCID == null) stays false and every
+      // future incoming call is silently dropped until the app is restarted.
+      // Clean up any stuck call state for this room so incoming calls keep
+      // working after a failed outbound attempt.
+      Logs().e('[VOIP] inviteToCall failed, cleaning up stuck call state', e);
+      final voip = voipPlugin?.voip;
+      if (voip != null) {
+        final stuckEntries = voip.calls.entries
+            .where((entry) => entry.key.roomId == room.id)
+            .toList();
+        for (final entry in stuckEntries) {
+          voip.calls.remove(entry.key);
+          if (voip.currentCID == entry.key) voip.currentCID = null;
+          unawaited(entry.value.cleanUp().catchError((_) {}));
+        }
+      }
+      if (!mounted) return;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(e.toLocalizedString(context))));

@@ -90,6 +90,7 @@ class Message extends StatelessWidget {
       'com.trustwork.contact_accepted',
       'com.trustwork.data_request',
       'com.trustwork.group_invite',
+      'com.trustwork.suggestion_created',
     }.contains(event.type)) {
       if (event.type.startsWith('m.call.')) {
         return const SizedBox.shrink();

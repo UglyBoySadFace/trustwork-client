@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import 'package:matrix/matrix.dart';
 
 import 'package:fluffychat/l10n/l10n.dart';
+import 'package:fluffychat/pages/chat/events/group_invite_bubble.dart';
 import 'package:fluffychat/utils/groups/groups_service.dart';
 import 'package:fluffychat/utils/trustwork_api_service.dart';
 import 'package:fluffychat/widgets/matrix.dart';
@@ -68,16 +69,18 @@ class _GroupInvitePageState extends State<GroupInvitePage> {
       // groups AND contacts before entering the room so real names (instead
       // of raw Matrix IDs) show up immediately.
       await _refreshCaches();
+      unawaited(_sendDecisionEvent(detail.matrixRoomId, 'joined'));
       if (!mounted) return;
       _goToRoom(detail.matrixRoomId);
     } on DioException catch (e) {
       if (e.response?.statusCode == 409) {
         // Already joined — treat as success.
         await _refreshCaches();
+        final roomId =
+            GroupsService.instance.findById(widget.groupId)?.matrixRoomId;
+        unawaited(_sendDecisionEvent(roomId, 'joined'));
         if (!mounted) return;
-        _goToRoom(
-          GroupsService.instance.findById(widget.groupId)?.matrixRoomId,
-        );
+        _goToRoom(roomId);
         return;
       }
       if (!mounted) return;
@@ -127,6 +130,25 @@ class _GroupInvitePageState extends State<GroupInvitePage> {
     }
   }
 
+  /// Stamps the decision into the room as a `com.trustwork.group_invite_decision`
+  /// event so [GroupInviteBubble] can show "you joined/declined on" a date —
+  /// visible to both sides, using the event's own originServerTs as the
+  /// timestamp. Best-effort: a failed stamp still leaves the plain (dateless)
+  /// resolved label via GroupsService.myStatus, so this never blocks the flow.
+  Future<void> _sendDecisionEvent(String? roomId, String status) async {
+    if (!mounted || roomId == null) return;
+    final room = context.findAncestorStateOfType<MatrixState>()?.client.getRoomById(
+      roomId,
+    );
+    if (room == null) return;
+    try {
+      await room.sendEvent(
+        {'group_id': widget.groupId, 'status': status},
+        type: groupInviteDecisionEventType,
+      );
+    } catch (_) {}
+  }
+
   void _goToRoom(String? roomId) {
     if (roomId != null) {
       context.go('/rooms/$roomId');
@@ -151,6 +173,8 @@ class _GroupInvitePageState extends State<GroupInvitePage> {
               roomId,
             )
           : null;
+      // Stamp the decision before leaving — leaving may revoke send power.
+      await _sendDecisionEvent(roomId, 'declined');
       if (room != null && room.membership != Membership.leave) {
         unawaited(room.leave().catchError((_) {}));
       }

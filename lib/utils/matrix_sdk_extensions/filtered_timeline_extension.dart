@@ -41,7 +41,8 @@ extension IsStateExtension on Event {
           isEventTypeKnown ||
           type == 'com.trustwork.contact_request' ||
           type == 'com.trustwork.data_request' ||
-          type == 'com.trustwork.group_invite');
+          type == 'com.trustwork.group_invite' ||
+          type == 'com.trustwork.suggestion_created');
 
   bool get isState => !{
     EventTypes.Message,
@@ -59,5 +60,9 @@ extension IsStateExtension on Event {
 
   bool get isKnownHiddenStates =>
       {PollEventContent.responseType}.contains(type) ||
-      type.startsWith('m.key.verification.');
+      type.startsWith('m.key.verification.') ||
+      // Pure metadata stamped by GroupInvitePage to carry a decision
+      // timestamp for GroupInviteBubble — never meant to render as its own
+      // timeline entry.
+      type == 'com.trustwork.group_invite_decision';
 }

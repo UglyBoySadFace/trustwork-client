@@ -3693,6 +3693,32 @@
   "@groupInviteCardDeclined": {},
   "groupInviteCardLeft": "You left this group.",
   "@groupInviteCardLeft": {},
+  "groupInviteCardJoinedAt": "You joined this group on {date}.",
+  "@groupInviteCardJoinedAt": {
+    "placeholders": {
+      "date": {"type": "String"}
+    }
+  },
+  "groupInviteCardDeclinedAt": "You declined this invite on {date}.",
+  "@groupInviteCardDeclinedAt": {
+    "placeholders": {
+      "date": {"type": "String"}
+    }
+  },
+  "groupInviteCardInviteeJoinedAt": "{invitee} joined on {date}.",
+  "@groupInviteCardInviteeJoinedAt": {
+    "placeholders": {
+      "invitee": {"type": "String"},
+      "date": {"type": "String"}
+    }
+  },
+  "groupInviteCardInviteeDeclinedAt": "{invitee} declined on {date}.",
+  "@groupInviteCardInviteeDeclinedAt": {
+    "placeholders": {
+      "invitee": {"type": "String"},
+      "date": {"type": "String"}
+    }
+  },
   "manageGroup": "Manage group",
   "@manageGroup": {},
   "leaveGroup": "Leave group",
@@ -3768,5 +3794,26 @@
     }
   },
   "suggestionAdminMustInviteUnknown": "Since you're the admin of the chat you must send the invitation. Do you want to invite them?",
-  "@suggestionAdminMustInviteUnknown": {}
+  "@suggestionAdminMustInviteUnknown": {},
+  "viewSuggestion": "View suggestion",
+  "@viewSuggestion": {},
+  "suggestionCardSentTo": "Suggested {suggested} for {group}.",
+  "@suggestionCardSentTo": {
+    "placeholders": {
+      "suggested": {"type": "String"},
+      "group": {"type": "String"}
+    }
+  },
+  "suggestionCardSentToUnknown": "Suggested someone for {group}.",
+  "@suggestionCardSentToUnknown": {
+    "placeholders": {
+      "group": {"type": "String"}
+    }
+  },
+  "suggestionListPreview": "Member suggestion: {group}",
+  "@suggestionListPreview": {
+    "placeholders": {
+      "group": {"type": "String"}
+    }
+  }
 }

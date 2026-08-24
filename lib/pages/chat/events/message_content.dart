@@ -29,6 +29,7 @@ import 'html_message.dart';
 import 'image_bubble.dart';
 import 'map_bubble.dart';
 import 'message_download_content.dart';
+import 'suggestion_created_bubble.dart';
 
 class MessageContent extends StatelessWidget {
   final Event event;
@@ -325,6 +326,8 @@ class MessageContent extends StatelessWidget {
         return DataRequestBubble(event: event);
       case 'com.trustwork.group_invite':
         return GroupInviteBubble(event: event);
+      case 'com.trustwork.suggestion_created':
+        return SuggestionCreatedBubble(event: event);
       default:
         return _ButtonContent(
           label: L10n.of(context).userSentUnknownEvent(
