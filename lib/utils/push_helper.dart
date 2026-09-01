@@ -26,6 +26,23 @@ import 'package:fluffychat/utils/ringer_vibration.dart';
 
 const notificationAvatarDimension = 128;
 
+/// True when [event] is a `com.trustwork.group_invite` addressed to a
+/// different user than [localUserId]. The middleware bot is always the
+/// sender of this event type, so both the admin who sent the invite and the
+/// invitee are room members and would otherwise both get pushed — the
+/// homeserver's "don't push the sender their own event" suppression doesn't
+/// help here since neither human is the sender.
+///
+/// Fails open (returns false, i.e. don't suppress) when the event isn't a
+/// group invite or carries no `invitee_matrix_id`, so a malformed event
+/// never silently swallows a real invite notification.
+@visibleForTesting
+bool isGroupInviteForOtherUser(Event event, String? localUserId) {
+  if (event.type != 'com.trustwork.group_invite') return false;
+  final inviteeId = event.content.tryGet<String>('invitee_matrix_id');
+  return inviteeId != null && inviteeId != localUserId;
+}
+
 /// True when the app is currently visible to the user. When true we skip the
 /// callkit incoming UI — the in-app dialer overlay is enough, and showing
 /// both means the user sees two answer/decline UIs and the heads-up
@@ -193,6 +210,11 @@ Future<void> _tryPushHelper(
     return;
   }
   Logs().v('Push helper got notification event of type ${event.type}.');
+
+  if (isGroupInviteForOtherUser(event, client.userID)) {
+    Logs().v('Group invite event is not addressed to this user, skipping.');
+    return;
+  }
 
   // Middleware-sourced names for callers/senders — Matrix profiles are blank.
   final contactsCache = ContactsCache()..loadFromStore(await AppSettings.init());
